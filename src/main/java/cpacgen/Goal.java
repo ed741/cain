@@ -1,22 +1,28 @@
 package cpacgen;
 
 import java.lang.reflect.Array;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
-public class Goal extends ArrayList<Atom> {
 
-    public Goal(Collection<? extends Atom> collection) {
-        super(collection);
+public class Goal implements List<Atom>, Comparable<Goal>{
+
+    List<Atom> list;
+
+    public Goal(List<Atom> list) {
+        ArrayList<Atom> l = new ArrayList<>(list);
+        this.list = Collections.unmodifiableList(l);
     }
 
     public Goal() {
+        list = Collections.emptyList();
     }
 
     public Goal(Atom... atoms) {
-        super(Arrays.asList(atoms));
+        this.list = Collections.unmodifiableList(Arrays.asList(atoms));
+    }
+
+    private Goal(ArrayList<Atom> al){
+        this.list = Collections.unmodifiableList(al);
     }
 
     private static String goalStringN(Goal g){
@@ -36,20 +42,18 @@ public class Goal extends ArrayList<Atom> {
     }
 
     public Goal without(Goal goal) {
-        Goal out = new Goal();
-        Goal tmp = new Goal();
-        tmp.addAll(goal);
+        Goal.Factory factory = new Goal.Factory();
+        List<Atom> tmp = new ArrayList<>(goal);
         for (Atom a: this){
             if (!tmp.remove(a)){
-                out.add(a);
+                factory.add(a);
             }
         }
-        return out;
+        return factory.get();
     }
 
     public boolean same(Goal g){
-        Goal tmp = new Goal();
-        tmp.addAll(g);
+        List<Atom> tmp = new ArrayList<>(g);
         for (Atom a: this){
             if (!tmp.remove(a)){
                 return false;
@@ -74,24 +78,45 @@ public class Goal extends ArrayList<Atom> {
             out.add(new Goal());
             return out;
         }
-        Goal sub = new Goal();
-        sub.addAll(this);
+        List<Atom> sub = new ArrayList<>(this);
         Atom a = sub.remove(0);
-        Collection<Goal> subSplits = sub.rallSplits();
+        Collection<Goal> subSplits = new Goal(sub).rallSplits();
         List<Goal> out = new ArrayList<>();
         for (Goal g: subSplits){
             if (out.stream().noneMatch(g::same)){
                 out.add(g);
             }
-            Goal gp = new Goal();
-            gp.addAll(g);
-            gp.add(a);
+            Goal.Factory factory = new Goal.Factory(g);
+            factory.add(a);
+            Goal gp = factory.get();
             if (out.stream().noneMatch(gp::same)){
                 out.add(gp);
             }
         }
         return out;
     }
+
+    @Override
+    public int compareTo(Goal goal) {
+        if(this.size() < goal.size()){
+            return 1;
+        }
+        if(this.size() > goal.size()){
+            return -1;
+        }
+        for (int i = 0; i < size(); i++) {
+            int c = get(i).compareTo(goal.get(i));
+            if(c != 0){
+                return c;
+            }
+        }
+        return 0;
+    }
+
+    public int atomCount() {
+        return size();
+    }
+
 
     public static class Pair {
         Goal upper;
@@ -147,4 +172,230 @@ public class Goal extends ArrayList<Atom> {
         }
     }
 
+    public static class Bag extends ArrayList<Goal>{
+        private boolean immutable = false;
+        private int atomCount = -1;
+        public Bag(Bag b) {
+            super(b);
+        }
+        public Bag() {
+        }
+
+        public void setImmutable(){
+            immutable = true;
+        }
+        public boolean isImmutable(){
+            return immutable;
+        }
+
+        public int atomCount(){
+            if (isImmutable() && atomCount >=0){
+                return atomCount;
+            }
+            int a = 0;
+            for(Goal g: this){
+                a += g.size();
+            }
+            atomCount = a;
+            return a;
+        }
+
+
+        @Override
+        public boolean add(Goal goal) {
+            assert !immutable;
+            for (int i = 0; i < size(); i++) {
+                if(get(i).compareTo(goal) >= 0){
+                    super.add(i, goal);
+                    return true;
+                }
+            }
+            super.add(goal);
+            return true;
+        }
+
+        @Override
+        public boolean addAll(Collection<? extends Goal> collection) {
+            assert !immutable;
+            boolean c = false;
+            for (Goal g:collection) {
+                add(g);
+                c = true;
+            };
+            return c;
+        }
+
+        @Override
+        public boolean addAll(int i, Collection<? extends Goal> collection) {
+            throw new UnsupportedOperationException("Cannot add Goals at index");
+        }
+
+        @Override
+        public Goal set(int i, Goal goal) {
+            throw new UnsupportedOperationException("Cannot set Goals at index");
+        }
+
+        @Override
+        public void add(int i, Goal goal) {
+            throw new UnsupportedOperationException("Cannot add Goals at index");
+        }
+
+    }
+
+    public static class Factory {
+        private ArrayList<Atom> list;
+
+        public Factory(List<Atom> list) {
+            this.list = new ArrayList<>(list);
+        }
+
+        public Factory() {
+            this.list = new ArrayList<>();
+        }
+
+        public Factory(Atom... atoms) {
+            this.list = new ArrayList<>(Arrays.asList(atoms));
+        }
+
+
+        public Goal get(){
+            list.sort(null);
+            Goal g = new Goal(list);
+            list = null;
+            return g;
+        }
+
+        public void add(Atom a){
+            list.add(a);
+        }
+
+        public void addAll(Collection<Atom> a){
+            list.addAll(a);
+        }
+
+    }
+
+
+
+
+
+    @Override
+    public int size() {
+        return list.size();
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return list.isEmpty();
+    }
+
+    @Override
+    public boolean contains(Object o) {
+        return list.contains(o);
+    }
+
+    @Override
+    public Iterator<Atom> iterator() {
+        return list.iterator();
+    }
+
+    @Override
+    public Object[] toArray() {
+        return list.toArray();
+    }
+
+    @Override
+    public <T> T[] toArray(T[] ts) {
+        return list.toArray(ts);
+    }
+
+    @Override
+    public boolean add(Atom atom) {
+        throw new UnsupportedOperationException("Goals are immutable");
+    }
+
+    @Override
+    public boolean remove(Object o) {
+        throw new UnsupportedOperationException("Goals are immutable");
+    }
+
+    @Override
+    public boolean containsAll(Collection<?> collection) {
+        return list.containsAll(collection);
+    }
+
+    @Override
+    public boolean addAll(Collection<? extends Atom> collection) {
+        throw new UnsupportedOperationException("Goals are immutable");
+    }
+
+    @Override
+    public boolean addAll(int i, Collection<? extends Atom> collection) {
+        throw new UnsupportedOperationException("Goals are immutable");
+    }
+
+    @Override
+    public boolean removeAll(Collection<?> collection) {
+        throw new UnsupportedOperationException("Goals are immutable");
+    }
+
+    @Override
+    public boolean retainAll(Collection<?> collection) {
+        throw new UnsupportedOperationException("Goals are immutable");
+    }
+
+    @Override
+    public void clear() {
+        throw new UnsupportedOperationException("Goals are immutable");
+    }
+
+    @Override
+    public Atom get(int i) {
+        return list.get(i);
+    }
+
+    @Override
+    public Atom set(int i, Atom atom) {
+        throw new UnsupportedOperationException("Goals are immutable");
+    }
+
+    @Override
+    public void add(int i, Atom atom) {
+        throw new UnsupportedOperationException("Goals are immutable");
+    }
+
+    @Override
+    public Atom remove(int i) {
+        throw new UnsupportedOperationException("Goals are immutable");
+    }
+
+    @Override
+    public int indexOf(Object o) {
+        return list.indexOf(o);
+    }
+
+    @Override
+    public int lastIndexOf(Object o) {
+        return list.lastIndexOf(o);
+    }
+
+    @Override
+    public ListIterator<Atom> listIterator() {
+        return list.listIterator();
+    }
+
+    @Override
+    public ListIterator<Atom> listIterator(int i) {
+        return list.listIterator(i);
+    }
+
+    @Override
+    public List<Atom> subList(int i, int i1) {
+        return list.subList(i, i1);
+    }
+
+    @Override
+    public String toString() {
+        return list.toString();
+    }
 }

@@ -2,7 +2,9 @@ package cpacgen;
 
 import cpacgen.util.Bounds;
 
-public class Atom {
+import java.util.Comparator;
+
+public class Atom implements Comparable<Atom> {
     public final int x;
     public final int y;
     public final int z;
@@ -38,5 +40,42 @@ public class Atom {
 
     public String toStringN() {
         return "(" + x + ", " + y  + ", " + z + ")";
+    }
+
+    @Override
+    public int compareTo(Atom b) {
+        if(x < b.x){
+            return -1;
+        }
+        if(x > b.x){
+            return 1;
+        }
+        if(y < b.y){
+            return -1;
+        }
+        if(y > b.y){
+            return 1;
+        }
+        return Integer.compare(z, b.z);
+    }
+
+    public static class AtomComparator implements Comparator<Atom> {
+        @Override
+        public int compare(Atom a, Atom b) {
+            if(a.x < b.x){
+                return -1;
+            }
+            if(a.x > b.x){
+                return 1;
+            }
+            if(a.y < b.y){
+                return -1;
+            }
+            if(a.y > b.y){
+                return 1;
+            }
+            return Integer.compare(a.z, b.z);
+
+        }
     }
 }

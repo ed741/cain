@@ -97,7 +97,7 @@ public abstract class Transformation {
         final Goal in;
 
         private static Goal getForwardsApplication(int divisions, Goal goal) throws TransformationApplicationException {
-            Goal out = new Goal();
+            Goal.Factory factory = new Goal.Factory();
             Map<Atom, MutableInteger> count = new HashMap<>();
             for (Atom a: goal){
                 count.putIfAbsent(a, new MutableInteger(0));
@@ -111,20 +111,20 @@ public abstract class Transformation {
                     throw new TransformationApplicationException(i + " Atoms cannot halved " + divisions + " time(s)");
                 }
                 for (int j = 0; j < i>>divisions; j++){
-                    out.add(entry.getKey());
+                    factory.add(entry.getKey());
                 }
             }
-            return out;
+            return factory.get();
         }
 
         private static Goal getBackwardsApplication(int divisions, Goal goal){
-            Goal out = new Goal();
+            Goal.Factory factory = new Goal.Factory();
             for (Atom a: goal){
                 for (int j = 0; j < 1<<divisions; j++){
-                    out.add(a);
+                    factory.add(a);
                 }
             }
-            return out;
+            return factory.get();
         }
 
         public Div(int divisions, Goal in) {
@@ -167,23 +167,23 @@ public abstract class Transformation {
         final Goal in;
 
         private static Goal getForwardsApplication(int steps, Direction dir, Goal goal){
-            Goal out = new Goal();
+            Goal.Factory factory = new Goal.Factory();
             int rx = steps * dir.x;
             int ry = steps * dir.y;
             for (Atom a: goal){
-                out.add(a.moved(rx, ry, 0));
+                factory.add(a.moved(rx, ry, 0));
             }
-            return out;
+            return factory.get();
         }
 
         private static Goal getBackwardsApplication(int steps, Direction dir, Goal goal){
-            Goal out = new Goal();
+            Goal.Factory factory = new Goal.Factory();
             int rx = steps * dir.x;
             int ry = steps * dir.y;
             for (Atom a: goal){
-                out.add(a.moved(-rx, -ry, 0));
+                factory.add(a.moved(-rx, -ry, 0));
             }
-            return out;
+            return factory.get();
         }
 
         public Move(int steps, Direction dir, Goal in) {
@@ -236,9 +236,9 @@ public abstract class Transformation {
         Goal b;
 
         private static Goal getForwardsApplication(Goal a, Goal b){
-            Goal out =  new Goal(a);
-            out.addAll(b);
-            return out;
+            Goal.Factory factory = new Goal.Factory(a);
+            factory.addAll(b);
+            return factory.get();
         }
 
         public Add(Goal a, Goal b) {

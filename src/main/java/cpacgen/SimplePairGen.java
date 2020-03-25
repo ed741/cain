@@ -8,12 +8,12 @@ import java.util.*;
 public class SimplePairGen implements Iterator<Goal.Pair> {
 
     private List<Goal> goalList;
-    private List<Goal> final_goals;
+    private Goal.Bag final_goals;
     private List<Goal.Pair> currentList;
     private Goal.Pair n;
     private Bounds bounds;
 
-    public SimplePairGen(List<Goal> goals, List<Goal> final_goals) {
+    public SimplePairGen(Goal.Bag goals, Goal.Bag final_goals) {
         goalList = new ArrayList<>(goals);
         currentList = new ArrayList<>();
         this.final_goals = final_goals;

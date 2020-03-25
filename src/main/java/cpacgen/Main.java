@@ -5,19 +5,20 @@ import java.util.List;
 
 public class Main {
     public static void main(String[] args) {
-        Goal final_goal = new Goal();
-        final_goal.add(new Atom(0, 1, 0));
-        final_goal.add(new Atom(0, 0, 0));
-        final_goal.add(new Atom(1, 1, 0));
-        final_goal.add(new Atom(1, 0, 0));
+        Goal.Factory finalGoalFactory = new Goal.Factory();
+
+        finalGoalFactory.add(new Atom(0, 1, 0));
+        finalGoalFactory.add(new Atom(0, 0, 0));
+        finalGoalFactory.add(new Atom(1, 1, 0));
+        finalGoalFactory.add(new Atom(1, 0, 0));
 
 
-//        final_goal.add(new Atom(-1, 1, 0));
-//        final_goal.add(new Atom(-1, 0, 0));
-//        final_goal.add(new Atom(-1, -1, 0));
+//        finalGoalFactory.add(new Atom(-1, 1, 0));
+//        finalGoalFactory.add(new Atom(-1, 0, 0));
+//        finalGoalFactory.add(new Atom(-1, -1, 0));
         List<Goal> final_goals = new ArrayList<>();
-        final_goals.add(final_goal);
-        ReverseSpilt rs = new ReverseSpilt(0, final_goals);
+        final_goals.add(finalGoalFactory.get());
+        ReverseSplit rs = new ReverseSplit(2, final_goals);
         rs.search();
 
         System.out.println("print plans");
@@ -31,8 +32,12 @@ public class Main {
                 min = pl.cost();
             }
         }
+        System.out.println(rs.cache);
+
         System.out.println("Best");
-        System.out.println(rs.plans.get(imin));
-        rs.plans.get(imin).display();
+        Plan p = rs.plans.get(imin);
+        System.out.println("Found new Plan! length: " + p.depth() + " Cost: "+p.cost());
+        System.out.println(p);
+        p.display();
     }
 }
