@@ -11,7 +11,7 @@ public class GoalsCache {
         this.costMap = new HashMap<>();
     }
 
-    public boolean isBest(Goal.Bag b, double d) {
+    public synchronized boolean isBest(Goal.Bag b, double d) {
         b.setImmutable();
         checks++;
         Double cost = costMap.get(b);
@@ -27,7 +27,7 @@ public class GoalsCache {
         costMap.put(b, cost);
     }
 
-    public void hit(){
+    public synchronized void hit(){
         hits++;
     }
 

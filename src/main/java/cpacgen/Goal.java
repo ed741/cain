@@ -120,7 +120,7 @@ public class Goal implements List<Atom>, Comparable<Goal>{
 
     public static class Pair {
         Goal upper;
-        List<Goal> lowers;
+        Goal.Bag lowers;
         Transformation transformation;
 
         private static String TransformationString(Transformation t){
@@ -129,15 +129,17 @@ public class Goal implements List<Atom>, Comparable<Goal>{
 
         public Pair(Goal u, Goal l, Transformation t) {
             upper = u;
-            lowers = new ArrayList<>();
+            lowers = new Goal.Bag();
             lowers.add(l);
+            lowers.setImmutable();
             transformation = t;
         }
 
         public Pair(Goal u, List<Goal> ls, Transformation t) {
             upper = u;
-            lowers = new ArrayList<>();
+            lowers = new Goal.Bag();
             lowers.addAll(ls);
+            lowers.setImmutable();
             transformation = t;
         }
 
@@ -397,5 +399,15 @@ public class Goal implements List<Atom>, Comparable<Goal>{
     @Override
     public String toString() {
         return list.toString();
+    }
+
+    @Override
+    public int hashCode() {
+        return list.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof Goal && list.equals(((Goal) o).list);
     }
 }

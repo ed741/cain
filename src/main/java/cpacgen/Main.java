@@ -7,15 +7,21 @@ public class Main {
     public static void main(String[] args) {
         Goal.Factory finalGoalFactory = new Goal.Factory();
 
-        finalGoalFactory.add(new Atom(0, 1, 0));
-        finalGoalFactory.add(new Atom(0, 0, 0));
+//        finalGoalFactory.add(new Atom(0, 1, 0));
+//        finalGoalFactory.add(new Atom(0, 0, 0));
+//        finalGoalFactory.add(new Atom(1, 1, 0));
+//        finalGoalFactory.add(new Atom(1, 0, 0));
+
+
+        finalGoalFactory.add(new Atom(-1, 1, 0));
+        finalGoalFactory.add(new Atom(-1, 0, 0));
+        finalGoalFactory.add(new Atom(-1, -1, 0));
         finalGoalFactory.add(new Atom(1, 1, 0));
         finalGoalFactory.add(new Atom(1, 0, 0));
-
-
-//        finalGoalFactory.add(new Atom(-1, 1, 0));
-//        finalGoalFactory.add(new Atom(-1, 0, 0));
-//        finalGoalFactory.add(new Atom(-1, -1, 0));
+        finalGoalFactory.add(new Atom(1, -1, 0));
+        finalGoalFactory.add(new Atom(0, 0, 0));
+        finalGoalFactory.add(new Atom(0, -1, 0));
+        finalGoalFactory.add(new Atom(0, -2, 0));
         List<Goal> final_goals = new ArrayList<>();
         final_goals.add(finalGoalFactory.get());
         ReverseSplit rs = new ReverseSplit(2, final_goals);

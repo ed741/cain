@@ -77,7 +77,7 @@ public abstract class Transformation {
     public static Collection<Tuple<? extends Transformation, Goal>> applyAllUnaryOpBackwards(Goal goal){
         ArrayList<Tuple<? extends Transformation, Goal>> list = new ArrayList<>();
         for (Transformation.Direction d: Transformation.Direction.values()){
-            for (int i = 1; i < 2; i++){
+            for (int i = 1; i < 4; i++){
                 Goal input = Move.getBackwardsApplication(i, d, goal);
                 Transformation t = new Move(i, d, input);
                 list.add(new Tuple<>(t, input));
