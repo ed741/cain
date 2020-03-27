@@ -1,11 +1,14 @@
-package cpacgen;
+package cpacgen.pairgen;
 
+import cpacgen.Atom;
+import cpacgen.Goal;
+import cpacgen.pairgen.SimplePairGenFactory;
 import cpacgen.util.Tuple;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class SortPairGenFactory extends SimplePairGenFactory{
+public class SortPairGenFactory extends SimplePairGenFactory {
 
     @Override
     public PairGen generatePairs(Goal.Bag goals) {
@@ -27,8 +30,8 @@ public class SortPairGenFactory extends SimplePairGenFactory{
             List<Tuple<Goal.Pair, Double>> list = new ArrayList<>(pairs.size());
             for (Goal.Pair pair: pairs){
                 HashSet<Goal> goalSet = new HashSet<>(this.goals);
-                goalSet.remove(pair.upper);
-                goalSet.addAll(pair.lowers);
+                goalSet.remove(pair.getUpper());
+                goalSet.addAll(pair.getLowers());
                 double v = 0;
                 for (Goal g: goalSet){
                     int i = 0;

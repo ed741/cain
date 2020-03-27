@@ -1,9 +1,12 @@
-package cpacgen;
+package cpacgen.pairgen;
+
+import cpacgen.Goal;
+import cpacgen.ReverseSplit;
 
 import java.util.Iterator;
 
 public interface PairGenFactory {
-    static interface PairGen{
+    interface PairGen{
         Goal.Pair next();
     }
 

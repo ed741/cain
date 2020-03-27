@@ -1,5 +1,6 @@
 package cpacgen;
 
+import cpacgen.util.Bounds;
 import org.graphstream.graph.Graph;
 import org.graphstream.graph.Node;
 import org.graphstream.graph.implementations.SingleGraph;
@@ -13,12 +14,12 @@ public class Plan {
     private List<Step> all = new ArrayList<>();
     private List<Step> head = new ArrayList<>();
 
-    public Plan(List<Goal> init, String comment){
-        for (Goal g: init){
-            Goal.Pair p = new Goal.Pair(null, g, new Transformation.Null());
-            Step s = new Step(p, comment);
-            start.add(s);
-        }
+    public Plan(Goal.Bag init, String comment){
+        init.setImmutable();
+        Goal.Pair p = new Goal.Pair(null, init, new Transformation.Null());
+        Step s = new Step(p, init, comment);
+        start.add(s);
+
         all.addAll(start);
         head.addAll(start);
     }
@@ -27,16 +28,16 @@ public class Plan {
         start.addAll(init);
     }
 
-    public Plan newAdd(Goal.Pair transformation, String comment) {
+    public Plan newAdd(Goal.Pair newPair, Goal.Bag currentGoals, String comment) {
         Plan out = new Plan(start);
         out.all.addAll(all);
         out.head.addAll(head);
-        Step newStep = new Step(transformation, comment);
-        for(Step s: out.all){
-            for(Goal l: s.goalPair.lowers){
-                if(l.same(transformation.upper)){
-                    newStep.links.add(s);
-                    out.head.remove(s);
+        Step newStep = new Step(newPair, currentGoals, comment);
+        for(Step step: out.all){
+            for(Goal lowerGoal: step.goalPair.getLowers()){
+                if(lowerGoal.same(newPair.getUpper())){
+                    newStep.links.add(step);
+                    out.head.remove(step);
                 }
             }
         }
@@ -47,14 +48,16 @@ public class Plan {
 
     private static class Step {
         private final String comment;
-        Goal.Pair goalPair;
-        List<Step> links;
+        private final Goal.Pair goalPair;
+        private final Goal.Bag currentGoals;
+        private final List<Step> links;
         private String name;
 
-        private Step(Goal.Pair t, String comment) {
+        private Step(Goal.Pair t, Goal.Bag currentGoals, String comment) {
             goalPair = t;
             this.comment = comment;
             links = new ArrayList<>();
+            this.currentGoals = new Goal.Bag(currentGoals);
         }
 
 
@@ -82,10 +85,51 @@ public class Plan {
                 //s.addEdgesToGraph(graph);
             }
         }
+
+        public String toGoalsString() {
+
+            Bounds b = new Bounds(new Bounds(currentGoals), new Atom(0,0,0));
+            int height = 1 + b.yMax - b.yMin;
+            int width = 1 + b.xMax - b.xMin;
+            List<char[][]> arrays = new ArrayList<>();
+
+            for (int i = 0; i < currentGoals.size(); i++) {
+                char [][] tableArray = new char[height+2][width+2];
+                int xZero = 1-b.xMin;
+                int yZero = 1-b.yMin;
+                for (int x = b.xMin-1; x <= b.xMax+1; x++) {
+                    for (int y = b.yMin-1; y <= b.yMax+1; y++) {
+                        if (b.xMin <= x && x <= b.xMax && b.yMin <= y && y <= b.yMax) {
+                            tableArray[yZero + y][xZero + x] = '0';
+                        } else {
+                            tableArray[yZero + y][xZero + x] = this.goalPair.getLowers().contains(currentGoals.get(i))? '*':'+';
+                        }
+                    }
+                }
+                for (Atom a : currentGoals.get(i)) {
+                    tableArray[yZero + a.y][xZero+a.x] += 1;
+                }
+                if (tableArray[yZero][xZero]=='0'){
+                    tableArray[yZero][xZero] = '.';
+
+                }
+                arrays.add(tableArray);
+            }
+
+            StringBuilder sb = new StringBuilder();
+            for (int j = height+1; j >= 0; j--) {
+                for (char[][] array : arrays) {
+                    sb.append(array[j]);
+                    sb.append(' ');
+                }
+                sb.append("\n");
+            }
+            return sb.toString();
+        }
     }
 
     public Double cost(){
-        return all.stream().mapToDouble(x -> x.goalPair.transformation.cost()).sum();
+        return all.stream().mapToDouble(x -> x.goalPair.getTransformation().cost()).sum();
     }
 
     public int depth(){
@@ -100,6 +144,19 @@ public class Plan {
             sb.append(i+1);
             sb.append(": ");
             sb.append(all.get(i).toString());
+            sb.append('\n');
+        }
+        return sb.toString();
+    }
+
+    public String toGoalsString(){
+        StringBuilder sb = new StringBuilder("plan:\n");
+        for (int i = 0; i<all.size(); i++) {
+            sb.append(i+1);
+            sb.append(": ");
+            sb.append(all.get(i).toStringN());
+            sb.append("\n");
+            sb.append(all.get(i).toGoalsString());
             sb.append('\n');
         }
         return sb.toString();

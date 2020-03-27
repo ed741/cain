@@ -49,6 +49,15 @@ public class Bounds {
         this.zMin = zMin;
     }
 
+    public Bounds(Bounds b, Atom a){
+            xMax = max(b.xMax, a.x);
+            xMin = min(b.xMin, a.x);
+            yMax = max(b.yMax, a.y);
+            yMin = min(b.yMin, a.y);
+            zMax = max(b.zMax, a.z);
+            zMin = min(b.zMin, a.z);
+    }
+
     public boolean includes(Atom a){
         return xMin <= a.x && a.x <= xMax &&
                 yMin <= a.y && a.y <= yMax &&

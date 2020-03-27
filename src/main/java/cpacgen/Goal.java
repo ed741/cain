@@ -119,9 +119,21 @@ public class Goal implements List<Atom>, Comparable<Goal>{
 
 
     public static class Pair {
-        Goal upper;
-        Goal.Bag lowers;
-        Transformation transformation;
+        private final Goal upper;
+        private final Goal.Bag lowers;
+        private final Transformation transformation;
+
+        public Goal getUpper() {
+            return upper;
+        }
+
+        public Bag getLowers() {
+            return lowers;
+        }
+
+        public Transformation getTransformation() {
+            return transformation;
+        }
 
         private static String TransformationString(Transformation t){
             return t!=null? t.toStringN() : "null";
@@ -181,6 +193,10 @@ public class Goal implements List<Atom>, Comparable<Goal>{
             super(b);
         }
         public Bag() {
+        }
+
+        public Bag(Goal goal) {
+            add(goal);
         }
 
         public void setImmutable(){

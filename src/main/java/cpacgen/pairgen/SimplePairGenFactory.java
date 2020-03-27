@@ -1,17 +1,18 @@
-package cpacgen;
+package cpacgen.pairgen;
 
+import cpacgen.*;
 import cpacgen.util.Bounds;
 import cpacgen.util.Tuple;
 
 import java.util.*;
 
-public class SimplePairGenFactory implements PairGenFactory{
+public class SimplePairGenFactory implements PairGenFactory {
 
     private Bounds bounds;
 
     @Override
     public void init(ReverseSplit rs) {
-        bounds = new Bounds(rs.finalGoals);
+        bounds = new Bounds(rs.getFinalGoals());
     }
 
     @Override
@@ -53,7 +54,7 @@ public class SimplePairGenFactory implements PairGenFactory{
 
 
         boolean check(Goal.Pair p){
-            for (Goal l: p.lowers) {
+            for (Goal l: p.getLowers()) {
                 for (Atom a : l) {
                     if (!bounds.includes(a)) {
                         return false;
