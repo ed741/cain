@@ -7,6 +7,8 @@ import java.util.*;
 
 public abstract class Transformation {
 
+    public abstract String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers);
+
     public static class TransformationApplicationException extends Exception{
 
         public TransformationApplicationException(String s) {
@@ -28,12 +30,17 @@ public abstract class Transformation {
     public static class Null extends Transformation {
 
         @Override
+        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+            return String.format("//Null Instruction: %s <- %s", upper, lowers);
+        }
+
+        @Override
         public int inputCount() {
             return 0;
         }
 
         @Override
-        public Goal applyForwards() throws TransformationApplicationException {
+        public Goal applyForwards(){
             return null;
         }
 
@@ -145,6 +152,12 @@ public abstract class Transformation {
         }
 
         @Override
+        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+            assert lowers.size() == inputCount();
+            return String.format("divq(%s, %s)", upper, lowers.get(0));
+        }
+
+        @Override
         public int inputCount() {
             return 1;
         }
@@ -204,12 +217,18 @@ public abstract class Transformation {
 
 
         @Override
+        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+            assert lowers.size() == inputCount();
+            return String.format("movx(%s, %s, %d, %s)", upper, lowers.get(0), steps, dir);
+        }
+
+        @Override
         public int inputCount() {
             return 1;
         }
 
         @Override
-        public Goal applyForwards() throws TransformationApplicationException {
+        public Goal applyForwards() {
             return getForwardsApplication(steps, dir, in);
 
         }
@@ -221,7 +240,7 @@ public abstract class Transformation {
     }
 
     public enum Direction {
-        N(0,1), E(1,0), S(0,-1), W(-1,0);
+        N(0,-1), E(-1,0), S(0,1), W(1,0);
 
         int x, y;
         Direction(int x, int y) {
@@ -257,12 +276,26 @@ public abstract class Transformation {
         }
 
         @Override
+        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+            assert lowers.size() == inputCount();
+            StringBuilder sb = new StringBuilder();
+            sb.append("add(");
+            sb.append(upper);
+            for (int i = 0; i < lowers.size(); i++) {
+                sb.append(", ");
+                sb.append(lowers.get(i));
+            }
+            sb.append(")");
+            return sb.toString();
+        }
+
+        @Override
         public int inputCount() {
             return 2;
         }
 
         @Override
-        public Goal applyForwards() throws TransformationApplicationException {
+        public Goal applyForwards() {
             return getForwardsApplication(a, b);
         }
 

@@ -20,6 +20,10 @@ public class Tuple<A, B> implements Iterable<Object> {
         return b;
     }
 
+    public static <X, Y, Z> Tuple<X, Tuple<Y, Z>> triple(X x, Y y, Z z){
+        return new Tuple<>(x, new Tuple<>(y, z));
+    }
+
     @Override
     public Iterator<Object> iterator() {
         return new
@@ -44,5 +48,16 @@ public class Tuple<A, B> implements Iterable<Object> {
                         }
                     }
                 };
+    }
+
+    @Override
+    public int hashCode() {
+        return a.hashCode() ^ b.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return (o instanceof Tuple) && a.equals(((Tuple) o).getA()) && b.equals(((Tuple) o).getB());
+
     }
 }

@@ -90,12 +90,7 @@ public class V1PairGenFactory implements PairGenFactory{
             }
 
             Transformation.Add add = new Transformation.Add(a, b);
-            try {
-                if (!add.applyForwards().same(upper)) throw new AssertionError();
-            } catch (Transformation.TransformationApplicationException e) {
-                e.printStackTrace();
-                System.exit(-1);
-            }
+            if (!add.applyForwards().same(upper)) throw new AssertionError();
             List<Goal> lowers = new ArrayList<>();
             lowers.add(a);
             lowers.add(b);

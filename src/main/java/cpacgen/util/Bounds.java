@@ -49,6 +49,27 @@ public class Bounds {
         this.zMin = zMin;
     }
 
+    public static Bounds BoundsFromGoal(Collection<Atom> c) {
+        int xMax = Integer.MIN_VALUE;
+        int xMin = Integer.MAX_VALUE;
+        int yMax = Integer.MIN_VALUE;
+        int yMin = Integer.MAX_VALUE;
+        int zMax = Integer.MIN_VALUE;
+        int zMin = Integer.MAX_VALUE;
+
+        for (Atom a: c){
+            xMax = max(xMax, a.x);
+            xMin = min(xMin, a.x);
+            yMax = max(yMax, a.y);
+            yMin = min(yMin, a.y);
+            zMax = max(zMax, a.z);
+            zMin = min(zMin, a.z);
+        }
+
+        return new Bounds(xMax, xMin, yMax, yMin, zMax, zMin);
+    }
+
+
     public Bounds(Bounds b, Atom a){
             xMax = max(b.xMax, a.x);
             xMin = min(b.xMin, a.x);

@@ -1,15 +1,18 @@
 package cpacgen;
 
-import java.lang.reflect.Array;
+import cpacgen.util.Bounds;
+import scala.util.parsing.combinator.testing.Str;
+
 import java.util.*;
 
 
 public class Goal implements List<Atom>, Comparable<Goal>{
 
-    List<Atom> list;
+    private List<Atom> list;
 
     public Goal(List<Atom> list) {
         ArrayList<Atom> l = new ArrayList<>(list);
+        l.sort(Atom.comparator);
         this.list = Collections.unmodifiableList(l);
     }
 
@@ -18,7 +21,9 @@ public class Goal implements List<Atom>, Comparable<Goal>{
     }
 
     public Goal(Atom... atoms) {
-        this.list = Collections.unmodifiableList(Arrays.asList(atoms));
+        List<Atom> l = Arrays.asList(atoms);
+        l.sort(Atom.comparator);
+        this.list = Collections.unmodifiableList(l);
     }
 
     private Goal(ArrayList<Atom> al){
@@ -39,6 +44,11 @@ public class Goal implements List<Atom>, Comparable<Goal>{
         }
         sb.append("]");
         return sb.toString();
+    }
+
+    @Override
+    public String toString() {
+        return toStringN();
     }
 
     public Goal without(Goal goal) {
@@ -78,7 +88,7 @@ public class Goal implements List<Atom>, Comparable<Goal>{
             out.add(new Goal());
             return out;
         }
-        List<Atom> sub = new ArrayList<>(this);
+        ArrayList<Atom> sub = new ArrayList<>(this);
         Atom a = sub.remove(0);
         Collection<Goal> subSplits = new Goal(sub).rallSplits();
         List<Goal> out = new ArrayList<>();
@@ -94,6 +104,57 @@ public class Goal implements List<Atom>, Comparable<Goal>{
             }
         }
         return out;
+    }
+
+    public String getCharTableString(boolean border){
+        Bounds b = new Bounds(Bounds.BoundsFromGoal(this), new Atom(0,0,0));
+        int height = 1 + b.yMax - b.yMin;
+        int width = 1 + b.xMax - b.xMin;
+        char[][] table = getCharTable(b, width, height, border);
+        StringBuilder sb = new StringBuilder();
+        for (int j = height+1; j >= 0; j--) {
+            sb.append(table[j]);
+            sb.append(' ');
+            sb.append("\n");
+        }
+        return sb.toString();
+    }
+
+    public char[][] getCharTable(boolean border){
+        Bounds b = new Bounds(Bounds.BoundsFromGoal(this), new Atom(0,0,0));
+        int height = 1 + b.yMax - b.yMin;
+        int width = 1 + b.xMax - b.xMin;
+        return getCharTable(b, width, height, border);
+    }
+
+
+    public char[][] getCharTable(Bounds b, int width, int height, boolean border) {
+        char [][] tableArray = new char[height+2][width+2];
+        int xZero = 1-b.xMin;
+        int yZero = 1-b.yMin;
+        for (int x = b.xMin-1; x <= b.xMax+1; x++) {
+            for (int y = b.yMin-1; y <= b.yMax+1; y++) {
+                if (b.xMin <= x && x <= b.xMax && b.yMin <= y && y <= b.yMax) {
+                    tableArray[yZero + y][xZero + x] = '0';
+                } else {
+                    tableArray[yZero + y][xZero + x] = border? '*':'+';
+                    if(x==0){
+                        tableArray[yZero + y][xZero + x] = '|';
+                    }
+                    if(y==0){
+                        tableArray[yZero + y][xZero + x] = '-';
+                    }
+                }
+            }
+        }
+        for (Atom a : this) {
+            tableArray[yZero + a.y][xZero+a.x] += 1;
+        }
+        if (tableArray[yZero][xZero]=='0'){
+            tableArray[yZero][xZero] = '.';
+
+        }
+        return tableArray;
     }
 
     @Override
@@ -275,6 +336,17 @@ public class Goal implements List<Atom>, Comparable<Goal>{
             this.list = new ArrayList<>(Arrays.asList(atoms));
         }
 
+        public Factory(int[][] matrix) {
+            this.list = new ArrayList<>();
+            for (int i = 0; i < matrix.length; i++) {
+                for (int j = 0; j < matrix[i].length; j++) {
+                    for (int k = 0; k < matrix[i][j]; k++) {
+                        list.add(new Atom(i-(matrix.length/2), j-(matrix[i].length/2), 0));
+                    }
+                }
+            }
+        }
+
 
         public Goal get(){
             list.sort(null);
@@ -294,6 +366,59 @@ public class Goal implements List<Atom>, Comparable<Goal>{
     }
 
 
+    public Iterator<Atom> uniqueIterator() {
+        return new Iterator<Atom>() {
+            int cursor = 0;
+            @Override
+            public boolean hasNext() {
+                return cursor < list.size();
+            }
+
+            @Override
+            public Atom next() {
+                Atom a = list.get(cursor++);
+                while(cursor < list.size() && a.equals(list.get(cursor))){
+                    cursor++;
+                }
+                return a;
+            }
+        };
+    }
+
+    public int count(Atom a){
+        int low = 0;
+        int high = list.size()-1;
+        int index = Integer.MAX_VALUE;
+
+        while (low <= high) {
+            int mid = (low + high) / 2;
+            int c = list.get(mid).compareTo(a);
+            if (c<0) {
+                low = mid + 1;
+            } else if (c>0) {
+                high = mid - 1;
+            } else {
+                index = mid;
+                break;
+            }
+        }
+        if (index >= list.size()){
+            return 0;
+        }
+        int count = 1;
+        int idxUp = index +1;
+        while(idxUp < list.size() && list.get(idxUp).equals(a)){
+            count++;
+            idxUp++;
+        }
+        int idxDown = index-1;
+        while(idxDown >= 0 && list.get(idxDown).equals(a)){
+            count++;
+            idxDown--;
+        }
+        return count;
+
+    }
 
 
 
@@ -410,11 +535,6 @@ public class Goal implements List<Atom>, Comparable<Goal>{
     @Override
     public List<Atom> subList(int i, int i1) {
         return list.subList(i, i1);
-    }
-
-    @Override
-    public String toString() {
-        return list.toString();
     }
 
     @Override

@@ -7,7 +7,10 @@ import org.graphstream.graph.implementations.SingleGraph;
 import org.graphstream.ui.view.Viewer;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class Plan {
     private List<Step> start = new ArrayList<>();
@@ -46,7 +49,21 @@ public class Plan {
         return out;
     }
 
-    private static class Step {
+    public List<Step> getAll() {
+        return Collections.unmodifiableList(all);
+    }
+
+    public String produceCode(Map<Goal, RegisterAllocator.Register> registerMap) {
+        StringBuilder sb = new StringBuilder("Kernel Code!\n");
+        for (int i = all.size()-1; i >= 0; i--) {
+            Step step = all.get(i);
+            sb.append(step.code(registerMap));
+            sb.append("\n");
+        }
+        return sb.toString();
+    }
+
+    public static class Step {
         private final String comment;
         private final Goal.Pair goalPair;
         private final Goal.Bag currentGoals;
@@ -58,6 +75,16 @@ public class Plan {
             this.comment = comment;
             links = new ArrayList<>();
             this.currentGoals = new Goal.Bag(currentGoals);
+        }
+
+        public Goal.Bag liveGoals(){
+            return currentGoals;
+        }
+        public Goal getUpper(){
+            return goalPair.getUpper();
+        }
+        public Goal.Bag getLowers(){
+            return goalPair.getLowers();
         }
 
 
@@ -94,25 +121,7 @@ public class Plan {
             List<char[][]> arrays = new ArrayList<>();
 
             for (int i = 0; i < currentGoals.size(); i++) {
-                char [][] tableArray = new char[height+2][width+2];
-                int xZero = 1-b.xMin;
-                int yZero = 1-b.yMin;
-                for (int x = b.xMin-1; x <= b.xMax+1; x++) {
-                    for (int y = b.yMin-1; y <= b.yMax+1; y++) {
-                        if (b.xMin <= x && x <= b.xMax && b.yMin <= y && y <= b.yMax) {
-                            tableArray[yZero + y][xZero + x] = '0';
-                        } else {
-                            tableArray[yZero + y][xZero + x] = this.goalPair.getLowers().contains(currentGoals.get(i))? '*':'+';
-                        }
-                    }
-                }
-                for (Atom a : currentGoals.get(i)) {
-                    tableArray[yZero + a.y][xZero+a.x] += 1;
-                }
-                if (tableArray[yZero][xZero]=='0'){
-                    tableArray[yZero][xZero] = '.';
-
-                }
+                char[][] tableArray = currentGoals.get(i).getCharTable(b, width, height, this.goalPair.getLowers().contains(currentGoals.get(i)));
                 arrays.add(tableArray);
             }
 
@@ -125,6 +134,11 @@ public class Plan {
                 sb.append("\n");
             }
             return sb.toString();
+        }
+
+        public String code(Map<Goal, RegisterAllocator.Register> registerMap) {
+            List<RegisterAllocator.Register> lowers = getLowers().stream().map(registerMap::get).collect(Collectors.toList());
+            return goalPair.getTransformation().code(registerMap.get(getUpper()), lowers);
         }
     }
 
