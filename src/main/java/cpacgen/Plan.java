@@ -115,7 +115,7 @@ public class Plan {
 
         public String toGoalsString() {
 
-            Bounds b = new Bounds(new Bounds(currentGoals), new Atom(0,0,0));
+            Bounds b = new Bounds(new Bounds(currentGoals), new Atom(0,0,0, true));
             int height = 1 + b.yMax - b.yMin;
             int width = 1 + b.xMax - b.xMin;
             List<char[][]> arrays = new ArrayList<>();

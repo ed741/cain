@@ -230,7 +230,7 @@ public class V2PairGenFactory implements PairGenFactory{
         PairGenFactory g = new V2PairGenFactory();
         Goal.Bag goals = new Goal.Bag();
         for (int i = 0; i < 4; i++) {
-            goals.add(new Goal.Factory(new Atom(i,0,0)).get());
+            goals.add(new Goal.Factory(new Atom(i,0,0, true)).get());
         }
         //goals.add(new Goal.Factory(new Atom(-1,1,0), new Atom(-1,0,0), new Atom(-1,-1,0), new Atom(-1,-2,0)).get());//, new Atom(-1,0,0), new Atom(1,1,0), new Atom(1,0,0), new Atom(1,0,0), new Atom(1,-1,0)).get());
         int[][] multi = new int[][]{

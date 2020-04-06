@@ -1,14 +1,10 @@
 package cpacgen;
 
 import cpacgen.pairgen.PairGenFactory;
-import cpacgen.pairgen.SortPairGenFactory;
 import cpacgen.pairgen.V1PairGenFactory;
-import cpacgen.pairgen.V2PairGenFactory;
 import cpacgen.util.Tuple;
 
-import java.sql.Time;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -40,7 +36,7 @@ public class ReverseSplit {
         this.finalGoals.setImmutable();
         Goal.Factory initialGoalFactory = new Goal.Factory();
         for( int i = 0; i < 1 << divisions; i++){
-            initialGoalFactory.add(new Atom(0,0,0));
+            initialGoalFactory.add(new Atom(0,0,0, true));
         }
         this.initialGoal = initialGoalFactory.get();
         plans = new ArrayList<>();
@@ -175,9 +171,6 @@ public class ReverseSplit {
 
         private void rSearch(int depth, Goal.Bag goals, Plan currentPlan) {
             //System.out.println("search");
-            if (depth < maxDepth - 4){
-                System.out.println(id + " depth " + depth);
-            }
             if (depth >= maxDepth) {
                 return;
             }

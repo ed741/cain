@@ -18,14 +18,14 @@ public class Main {
 //        finalGoalFactory.add(new Atom(5, 0, 0));
 
 //
-        finalGoalFactory.add(new Atom(-1, 1, 0));
-        finalGoalFactory.add(new Atom(-1, 0, 0));
-        finalGoalFactory.add(new Atom(-1, 0, 0));
-        finalGoalFactory.add(new Atom(-1, -1, 0));
-        finalGoalFactory.add(new Atom(1, 1, 0));
-        finalGoalFactory.add(new Atom(1, 0, 0));
-        finalGoalFactory.add(new Atom(1, 0, 0));
-        finalGoalFactory.add(new Atom(1, -1, 0));
+        finalGoalFactory.add(new Atom(-1, 1, 0, true));
+        finalGoalFactory.add(new Atom(-1, 0, 0, true));
+        finalGoalFactory.add(new Atom(-1, 0, 0, true));
+        finalGoalFactory.add(new Atom(-1, -1, 0, true));
+        finalGoalFactory.add(new Atom(1, 1, 0, true));
+        finalGoalFactory.add(new Atom(1, 0, 0, true));
+        finalGoalFactory.add(new Atom(1, 0, 0, true));
+        finalGoalFactory.add(new Atom(1, -1, 0, true));
 //        finalGoalFactory.add(new Atom(0, 0, 0));
 //        finalGoalFactory.add(new Atom(0, -1, 0));
 //        finalGoalFactory.add(new Atom(0, -2, 0));
@@ -89,7 +89,7 @@ public class Main {
         System.out.println(p);
         System.out.println(p.toGoalsString());
         //p.display();
-        RegisterAllocator ra = new RegisterAllocator(p, A, B, C, D, E, F);
+        RegisterAllocator ra = new RegisterAllocator(p, A, A, B, C, D, E, F);
         System.out.println(p.produceCode(ra.solve()));
 
 

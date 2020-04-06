@@ -1,7 +1,6 @@
 package cpacgen;
 
 import cpacgen.util.Bounds;
-import scala.util.parsing.combinator.testing.Str;
 
 import java.util.*;
 
@@ -13,7 +12,7 @@ public class Goal implements List<Atom>, Comparable<Goal>{
     public Goal(List<Atom> list) {
         ArrayList<Atom> l = new ArrayList<>(list);
         l.sort(Atom.comparator);
-        this.list = Collections.unmodifiableList(l);
+        this.list = Collections.unmodifiableList(simplifySorted(l));
     }
 
     public Goal() {
@@ -23,13 +22,22 @@ public class Goal implements List<Atom>, Comparable<Goal>{
     public Goal(Atom... atoms) {
         List<Atom> l = Arrays.asList(atoms);
         l.sort(Atom.comparator);
-        this.list = Collections.unmodifiableList(l);
+        this.list = Collections.unmodifiableList(simplifySorted(l));
     }
 
-    private Goal(ArrayList<Atom> al){
-        this.list = Collections.unmodifiableList(al);
+    private static List<Atom> simplifySorted(List<Atom> list){
+        for (int i = list.size()-2; i >= 0; i--) {
+            if (i+1 < list.size()) {
+                Atom last = list.get(i + 1);
+                Atom c = list.get(i);
+                if (last != null && last.samePos(c) && last.positive ^ c.positive) {
+                    list.remove(i + 1);
+                    list.remove(i);
+                }
+            }
+        }
+        return list;
     }
-
     private static String goalStringN(Goal g){
         return g!=null? g.toStringN() : "null";
     }
@@ -107,7 +115,7 @@ public class Goal implements List<Atom>, Comparable<Goal>{
     }
 
     public String getCharTableString(boolean border){
-        Bounds b = new Bounds(Bounds.BoundsFromGoal(this), new Atom(0,0,0));
+        Bounds b = new Bounds(Bounds.BoundsFromGoal(this), new Atom(0,0,0, true));
         int height = 1 + b.yMax - b.yMin;
         int width = 1 + b.xMax - b.xMin;
         char[][] table = getCharTable(b, width, height, border);
@@ -121,7 +129,7 @@ public class Goal implements List<Atom>, Comparable<Goal>{
     }
 
     public char[][] getCharTable(boolean border){
-        Bounds b = new Bounds(Bounds.BoundsFromGoal(this), new Atom(0,0,0));
+        Bounds b = new Bounds(Bounds.BoundsFromGoal(this), new Atom(0,0,0, true));
         int height = 1 + b.yMax - b.yMin;
         int width = 1 + b.xMax - b.xMin;
         return getCharTable(b, width, height, border);
@@ -340,29 +348,36 @@ public class Goal implements List<Atom>, Comparable<Goal>{
             this.list = new ArrayList<>();
             for (int i = 0; i < matrix.length; i++) {
                 for (int j = 0; j < matrix[i].length; j++) {
-                    for (int k = 0; k < matrix[i][j]; k++) {
-                        list.add(new Atom(i-(matrix.length/2), j-(matrix[i].length/2), 0));
+                    int count = Math.abs(matrix[i][j]);
+                    boolean positive = matrix[i][j]>0;
+                    for (int k = 0; k < count; k++) {
+                        list.add(new Atom(i-(matrix.length/2), j-(matrix[i].length/2), 0, positive));
                     }
                 }
             }
         }
 
-
         public Goal get(){
-            list.sort(null);
             Goal g = new Goal(list);
             list = null;
             return g;
         }
 
-        public void add(Atom a){
-            list.add(a);
+        public Goal.Factory add(Atom a){
+            list.add(a); return this;
         }
 
-        public void addAll(Collection<Atom> a){
-            list.addAll(a);
+        public Goal.Factory addAll(Collection<Atom> a){
+            list.addAll(a); return this;
         }
 
+        public Goal.Factory sub(Atom a){
+            list.add(a.negate()); return this;
+        }
+
+        public Goal.Factory subAll(Collection<Atom> b) {
+            b.forEach(atom -> list.add(atom.negate())); return this;
+        }
     }
 
 
