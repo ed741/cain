@@ -1,9 +1,6 @@
 package cpacgen.pairgen;
 
-import cpacgen.Atom;
-import cpacgen.Goal;
-import cpacgen.ReverseSplit;
-import cpacgen.Transformation;
+import cpacgen.*;
 import cpacgen.util.Bounds;
 import cpacgen.util.Tuple;
 
@@ -11,6 +8,12 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class V1PairGenFactory implements PairGenFactory{
+
+
+    @Override
+    public Collection<Tuple<? extends Transformation, Goal>> applyAllUnaryOpForwards(Goal initialGoal, int depth) {
+        return SimplePairGenFactory.applyAllUnaryOps(initialGoal);
+    }
 
     private Bounds bounds;
     @Override
@@ -20,7 +23,7 @@ public class V1PairGenFactory implements PairGenFactory{
     }
 
     @Override
-    public PairGen generatePairs(Goal.Bag goals) {
+    public PairGen generatePairs(Goal.Bag goals, int depth) {
         List<Goal.Pair> pairList = new ArrayList<>();
         for(Goal upper: goals) {
             pairList.addAll(getAddTransformations(upper));
@@ -30,28 +33,7 @@ public class V1PairGenFactory implements PairGenFactory{
         List<Tuple<Goal.Pair, Double>> list = new ArrayList<>(pairList.size());
         for (Goal.Pair pair : pairList) {
             if (check(pair)) {
-                HashSet<Goal> goalSet = new HashSet<>(goals);
-                goalSet.remove(pair.getUpper());
-
-                goalSet.addAll(pair.getLowers());
-                double v = 0;
-                for (Goal g : goalSet) {
-                    int i = 0;
-                    for (Atom a : g) {
-                        i += Math.abs(a.x) + Math.abs(a.y) + Math.abs(a.z);
-                    }
-                    v += i;
-                }
-                List<Goal> goalList = new ArrayList<>(goalSet);
-                for (int i = 0; i < goalList.size(); i++) {
-                    Goal g = goalList.get(i);
-                    List<Goal> toRemove = patternRepeated(goalList, g);
-                    goalList.removeAll(toRemove);
-                    goalList.add(i, g);
-                }
-                for (Goal g: goalList){
-                    v += Math.pow(g.atomCount(), 2);
-                }
+                double v = getValue(goals, pair, bounds);
                 list.add(new Tuple<>(pair, v));
             }
         }
@@ -60,8 +42,34 @@ public class V1PairGenFactory implements PairGenFactory{
         return new V1PairGen(out);
     }
 
+    public static double getValue(Goal.Bag goals, Goal.Pair pair, Bounds bounds) {
+        HashSet<Goal> goalSet = new HashSet<>(goals);
+        goalSet.remove(pair.getUpper());
 
-    List<Goal.Pair> getUnaryTransformations(Goal upper) {
+        goalSet.addAll(pair.getLowers());
+        double v = 0;
+        for (Goal g : goalSet) {
+            int i = 0;
+            for (Atom a : g) {
+                i += Math.abs(a.x) + Math.abs(a.y) + Math.abs(a.z);
+            }
+            v += i;
+        }
+        List<Goal> goalList = new ArrayList<>(goalSet);
+        for (int i = 0; i < goalList.size(); i++) {
+            Goal g = goalList.get(i);
+            List<Goal> toRemove = patternRepeated(bounds, goalList, g);
+            goalList.removeAll(toRemove);
+            goalList.add(i, g);
+        }
+        for (Goal g: goalList){
+            v += Math.pow(g.atomCount(), 2);
+        }
+        return v;
+    }
+
+
+    private List<Goal.Pair> getUnaryTransformations(Goal upper) {
         List<Goal.Pair> pairs = new ArrayList<>();
         Collection<Tuple<? extends Transformation, Goal>> ts = Transformation.applyAllUnaryOpBackwards(upper);
         for (Tuple<? extends Transformation, Goal> t : ts) {
@@ -70,7 +78,7 @@ public class V1PairGenFactory implements PairGenFactory{
         return pairs;
     }
 
-    List<Goal.Pair> getAddTransformations(Goal upper) {
+    private List<Goal.Pair> getAddTransformations(Goal upper) {
         List<Goal.Pair> pairs = new ArrayList<>();
         // Addition
         Collection<Goal> splits = upper.allSplits();
@@ -100,7 +108,7 @@ public class V1PairGenFactory implements PairGenFactory{
         return pairs;
     }
 
-    private List<Goal> patternRepeated(Collection<Goal> goals, Goal pattern){
+    private static List<Goal> patternRepeated(Bounds bounds, Collection<Goal> goals, Goal pattern){
         List<Goal> matches = new ArrayList<>();
         int bx = bounds.xMax-bounds.xMin;
         int by = bounds.yMax-bounds.yMin;
@@ -116,7 +124,7 @@ public class V1PairGenFactory implements PairGenFactory{
         return matches;
     }
 
-    Goal moveGoal(Goal goal, int x, int y, int z){
+    private static Goal moveGoal(Goal goal, int x, int y, int z){
         Goal.Factory factory = new Goal.Factory();
         for (Atom a: goal){
             factory.add(a.moved(x, y, z));
@@ -124,7 +132,7 @@ public class V1PairGenFactory implements PairGenFactory{
         return factory.get();
     }
 
-    boolean check(Goal.Pair p){
+    private boolean check(Goal.Pair p){
         for (Goal l: p.getLowers()) {
             for (Atom a : l) {
                 if (!bounds.includes(a)) {

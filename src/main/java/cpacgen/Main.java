@@ -1,5 +1,7 @@
 package cpacgen;
 
+import cpacgen.scamp5.Scamp5PairGenFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -9,65 +11,89 @@ public class Main {
     public static void main(String[] args) {
         List<Goal> final_goals = new ArrayList<>();
 
-        Goal.Factory finalGoalFactory = new Goal.Factory();
-
-//        finalGoalFactory.add(new Atom(0, 1, 0));
-//        finalGoalFactory.add(new Atom(0, 0, 0));
-//        finalGoalFactory.add(new Atom(1, 1, 0));
-//        finalGoalFactory.add(new Atom(1, 0, 0));
-//        finalGoalFactory.add(new Atom(5, 0, 0));
-
-//
-        finalGoalFactory.add(new Atom(-1, 1, 0, true));
-        finalGoalFactory.add(new Atom(-1, 0, 0, true));
-        finalGoalFactory.add(new Atom(-1, 0, 0, true));
-        finalGoalFactory.add(new Atom(-1, -1, 0, true));
-        finalGoalFactory.add(new Atom(1, 1, 0, true));
-        finalGoalFactory.add(new Atom(1, 0, 0, true));
-        finalGoalFactory.add(new Atom(1, 0, 0, true));
-        finalGoalFactory.add(new Atom(1, -1, 0, true));
-//        finalGoalFactory.add(new Atom(0, 0, 0));
-//        finalGoalFactory.add(new Atom(0, -1, 0));
-//        finalGoalFactory.add(new Atom(0, -2, 0));
-        final_goals.add(finalGoalFactory.get());
-
-//        finalGoalFactory = new Goal.Factory();
-//
-//        finalGoalFactory.add(new Atom(1, 1, 0));
-//        finalGoalFactory.add(new Atom(0, 1, 0));
-//        finalGoalFactory.add(new Atom(0, 1, 0));
-//        finalGoalFactory.add(new Atom(-1, 1, 0));
-//        finalGoalFactory.add(new Atom(1, -1, 0));
-//        finalGoalFactory.add(new Atom(0, -1, 0));
-//        finalGoalFactory.add(new Atom(0, -1, 0));
-//        finalGoalFactory.add(new Atom(-1, -1, 0));
-
-       // final_goals.add(finalGoalFactory.get());
+//        int[][] multi2 = new int[][]{
+//                { 1, 2, 3, 4, 5},
+//                { 6, 7, 8, 9, 10},
+//                { 2, 4, 4, 0, 0},
+//                { 1, 2, 0, 0, 0},
+//                { 0, 0, 0, 0, 0}
+//        };
+//        final_goals.add(new Goal.Factory(multi2).get());
 
 
-//        finalGoalFactory = new Goal.Factory();
-//
-//        finalGoalFactory.add(new Atom(-1, -1, 0));
-//        finalGoalFactory.add(new Atom(-1, 0, 0));
-//        finalGoalFactory.add(new Atom(-1, 1, 0));
-//        finalGoalFactory.add(new Atom(0, 1, 0));
-//        finalGoalFactory.add(new Atom(1, 1, 0));
-//        finalGoalFactory.add(new Atom(1, 0, 0));
-//        finalGoalFactory.add(new Atom(1, -1, 0));
-//        finalGoalFactory.add(new Atom(0, -1, 0));
-//        finalGoalFactory.add(new Atom(0, 0, 0));
+        int[][] multiSobelV = new int[][]{
+                { 0, 0, 0, 0, 0},
+                { 0, 1, 0, -1, 0},
+                { 0, 2, 0, -2, 0},
+                { 0, 1, 0, -1, 0},
+                { 0, 0, 0, 0, 0}
+        };
+        final_goals.add(new Goal.Factory(multiSobelV).get());
 
-//        //final_goals.add(finalGoalFactory.get());
-//        int[][] multi = new int[][]{
+        int[][] multiSobelH = new int[][]{
+                { 0, 0, 0, 0, 0},
+                { 0, 1, 2, 1, 0},
+                { 0, 0, 0, 0, 0},
+                { 0, -1, -2, -1, 0},
+                { 0, 0, 0, 0, 0}
+        };
+        final_goals.add(new Goal.Factory(multiSobelH).get());
+
+        int[][] multiBox2x2 = new int[][]{
+                { 0, 0, 0, 0, 0},
+                { 0, 0, 1, 1, 0},
+                { 0, 0, 1, 1, 0},
+                { 0, 0, 0, 0, 0},
+                { 0, 0, 0, 0, 0}
+        };
+        //final_goals.add(new Goal.Factory(multiBox2x2).get());
+
+        int[][] multiGuass5x5 = new int[][]{
+                { 0, 1, 2, 1, 0},
+                { 1, 4, 6, 4, 1},
+                { 2, 6, 10, 6, 2},
+                { 1, 4, 6, 4, 1},
+                { 0, 1, 2, 1, 0}
+        };
+//        final_goals.add(new Goal.Factory(multiGuass5x5).get());
+
+//        int[][] multi1 = new int[][]{
+//                { 0, 0, 0, 0, 0},
 //                { 0, 1, 2, 1, 0},
-//                { 1, 4, 6, 4, 1},
-//                { 2, 6, 10, 6, 2},
-//                { 1, 4, 6, 4, 1},
+//                { 0, 1, 4, 4, 1},
+//                { 0, 0, 1, 2, 1},
+//                { 0, 0, 0, 0, 0}
+//        };
+//        final_goals.add(new Goal.Factory(multi1).get());
+//
+//
+//        int[][] multi3 = new int[][]{
+//                { 0, 0, 0, 0, 0},
+//                { 0, 0, 0, 0, 0},
+//                { 0, 1, 2, 0, 0},
+//                { 0, 2, 5, 2, 0},
 //                { 0, 1, 2, 1, 0}
 //        };
-        //final_goals.add(new Goal.Factory(multi).get());
+//        final_goals.add(new Goal.Factory(multi3).get());
+//
+//        int[][] multi4 = new int[][]{
+//                { 0, 1, 2, 1, 0},
+//                { 0, 1, 4, 3, 1},
+//                { 0, 0, 0, 2, 1},
+//                { 0, 0, 0, 0, 0},
+//                { 0, 0, 0, 0, 0}
+//        };
+//        final_goals.add(new Goal.Factory(multi4).get());
+        Scamp5PairGenFactory pairGenFactory = new Scamp5PairGenFactory(
+                (goals, depth, rs1, initalGoal) ->
+                        new Scamp5PairGenFactory.Config(
+                                true, true, true, true,
+                                true, true, true, depth)
+        );
+        RegisterAllocator.Register[] availableRegisters = new RegisterAllocator.Register[]{A, B, C, D, E, F};
+        int maxDepth = 30;
 
-        ReverseSplit rs = new ReverseSplit(0, final_goals);
+        ReverseSplit rs = new ReverseSplit(2, final_goals, pairGenFactory, availableRegisters.length, maxDepth);
         rs.search();
 
         System.out.println("print plans");

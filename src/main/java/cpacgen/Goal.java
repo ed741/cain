@@ -1,13 +1,14 @@
 package cpacgen;
 
 import cpacgen.util.Bounds;
+import cpacgen.util.Tuple;
 
 import java.util.*;
 
 
 public class Goal implements List<Atom>, Comparable<Goal>{
 
-    private List<Atom> list;
+    private final List<Atom> list;
 
     public Goal(List<Atom> list) {
         ArrayList<Atom> l = new ArrayList<>(list);
@@ -23,6 +24,16 @@ public class Goal implements List<Atom>, Comparable<Goal>{
         List<Atom> l = Arrays.asList(atoms);
         l.sort(Atom.comparator);
         this.list = Collections.unmodifiableList(simplifySorted(l));
+    }
+
+    private Goal(ArrayList<Atom> list, boolean check){
+        if(check){
+            ArrayList<Atom> l = new ArrayList<>(list);
+            l.sort(Atom.comparator);
+            this.list = Collections.unmodifiableList(simplifySorted(l));
+        } else {
+            this.list = Collections.unmodifiableList(list);
+        }
     }
 
     private static List<Atom> simplifySorted(List<Atom> list){
@@ -80,6 +91,18 @@ public class Goal implements List<Atom>, Comparable<Goal>{
         return tmp.isEmpty();
     }
 
+    public Goal negative(){
+        ArrayList<Atom> list = new ArrayList<>();
+        this.forEach(a->list.add(a.negate()));
+        return new Goal(list, false);
+    }
+
+    public Goal translated(int x, int y, int z){
+        ArrayList<Atom> list = new ArrayList<>();
+        this.forEach(atom -> list.add(atom.moved(x, y, z)));
+        return new Goal(list, false);
+    }
+
 
     /**
      * @return all possible sub Goals (subsets) of this goal, excluding the emptpy Goal.
@@ -114,21 +137,57 @@ public class Goal implements List<Atom>, Comparable<Goal>{
         return out;
     }
 
+    public int divide(Goal goal){
+        if(list.isEmpty() || goal.isEmpty()){
+            return 0;
+        }
+        int div = -1;
+        Iterator<Tuple<Atom, Integer>> thisIt = this.uniqueCountIterator();
+        Iterator<Tuple<Atom, Integer>> goalIt = goal.uniqueCountIterator();
+        while(thisIt.hasNext() && goalIt.hasNext()){
+            Tuple<Atom, Integer> ta = thisIt.next();
+            Tuple<Atom, Integer> tb = goalIt.next();
+
+            if (!ta.getA().equals(tb.getA())){
+                return 0;
+            }
+            if (tb.getB() > ta.getB()){
+                return 0;
+            }
+            int mod = ta.getB() % tb.getB();
+            if (mod != 0){
+                return 0;
+            }
+            if(div < 0){
+                div = ta.getB()/tb.getB();
+            }
+            if(ta.getB()/tb.getB() != div){
+                return 0;
+            }
+        }
+        if (thisIt.hasNext() || goalIt.hasNext()){
+            return 0;
+        }
+        return div;
+    }
+
     public String getCharTableString(boolean border){
         Bounds b = new Bounds(Bounds.BoundsFromGoal(this), new Atom(0,0,0, true));
         int height = 1 + b.yMax - b.yMin;
         int width = 1 + b.xMax - b.xMin;
-        char[][] table = getCharTable(b, width, height, border);
+        String[][] table = getCharTable(b, width, height, border);
         StringBuilder sb = new StringBuilder();
         for (int j = height+1; j >= 0; j--) {
-            sb.append(table[j]);
+            for (int i = 0; i < table[j].length; i++) {
+                sb.append(table[j][i]);
+            }
             sb.append(' ');
             sb.append("\n");
         }
         return sb.toString();
     }
 
-    public char[][] getCharTable(boolean border){
+    public String[][] getCharTable(boolean border){
         Bounds b = new Bounds(Bounds.BoundsFromGoal(this), new Atom(0,0,0, true));
         int height = 1 + b.yMax - b.yMin;
         int width = 1 + b.xMax - b.xMin;
@@ -136,30 +195,43 @@ public class Goal implements List<Atom>, Comparable<Goal>{
     }
 
 
-    public char[][] getCharTable(Bounds b, int width, int height, boolean border) {
-        char [][] tableArray = new char[height+2][width+2];
+    public String[][] getCharTable(Bounds b, int width, int height, boolean border) {
+        String [][] tableArray = new String[height+2][width+2];
         int xZero = 1-b.xMin;
         int yZero = 1-b.yMin;
         for (int x = b.xMin-1; x <= b.xMax+1; x++) {
             for (int y = b.yMin-1; y <= b.yMax+1; y++) {
                 if (b.xMin <= x && x <= b.xMax && b.yMin <= y && y <= b.yMax) {
-                    tableArray[yZero + y][xZero + x] = '0';
+                    tableArray[yZero + y][xZero + x] = "0";
                 } else {
-                    tableArray[yZero + y][xZero + x] = border? '*':'+';
+                    tableArray[yZero + y][xZero + x] = border? "*":"+";
                     if(x==0){
-                        tableArray[yZero + y][xZero + x] = '|';
+                        tableArray[yZero + y][xZero + x] = "|";
                     }
                     if(y==0){
-                        tableArray[yZero + y][xZero + x] = '-';
+                        tableArray[yZero + y][xZero + x] = "-";
                     }
                 }
             }
         }
-        for (Atom a : this) {
-            tableArray[yZero + a.y][xZero+a.x] += 1;
+        Iterator<Tuple<Atom, Integer>> it = this.uniqueCountIterator();
+        while(it.hasNext()) {
+            Tuple<Atom, Integer> t = it.next();
+            int count = Math.abs(t.getB());
+            boolean neg = !t.getA().positive;
+            StringBuilder sb = new StringBuilder();
+            if(neg){
+                sb.append("\u001B[34m");//blue
+            }
+            sb.append(count);
+            if(neg){
+                sb.append("\u001B[0m");//reset
+            }
+
+            tableArray[yZero + t.getA().y][xZero+t.getA().x] = sb.toString();
         }
-        if (tableArray[yZero][xZero]=='0'){
-            tableArray[yZero][xZero] = '.';
+        if (tableArray[yZero][xZero].equals("0")){
+            tableArray[yZero][xZero] = ".";
 
         }
         return tableArray;
@@ -184,6 +256,22 @@ public class Goal implements List<Atom>, Comparable<Goal>{
 
     public int atomCount() {
         return size();
+    }
+
+    public boolean hasSubGoal(Goal goal) {
+        if(goal.size() > list.size()){
+            return false;
+        }
+        int i = 0;
+        int j = 0;
+        while(i < list.size() && j < goal.size()){
+            switch(list.get(i).compareTo(goal.get(j))){
+                case -1: i++; break;
+                case  0: i++; j++; break;
+                case  1: return false;
+            }
+        }
+        return j == goal.size();
     }
 
 
@@ -327,6 +415,31 @@ public class Goal implements List<Atom>, Comparable<Goal>{
             throw new UnsupportedOperationException("Cannot add Goals at index");
         }
 
+        public String toGoalsString() {
+
+            Bounds b = new Bounds(new Bounds(this), new Atom(0,0,0, true));
+            int height = 1 + b.yMax - b.yMin;
+            int width = 1 + b.xMax - b.xMin;
+            List<String[][]> arrays = new ArrayList<>();
+
+            for (int i = 0; i < size(); i++) {
+                String[][] tableArray = get(i).getCharTable(b, width, height, false);
+                arrays.add(tableArray);
+            }
+
+            StringBuilder sb = new StringBuilder();
+            for (int j = height+1; j >= 0; j--) {
+                for (String[][] array : arrays) {
+                    for (int i = 0; i < array[j].length; i++) {
+                        sb.append(array[j][i]);
+                    }
+                    sb.append(' ');
+                }
+                sb.append("\n");
+            }
+            return sb.toString();
+        }
+
     }
 
     public static class Factory {
@@ -351,7 +464,7 @@ public class Goal implements List<Atom>, Comparable<Goal>{
                     int count = Math.abs(matrix[i][j]);
                     boolean positive = matrix[i][j]>0;
                     for (int k = 0; k < count; k++) {
-                        list.add(new Atom(i-(matrix.length/2), j-(matrix[i].length/2), 0, positive));
+                        list.add(new Atom(j-(matrix[i].length/2), (matrix.length/2)-i, 0, positive));
                     }
                 }
             }
@@ -396,6 +509,27 @@ public class Goal implements List<Atom>, Comparable<Goal>{
                     cursor++;
                 }
                 return a;
+            }
+        };
+    }
+
+    public Iterator<Tuple<Atom, Integer>> uniqueCountIterator() {
+        return new Iterator<Tuple<Atom, Integer>>() {
+            int cursor = 0;
+            @Override
+            public boolean hasNext() {
+                return cursor < list.size();
+            }
+
+            @Override
+            public Tuple<Atom, Integer> next() {
+                Atom a = list.get(cursor++);
+                int count = 1;
+                while(cursor < list.size() && a.equals(list.get(cursor))){
+                    cursor++;
+                    count++;
+                }
+                return new Tuple<>(a, count);
             }
         };
     }

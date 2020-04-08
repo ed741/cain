@@ -118,17 +118,19 @@ public class Plan {
             Bounds b = new Bounds(new Bounds(currentGoals), new Atom(0,0,0, true));
             int height = 1 + b.yMax - b.yMin;
             int width = 1 + b.xMax - b.xMin;
-            List<char[][]> arrays = new ArrayList<>();
+            List<String[][]> arrays = new ArrayList<>();
 
             for (int i = 0; i < currentGoals.size(); i++) {
-                char[][] tableArray = currentGoals.get(i).getCharTable(b, width, height, this.goalPair.getLowers().contains(currentGoals.get(i)));
+                String[][] tableArray = currentGoals.get(i).getCharTable(b, width, height, this.goalPair.getLowers().contains(currentGoals.get(i)));
                 arrays.add(tableArray);
             }
 
             StringBuilder sb = new StringBuilder();
             for (int j = height+1; j >= 0; j--) {
-                for (char[][] array : arrays) {
-                    sb.append(array[j]);
+                for (String[][] array : arrays) {
+                    for (int i = 0; i < array[j].length; i++) {
+                        sb.append(array[j][i]);
+                    }
                     sb.append(' ');
                 }
                 sb.append("\n");

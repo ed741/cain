@@ -2,6 +2,8 @@ package cpacgen;
 
 import cpacgen.pairgen.PairGenFactory;
 import cpacgen.pairgen.V1PairGenFactory;
+import cpacgen.pairgen.V2PairGenFactory;
+import cpacgen.pairgen.V3PairGenFactory;
 import cpacgen.util.Tuple;
 
 import java.time.Duration;
@@ -29,20 +31,20 @@ public class ReverseSplit {
     private long maxTime;
     private int allowableAtomsCoefficent;
 
-    public ReverseSplit(int divisions, List<Goal> finalGoals) {
+    public ReverseSplit(int divisions, List<Goal> finalGoals, PairGenFactory pairGenFactory, int availableRegisters, int maxDepth) {
         this.divisions = divisions;
         this.finalGoals = new Goal.Bag();
         this.finalGoals.addAll(finalGoals);
         this.finalGoals.setImmutable();
         Goal.Factory initialGoalFactory = new Goal.Factory();
-        for( int i = 0; i < 1 << divisions; i++){
+        for( int i = 0; i < 1 << this.divisions; i++){
             initialGoalFactory.add(new Atom(0,0,0, true));
         }
         this.initialGoal = initialGoalFactory.get();
         plans = new ArrayList<>();
         cache = new GoalsCache();
-        this.pairGenFactory = new V1PairGenFactory();
-        pairGenFactory.init(this);
+        this.pairGenFactory = pairGenFactory;
+        this.pairGenFactory.init(this);
         workers = 1;
 
         pool = Executors.newFixedThreadPool(workers);
@@ -51,10 +53,10 @@ public class ReverseSplit {
         workQueue = new LinkedBlockingQueue<>();
 
         allowableAtomsCoefficent = 2;
-        availableRegisters = 8;
-        maxDepth = 25;
+        this.availableRegisters = availableRegisters;
+        this.maxDepth = maxDepth;
         maxTime = 1000;//milliseconds
-        timeout = true;
+        timeout = false;
 
 
         if (!useTimeout()){
@@ -170,8 +172,23 @@ public class ReverseSplit {
 
 
         private void rSearch(int depth, Goal.Bag goals, Plan currentPlan) {
-            //System.out.println("search");
+            if (!(!useTimeout() || System.currentTimeMillis() < startTime + maxTime)){
+                return;
+            }
+
+            if (depth < maxDepth-3){
+                //System.out.println(id + " depth: " + depth);
+            }
+//            System.out.println(depth);
+//            System.out.println(currentPlan.toGoalsString());
+//            System.out.println("Current Goals");
+//            System.out.println(goals.toGoalsString());
+
+////            System.out.println("search");
             if (depth >= maxDepth) {
+                return;
+            }
+            if (maxDepth-depth < (goals.size()-2)){
                 return;
             }
             if (!cache.isBest(goals, currentPlan.cost())) {
@@ -186,18 +203,20 @@ public class ReverseSplit {
             }
             if (goals.size() == 1) {
                 Goal g = goals.iterator().next();
-                Transformation t = isTransformable(g);
+                if(g.equals(initialGoal)){
+                    addPlan(currentPlan, id);
+                    return;
+                }
+                Transformation t = isTransformable(g, depth);
                 if (t != null) {
                     Plan p = currentPlan.newAdd(new Goal.Pair(g, initialGoal, t), new Goal.Bag(initialGoal), "final step");
                     addPlan(p, id);
                     return;
                 }
             }
-            PairGenFactory.PairGen goalPairs = pairGenFactory.generatePairs(goals);
+            PairGenFactory.PairGen goalPairs = pairGenFactory.generatePairs(goals, depth);
             Goal.Pair goalPair = goalPairs.next();
             while (goalPair != null) {
-
-
 
                 Goal.Bag newGoals = new Goal.Bag();
                 for (Goal g : goals) {
@@ -244,8 +263,17 @@ public class ReverseSplit {
         System.out.println("Found new Plan! (id:"+id+") length: " + p.depth() + " Cost: "+p.cost());
         System.out.println(p);
         maxDepth = p.depth()-1;
+
         plans.add(p);
 
+        if(plans.size()>1) {
+            Plan lastPlan = plans.get(plans.size() - 2);
+            int i = 0;
+            while (1 < p.getAll().size() && lastPlan.getAll().get(i) == p.getAll().get(i)) {
+                i++;
+            }
+            System.out.println("Diverges from last plan at step: " + i);
+        }
     }
 
 
@@ -255,10 +283,9 @@ public class ReverseSplit {
      * @param goal a goal to find a trnsformation for.
      * @return the Transformation initial_goal -> goal; iff the initial goal can be directly transformed into goal, else null
      */
-    private Transformation isTransformable(Goal goal) {
+    private Transformation isTransformable(Goal goal, int depth) {
         assert !goal.isEmpty();
-        boolean scale = true;
-        for(Tuple<? extends Transformation, Goal> tuple : Transformation.applyAllUnaryOpForwards(initialGoal)){
+        for(Tuple<? extends Transformation, Goal> tuple : this.pairGenFactory.applyAllUnaryOpForwards(initialGoal, depth)){
             Transformation t = tuple.getA();
             Goal g = tuple.getB();
             if(goal.same(g)){

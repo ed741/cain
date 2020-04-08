@@ -1,19 +1,45 @@
-package cpacgen;
+package cpacgen.scamp5;
 
+import cpacgen.Atom;
+import cpacgen.Goal;
+import cpacgen.RegisterAllocator;
+import cpacgen.Transformation;
+import cpacgen.util.Tuple;
+
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public abstract class Scamp5Transformation extends Transformation{
+public abstract class Scamp5Transformation extends Transformation {
+
+    @Override
+    public String toString() {
+        return toStringN();
+    }
 
     public enum Dir{
-        North(0,1, "north"), East(1,0, "east"), South(0,-1, "south"), West(-1,0, "west");
+        North(0,0,1, "north"), East(1,1,0, "east"), South(2,0,-1, "south"), West(3,-1,0, "west");
+        final int idx;
         final int x;
         final int y;
         final String code;
-        Dir(int x, int y, String code){
+        Dir(int idx, int x, int y, String code){
+            this.idx = idx;
             this.x = x;
             this.y = y;
             this.code = code;
+        }
+
+        public Dir opposite() {
+            return Dir.values()[(idx+2)%4];
+        }
+
+        public Dir cw() {
+            return Dir.values()[(idx+1)%4];
+        }
+
+        public Dir ccw() {
+            return Dir.values()[(idx+3)%4];
         }
 
         public String toCode() {
@@ -21,7 +47,7 @@ public abstract class Scamp5Transformation extends Transformation{
         }
     }
 
-    public class Res extends Scamp5Transformation{
+    public static class Res extends Scamp5Transformation{
         // u := {}
 
         @Override
@@ -49,9 +75,10 @@ public abstract class Scamp5Transformation extends Transformation{
         public String toStringN() {
             return "Res/1";
         }
+
     }
 
-    public class Add_2 extends Scamp5Transformation {
+    public static class Add_2 extends Scamp5Transformation {
         // u := a + b
 
         final Goal a;
@@ -92,9 +119,10 @@ public abstract class Scamp5Transformation extends Transformation{
         public String toStringN() {
             return String.format("Add2(%s, %s)", a, b);
         }
+
     }
 
-    public class Add_3 extends Scamp5Transformation {
+    public static class Add_3 extends Scamp5Transformation {
         // u := a + b + c
 
         final Goal a;
@@ -139,7 +167,7 @@ public abstract class Scamp5Transformation extends Transformation{
         }
     }
 
-    public class Sub extends Scamp5Transformation {
+    public static class Sub extends Scamp5Transformation {
         // u := a - b
 
          final Goal a;
@@ -182,7 +210,7 @@ public abstract class Scamp5Transformation extends Transformation{
          }
     }
 
-    public class Neg extends Scamp5Transformation {
+    public static class Neg extends Scamp5Transformation {
         // u := -a
 
         final Goal a;
@@ -192,6 +220,16 @@ public abstract class Scamp5Transformation extends Transformation{
             this.a = a;
             this.neg = null;
 
+        }
+
+        public Neg(Goal in, boolean upper){
+            if(!upper){
+               this.a = in;
+               this.neg = null;
+            } else {
+                this.a = in.negative();
+                this.neg = in;
+            }
         }
 
         @Override
@@ -208,7 +246,7 @@ public abstract class Scamp5Transformation extends Transformation{
         @Override
         public Goal applyForwards(){
             if(this.neg == null){
-                this.neg = a.stream().map(Atom::negate).collect(Collectors.toCollection(Goal::new));
+                this.neg = a.negative();
             }
             return this.neg;
         }
@@ -224,7 +262,7 @@ public abstract class Scamp5Transformation extends Transformation{
         }
     }
 
-    public class Divq extends Scamp5Transformation {
+    public static class Divq extends Scamp5Transformation {
         // u := a*0.5 + error
 
         final Goal a;
@@ -233,6 +271,28 @@ public abstract class Scamp5Transformation extends Transformation{
         public Divq(Goal a) {
             this.a = a;
             this.div = null;
+        }
+
+        public Divq(Goal in, boolean upper){
+            if(!upper){
+                this.a = in;
+                this.div = null;
+            } else {
+                this.a = new Goal.Factory(in).addAll(in).get();
+                this.div = in;
+            }
+        }
+
+        public boolean isPossbile(){
+            Iterator<Tuple<Atom, Integer>> it = a.uniqueCountIterator();
+            while(it.hasNext()){
+                Tuple<Atom, Integer> t = it.next();
+                int count = t.getB();
+                if(count < 2 || count % 2 != 0){
+                    return false;
+                }
+            }
+            return true;
         }
 
         @Override
@@ -255,7 +315,7 @@ public abstract class Scamp5Transformation extends Transformation{
                     Atom last = a.get(0);
                     for (int i = 1; i < a.size()+1; i++) {
                         Atom c = i < a.size()?a.get(i):null;
-                        if(!last.equals(c)){
+                        if(c == null || !last.equals(c)){
                             if(count/2 != (count+1)/2){
                                 throw new TransformationApplicationException("Cannot divide uneven number of atoms!");
                             } else {
@@ -287,7 +347,7 @@ public abstract class Scamp5Transformation extends Transformation{
     }
 
 
-    public class Movx extends Scamp5Transformation {
+    public static class Movx extends Scamp5Transformation {
         //u := a_dir
 
         final Goal a;
@@ -297,6 +357,17 @@ public abstract class Scamp5Transformation extends Transformation{
         public Movx(Goal a, Dir dir) {
             this.a = a;
             this.dir = dir;
+        }
+
+        public Movx(Goal in, Dir dir, boolean upper) {
+            if(!upper){
+                this.a = in;
+                this.dir = dir;
+            } else {
+                this.a = in.translated(-dir.x, -dir.y, 0);
+                this.moved = in;
+                this.dir = dir;
+            }
         }
 
         @Override
@@ -313,9 +384,7 @@ public abstract class Scamp5Transformation extends Transformation{
         @Override
         public Goal applyForwards() {
             if(this.moved == null){
-                Goal.Factory factory = new Goal.Factory();
-                this.a.forEach(atom -> factory.add(atom.moved(-dir.x, -dir.y, 0)));
-                this.moved = factory.get();
+                this.moved = a.translated(dir.x, dir.y, 0);
             }
             return this.moved;
         }
@@ -332,7 +401,7 @@ public abstract class Scamp5Transformation extends Transformation{
     }
 
 
-    public class Mov2x extends Scamp5Transformation {
+    public static class Mov2x extends Scamp5Transformation {
         // u := a_dir1_dir2
 
         final Goal a;
@@ -344,6 +413,19 @@ public abstract class Scamp5Transformation extends Transformation{
             this.a = a;
             this.dir1 = dir1;
             this.dir2 = dir2;
+        }
+
+        public Mov2x(Goal in, Dir dir1, Dir dir2, boolean upper) {
+            if(!upper){
+                this.a = in;
+                this.dir1 = dir1;
+                this.dir2 = dir2;
+            } else {
+                this.a = in.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0);
+                this.moved = in;
+                this.dir1 = dir1;
+                this.dir2 = dir2;
+            }
         }
 
         @Override
@@ -360,9 +442,7 @@ public abstract class Scamp5Transformation extends Transformation{
         @Override
         public Goal applyForwards() {
             if(this.moved == null){
-                Goal.Factory factory = new Goal.Factory();
-                this.a.forEach(atom -> factory.add(atom.moved(-dir1.x -dir2.x, -dir1.y -dir2.y, 0)));
-                this.moved = factory.get();
+                this.moved = a.translated(dir1.x +dir2.x, dir1.y +dir2.y, 0);
             }
             return this.moved;
         }
@@ -379,7 +459,7 @@ public abstract class Scamp5Transformation extends Transformation{
     }
 
 
-    public class Addx extends Scamp5Transformation {
+    public static class Addx extends Scamp5Transformation {
         // u := a_dir + b_dir
 
         final Goal a;
@@ -408,8 +488,8 @@ public abstract class Scamp5Transformation extends Transformation{
         public Goal applyForwards() {
             if(this.sum == null){
                 Goal.Factory factory = new Goal.Factory();
-                this.a.forEach(atom -> factory.add(atom.moved(-dir.x, -dir.y, 0)));
-                this.b.forEach(atom -> factory.add(atom.moved(-dir.x, -dir.y, 0)));
+                this.a.forEach(atom -> factory.add(atom.moved(dir.x, +dir.y, 0)));
+                this.b.forEach(atom -> factory.add(atom.moved(dir.x, +dir.y, 0)));
                 this.sum = factory.get();
             }
             return this.sum;
@@ -427,7 +507,7 @@ public abstract class Scamp5Transformation extends Transformation{
     }
 
 
-    public class Add2x extends Scamp5Transformation {
+    public static class Add2x extends Scamp5Transformation {
         // u := a_dir1_dir2 + b_dir1_dir2
 
         final Goal a;
@@ -458,8 +538,8 @@ public abstract class Scamp5Transformation extends Transformation{
         public Goal applyForwards() {
             if(this.sum == null){
                 Goal.Factory factory = new Goal.Factory();
-                this.a.forEach(atom -> factory.add(atom.moved(-dir1.x-dir2.x, -dir1.y-dir2.y, 0)));
-                this.b.forEach(atom -> factory.add(atom.moved(-dir1.x-dir2.x, -dir1.y-dir2.y, 0)));
+                this.a.forEach(atom -> factory.add(atom.moved(dir1.x+dir2.x, dir1.y+dir2.y, 0)));
+                this.b.forEach(atom -> factory.add(atom.moved(dir1.x+dir2.x, dir1.y+dir2.y, 0)));
                 this.sum = factory.get();
             }
             return this.sum;
@@ -477,7 +557,7 @@ public abstract class Scamp5Transformation extends Transformation{
     }
 
 
-    public class Subx extends Scamp5Transformation {
+    public static class Subx extends Scamp5Transformation {
         // u := a_dir - b
 
         final Goal a;
@@ -507,7 +587,7 @@ public abstract class Scamp5Transformation extends Transformation{
         public Goal applyForwards() {
             if (this.difference == null){
                 Goal.Factory factory = new Goal.Factory();
-                this.a.forEach(atom -> factory.add(atom.moved(-dir.x, -dir.y, 0)));
+                this.a.forEach(atom -> factory.add(atom.moved(dir.x, dir.y, 0)));
                 factory.subAll(b);
                 this.difference = factory.get();
             }
@@ -526,7 +606,7 @@ public abstract class Scamp5Transformation extends Transformation{
     }
 
 
-    public class Sub2x extends Scamp5Transformation {
+    public static class Sub2x extends Scamp5Transformation {
         // u := a_dir1_dir2 - b
 
         final Goal a;
@@ -558,7 +638,7 @@ public abstract class Scamp5Transformation extends Transformation{
         public Goal applyForwards() {
             if (this.difference == null){
                 Goal.Factory factory = new Goal.Factory();
-                this.a.forEach(atom -> factory.add(atom.moved(-dir1.x-dir2.x, -dir1.y-dir2.y, 0)));
+                this.a.forEach(atom -> factory.add(atom.moved(dir1.x+dir2.x, dir1.y+dir2.y, 0)));
                 factory.subAll(b);
                 this.difference = factory.get();
             }

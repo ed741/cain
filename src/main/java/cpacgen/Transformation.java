@@ -60,27 +60,6 @@ public abstract class Transformation {
         }
     }
 
-        public static Collection<Tuple<? extends Transformation, Goal>> applyAllUnaryOpForwards(Goal goal){
-        ArrayList<Tuple<? extends Transformation, Goal>> list = new ArrayList<>();
-        for (Transformation.Direction d: Transformation.Direction.values()){
-            for (int i = 0; i < 4; i++){
-                Transformation t = new Move(i, d, goal);
-                try {
-                    Goal go = t.applyForwards();
-                    list.add(new Tuple<>(t, go));
-                } catch (TransformationApplicationException ignored) {}
-            }
-        }
-        for (int i = 0; i < 8; i++){
-            Transformation t = new Div(i, goal);
-            try {
-                Goal go = t.applyForwards();
-                list.add(new Tuple<>(t, go));
-            } catch (TransformationApplicationException ignored) {}
-        }
-        return list;
-    }
-
     public static Collection<Tuple<? extends Transformation, Goal>> applyAllUnaryOpBackwards(Goal goal){
         ArrayList<Tuple<? extends Transformation, Goal>> list = new ArrayList<>();
         for (Transformation.Direction d: Transformation.Direction.values()){
@@ -154,7 +133,7 @@ public abstract class Transformation {
         @Override
         public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("divq(%s, %s)", upper, lowers.get(0));
+            return String.format("divq %d (%s, %s)", divisions, upper, lowers.get(0));
         }
 
         @Override
@@ -242,10 +221,20 @@ public abstract class Transformation {
     public enum Direction {
         N(0,-1), E(-1,0), S(0,1), W(1,0);
 
-        int x, y;
+        public final int x, y;
         Direction(int x, int y) {
             this.x = x;
             this.y = y;
+        }
+
+        public Direction opposite(){
+            switch (this){
+                case N: return S;
+                case E: return W;
+                case S: return N;
+                case W: return E;
+                default: return null;
+            }
         }
     }
 

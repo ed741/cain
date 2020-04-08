@@ -10,12 +10,42 @@ public class SimplePairGenFactory implements PairGenFactory {
 
     private Bounds bounds;
 
+
+    public static Collection<Tuple<? extends Transformation, Goal>> applyAllUnaryOps(Goal goal){
+        ArrayList<Tuple<? extends Transformation, Goal>> list = new ArrayList<>();
+        for (Transformation.Direction d: Transformation.Direction.values()){
+            for (int i = 0; i < 4; i++){
+                Transformation t = new Transformation.Move(i, d, goal);
+                try {
+                    Goal go = t.applyForwards();
+                    list.add(new Tuple<>(t, go));
+                } catch (Transformation.TransformationApplicationException ignored) {}
+            }
+        }
+        for (int i = 0; i < 8; i++){
+            Transformation t = new Transformation.Div(i, goal);
+            try {
+                Goal go = t.applyForwards();
+                list.add(new Tuple<>(t, go));
+            } catch (Transformation.TransformationApplicationException ignored) {}
+        }
+        return list;
+    }
+
+    @Override
+    public Collection<Tuple<? extends Transformation, Goal>> applyAllUnaryOpForwards(Goal initialGoal, int depth) {
+        return applyAllUnaryOps(initialGoal);
+    }
+
     @Override
     public void init(ReverseSplit rs) {
         bounds = new Bounds(rs.getFinalGoals());
     }
 
     @Override
+    public PairGen generatePairs(Goal.Bag goals, int depth) {
+        return generatePairs(goals);
+    }
     public PairGen generatePairs(Goal.Bag goals) {
         return new SimplePairGen(goals);
     }
