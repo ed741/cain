@@ -16,23 +16,26 @@ public class Plan {
     private List<Step> start = new ArrayList<>();
     private List<Step> all = new ArrayList<>();
     private List<Step> head = new ArrayList<>();
+    private final Goal initalGoal;
 
-    public Plan(Goal.Bag init, String comment){
-        init.setImmutable();
-        Goal.Pair p = new Goal.Pair(null, init, new Transformation.Null());
-        Step s = new Step(p, init, comment);
+    public Plan(Goal.Bag finalGoal, Goal initalGoal, String comment){
+        finalGoal.setImmutable();
+        Goal.Pair p = new Goal.Pair(null, finalGoal, new Transformation.Null());
+        Step s = new Step(p, finalGoal, comment);
         start.add(s);
 
         all.addAll(start);
         head.addAll(start);
+        this.initalGoal = initalGoal;
     }
 
-    private Plan(List<Step> init){
+    private Plan(List<Step> init, Goal initalGoal){
         start.addAll(init);
+        this.initalGoal = initalGoal;
     }
 
     public Plan newAdd(Goal.Pair newPair, Goal.Bag currentGoals, String comment) {
-        Plan out = new Plan(start);
+        Plan out = new Plan(start, this.initalGoal);
         out.all.addAll(all);
         out.head.addAll(head);
         Step newStep = new Step(newPair, currentGoals, comment);
@@ -53,11 +56,26 @@ public class Plan {
         return Collections.unmodifiableList(all);
     }
 
-    public String produceCode(Map<Goal, RegisterAllocator.Register> registerMap) {
+    public String produceCode(Map<Integer, RegisterAllocator.Register> registerMap) {
         StringBuilder sb = new StringBuilder("Kernel Code!\n");
         for (int i = all.size()-1; i >= 0; i--) {
             Step step = all.get(i);
-            sb.append(step.code(registerMap));
+            RegisterAllocator.Register upper = registerMap.get(i);
+            List<RegisterAllocator.Register> lowers = new ArrayList<>();
+            for(Goal lower: step.getLowers()){
+                int lowerStep = -1;
+                for (int j = i+1; j < all.size() && lowerStep<0; j++) {
+                    if(all.get(j).getUpper().same(lower)){
+                        lowerStep = j;
+                    }
+                }
+                if (lowerStep < 0 && lower.same(this.initalGoal)){
+                    lowerStep = all.size();
+                }
+                assert lowerStep > 0;
+                lowers.add(registerMap.get(lowerStep));
+            }
+            sb.append(step.code(upper, lowers));
             sb.append("\n");
         }
         return sb.toString();
@@ -83,7 +101,7 @@ public class Plan {
         public Goal getUpper(){
             return goalPair.getUpper();
         }
-        public Goal.Bag getLowers(){
+        public List<Goal> getLowers(){
             return goalPair.getLowers();
         }
 
@@ -138,9 +156,8 @@ public class Plan {
             return sb.toString();
         }
 
-        public String code(Map<Goal, RegisterAllocator.Register> registerMap) {
-            List<RegisterAllocator.Register> lowers = getLowers().stream().map(registerMap::get).collect(Collectors.toList());
-            return goalPair.getTransformation().code(registerMap.get(getUpper()), lowers);
+        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+            return goalPair.getTransformation().code(upper, lowers);
         }
     }
 
@@ -168,7 +185,7 @@ public class Plan {
     public String toGoalsString(){
         StringBuilder sb = new StringBuilder("plan:\n");
         for (int i = 0; i<all.size(); i++) {
-            sb.append(i+1);
+            sb.append(i);
             sb.append(": ");
             sb.append(all.get(i).toStringN());
             sb.append("\n");

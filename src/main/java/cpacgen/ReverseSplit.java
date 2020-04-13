@@ -1,33 +1,35 @@
 package cpacgen;
 
 import cpacgen.pairgen.PairGenFactory;
-import cpacgen.pairgen.V1PairGenFactory;
-import cpacgen.pairgen.V2PairGenFactory;
-import cpacgen.pairgen.V3PairGenFactory;
 import cpacgen.util.Tuple;
 
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicIntegerArray;
 
 
 public class ReverseSplit {
+
     private final int divisions;
     private final Goal initialGoal;
     private final Goal.Bag finalGoals;
     private final List<Plan> plans;
     private final GoalsCache cache;
     private final PairGenFactory pairGenFactory;
-    private final ExecutorService pool;
     private final BlockingQueue<State> workQueue;
     private final int workers;
-    private volatile boolean[] activeWorkers;
-    private volatile int[] plansFound;
+    private AtomicIntegerArray activeWorkers;
+    private AtomicIntegerArray plansFound;
+    private AtomicBoolean end;
+    private Semaphore workersFinished;
     private long startTime;
 
     private final int availableRegisters;
-    private volatile int maxDepth;
-    private boolean timeout;
+    private AtomicInteger maxDepth;
+    private final boolean timeout;
     private long maxTime;
     private int allowableAtomsCoefficent;
 
@@ -45,34 +47,19 @@ public class ReverseSplit {
         cache = new GoalsCache();
         this.pairGenFactory = pairGenFactory;
         this.pairGenFactory.init(this);
-        workers = 1;
+        workers = 4;
 
-        pool = Executors.newFixedThreadPool(workers);
-        activeWorkers = new boolean[workers];
-        plansFound = new int[workers];
+        activeWorkers = new AtomicIntegerArray(workers);
+        plansFound = new AtomicIntegerArray(workers);
         workQueue = new LinkedBlockingQueue<>();
 
         allowableAtomsCoefficent = 2;
         this.availableRegisters = availableRegisters;
-        this.maxDepth = maxDepth;
-        maxTime = 1000;//milliseconds
+        this.maxDepth = new AtomicInteger(maxDepth);
+        maxTime = 3400;//milliseconds
+        end = new AtomicBoolean(false);
+        workersFinished = new Semaphore(1-this.workers);
         timeout = false;
-
-
-        if (!useTimeout()){
-            new Thread(){
-                @Override
-                public void run() {
-                    super.run();
-                    System.out.println("Press enter to stop");
-                    Scanner scan = new Scanner(System.in);
-                    scan.nextLine();
-                    System.out.println("Time is up");
-                    pool.shutdown();
-                    endTime();
-                }
-            }.start();
-        }
 
     }
 
@@ -88,43 +75,93 @@ public class ReverseSplit {
         return plans;
     }
 
-    private synchronized boolean useTimeout(){
-        return timeout;
+    public int getInitialDivisions() {
+        return divisions;
     }
 
-    private synchronized void endTime(){
-        timeout = true;
+
+    private boolean finish(){
+        return end.get();
     }
 
-    private synchronized void setWorking(int id, boolean working){
-        activeWorkers[id] = working;
+    private void endTime(){
+        end.set(true);
+    }
+
+    private void setWorking(int id, boolean working){
+        activeWorkers.set(id, working?1:0);
     };
-    private synchronized boolean shareWork(int id){
-        boolean s =  workQueue.isEmpty() && !activeWorkers[id == workers-1?0:id+1];
+    private boolean shareWork(int id){
+        boolean s =  workQueue.isEmpty() && activeWorkers.get((id+1)%workers)==0;
         if (s) {
-            activeWorkers[id == workers-1?0:id+1] = true;
+            activeWorkers.set((id+1)%workers, 1);
         }
         return s;
 
+    }
+    private String workersActive(){
+
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < activeWorkers.length(); i++) {
+            boolean b = activeWorkers.get(i)==1;
+            sb.append(b);
+            if(i <activeWorkers.length()-1){
+                sb.append(", ");
+            }
+        }
+        sb.append("]");
+        return sb.toString();
     }
 
     public void search(){
         startTime = System.currentTimeMillis();
         Goal.Bag goals = new Goal.Bag(finalGoals);
-        workQueue.add(new State(0, goals, new Plan(finalGoals, "final goals")));
-        for (int i = 0; i < workers; i++) {
-            pool.execute(new worker(i));
+        workQueue.add(new State(0, goals, new Plan(finalGoals, initialGoal, "final goals")));
+        List<Thread> workersThreads = new ArrayList<>();
+        for (int i = 0; i < this.workers; i++) {
+            Thread t = new Thread(new Worker(i));
+            workersThreads.add(t);
+            t.start();
+
         }
-        boolean waiting = true;
-        while (waiting) {
+        Thread mainThread = Thread.currentThread();
+
+        if (!timeout){
+            new Thread(){
+                @Override
+                public void run() {
+                    super.run();
+                    System.out.println("Press enter to stop");
+                    Scanner scan = new Scanner(System.in);
+                    scan.nextLine();
+                    System.out.println("Search ended by user");
+                    endTime();
+                    mainThread.interrupt();
+                }
+            }.start();
+        }
+
+        while (!finish()) {
             try {
-                waiting = !pool.awaitTermination(1000, TimeUnit.MILLISECONDS);
-                System.out.print("\rRunning for: " + Duration.ofMillis(System.currentTimeMillis()-startTime).getSeconds() + " seconds");
+                Thread.sleep(100);
+                String active = workersActive();
+                System.out.print("\rRunning for: " + Duration.ofMillis(System.currentTimeMillis() - startTime).getSeconds() + " seconds - " + active);
+                if (timeout && System.currentTimeMillis() > startTime + maxTime) {
+                    System.out.println("\nTime is up!");
+                    endTime();
+                }
             } catch (InterruptedException e) {
                 //ignore
-                System.out.println("Master is Waiting");
+                //System.out.println("Master interrupted");
             }
         }
+        workersThreads.forEach(Thread::interrupt);
+        try {
+            workersFinished.acquire();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         System.out.println("Master finished waiting");
 
     }
@@ -142,41 +179,45 @@ public class ReverseSplit {
 
     }
 
-    private class worker implements Runnable {
+    private class Worker implements Runnable {
         int id;
 
-        public worker(int id) {
+        public Worker(int id) {
             this.id = id;
         }
 
         @Override
         public void run() {
             System.out.println("Worker " + id + " Starting");
-            while ((!useTimeout()) || (System.currentTimeMillis() < startTime + maxTime)) {
-                State s = null;
-                try {
-                    s = workQueue.take();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+            try {
+                while (!finish()) {
+                    State s = workQueue.poll();
+                    if (s == null) {
+                        setWorking(id, false);
+                        s = workQueue.take();
+                    }
+                    if (s == null) {
+                        setWorking(id, false);
+                    } else {
+                        setWorking(id, true);
+                        rSearch(s.depth, s.goals, s.currentPlan);
+                    }
                 }
-                if (s == null) {
-                    setWorking(id, false);
-                } else {
-                    setWorking(id, true);
-                    rSearch(s.depth, s.goals, s.currentPlan);
-                }
+            } catch (InterruptedException e) {
+                //ignore
+                //System.out.println(id + " interpreted!");
             }
             System.out.println("Worker " + id + " Finished");
-            pool.shutdown();
+            workersFinished.release();
         }
 
 
         private void rSearch(int depth, Goal.Bag goals, Plan currentPlan) {
-            if (!(!useTimeout() || System.currentTimeMillis() < startTime + maxTime)){
+            if (finish()){
                 return;
             }
-
-            if (depth < maxDepth-3){
+            int currentMaxDepth = maxDepth.get();
+            if (depth < currentMaxDepth-3){
                 //System.out.println(id + " depth: " + depth);
             }
 //            System.out.println(depth);
@@ -185,10 +226,10 @@ public class ReverseSplit {
 //            System.out.println(goals.toGoalsString());
 
 ////            System.out.println("search");
-            if (depth >= maxDepth) {
+            if (depth >= currentMaxDepth) {
                 return;
             }
-            if (maxDepth-depth < (goals.size()-2)){
+            if (currentMaxDepth-depth < (goals.size()-2)){
                 return;
             }
             if (!cache.isBest(goals, currentPlan.cost())) {
@@ -239,13 +280,12 @@ public class ReverseSplit {
                 }
                 //rSearch(depth+1, newGoals_list, currentPlan.newAdd(new Plan.Step(goals,newGoals_list , goalPair, "r_step")));
                 //rSearch(depth+1, newGoals, currentPlan.newAdd(goalPair, "r_step"));
-                if (!(!useTimeout() || System.currentTimeMillis() < startTime + maxTime)){
+                if (finish()){
                     return;
                 }
                 if(shareWork(id)) {
-                    System.out.println("Sharing work "+id);
+                    //System.out.println("Sharing work "+id);
                     workQueue.add(new State(depth + 1, newGoals, currentPlan.newAdd(goalPair, newGoals, "r_step")));
-                    //activeWorkers[id == workers-1?0:id+1] = true;
                 } else {
                     rSearch(depth+1, newGoals, currentPlan.newAdd(goalPair, newGoals, "r_step"));
                 }
@@ -258,11 +298,12 @@ public class ReverseSplit {
     }
 
     private synchronized void addPlan(Plan p, int id){
-        plansFound[id] += 1;
-        System.out.println("PlansFound by workers: "+ Arrays.toString(plansFound));
+        plansFound.getAndIncrement(id);
+
+        System.out.println("PlansFound by workers: "+ plansFound.toString());
         System.out.println("Found new Plan! (id:"+id+") length: " + p.depth() + " Cost: "+p.cost());
         System.out.println(p);
-        maxDepth = p.depth()-1;
+        maxDepth.getAndUpdate(x->Math.min(p.depth()-1, x));
 
         plans.add(p);
 

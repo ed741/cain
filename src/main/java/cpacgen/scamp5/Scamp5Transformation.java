@@ -45,6 +45,16 @@ public abstract class Scamp5Transformation extends Transformation {
         public String toCode() {
             return code;
         }
+
+        public static Dir fromDirection(Direction direction) {
+            switch (direction){
+                case N: return North;
+                case E: return East;
+                case S: return South;
+                case W: return West;
+            }
+            return null;
+        }
     }
 
     public static class Res extends Scamp5Transformation{
@@ -626,7 +636,7 @@ public abstract class Scamp5Transformation extends Transformation {
         @Override
         public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("subx(%s, %s, %s, %s, %s)", upper, lowers.get(0), dir1, dir2, lowers.get(1));
+            return String.format("sub2x(%s, %s, %s, %s, %s)", upper, lowers.get(0), dir1, dir2, lowers.get(1));
         }
 
         @Override
@@ -652,7 +662,7 @@ public abstract class Scamp5Transformation extends Transformation {
 
         @Override
         public String toStringN() {
-            return String.format("SubX %s %s (%s, %s)", dir1, dir2, a, b);
+            return String.format("Sub2X %s %s (%s, %s)", dir1, dir2, a, b);
         }
     }
 

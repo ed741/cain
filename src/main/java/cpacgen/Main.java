@@ -11,15 +11,32 @@ public class Main {
     public static void main(String[] args) {
         List<Goal> final_goals = new ArrayList<>();
 
-//        int[][] multi2 = new int[][]{
-//                { 1, 2, 3, 4, 5},
-//                { 6, 7, 8, 9, 10},
-//                { 2, 4, 4, 0, 0},
-//                { 1, 2, 0, 0, 0},
-//                { 0, 0, 0, 0, 0}
-//        };
-//        final_goals.add(new Goal.Factory(multi2).get());
+        int[][] multi2 = new int[][]{
+                { 0, 0, 0, 0, 0},
+                { 0, 1, 2, 1, 0},
+                { 0, 2, 4, 2, 0},
+                { 0, 1, 2, 1, 0},
+                { 0, 0, 0, 0, 0}
+        };
+        final_goals.add(new Goal.Factory(multi2).get());
 
+        int[][] multi3 = new int[][]{
+                { 0, 0, 0, 0, 0},
+                { 0, 0, 0, 0, 0},
+                { 0, 0, 0, 0, 0},
+                { 0, 1, 0, 0, 0},
+                { 0, 0, 0, 0, 0}
+        };
+        //final_goals.add(new Goal.Factory(multi3).get());
+
+        int[][] multi4 = new int[][]{
+                { 0, 0, 1, 1, 1},
+                { 0, 0, 1, 1, 1},
+                { 0, 0, 1, 1, 1},
+                { 0, 0, 0, 0, 0},
+                { 0, 0, 0, 0, 0}
+        };
+        //final_goals.add(new Goal.Factory(multi4).get());
 
         int[][] multiSobelV = new int[][]{
                 { 0, 0, 0, 0, 0},
@@ -28,7 +45,7 @@ public class Main {
                 { 0, 1, 0, -1, 0},
                 { 0, 0, 0, 0, 0}
         };
-        final_goals.add(new Goal.Factory(multiSobelV).get());
+        //final_goals.add(new Goal.Factory(multiSobelV).get());
 
         int[][] multiSobelH = new int[][]{
                 { 0, 0, 0, 0, 0},
@@ -37,7 +54,7 @@ public class Main {
                 { 0, -1, -2, -1, 0},
                 { 0, 0, 0, 0, 0}
         };
-        final_goals.add(new Goal.Factory(multiSobelH).get());
+        //final_goals.add(new Goal.Factory(multiSobelH).get());
 
         int[][] multiBox2x2 = new int[][]{
                 { 0, 0, 0, 0, 0},
@@ -93,7 +110,7 @@ public class Main {
         RegisterAllocator.Register[] availableRegisters = new RegisterAllocator.Register[]{A, B, C, D, E, F};
         int maxDepth = 30;
 
-        ReverseSplit rs = new ReverseSplit(2, final_goals, pairGenFactory, availableRegisters.length, maxDepth);
+        ReverseSplit rs = new ReverseSplit(4, final_goals, pairGenFactory, availableRegisters.length, maxDepth);
         rs.search();
 
         System.out.println("print plans");
@@ -115,7 +132,7 @@ public class Main {
         System.out.println(p);
         System.out.println(p.toGoalsString());
         //p.display();
-        RegisterAllocator ra = new RegisterAllocator(p, A, A, B, C, D, E, F);
+        RegisterAllocator ra = new RegisterAllocator(p, A, availableRegisters);
         System.out.println(p.produceCode(ra.solve()));
 
 

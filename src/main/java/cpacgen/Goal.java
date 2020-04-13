@@ -21,7 +21,7 @@ public class Goal implements List<Atom>, Comparable<Goal>{
     }
 
     public Goal(Atom... atoms) {
-        List<Atom> l = Arrays.asList(atoms);
+        List<Atom> l = new ArrayList<>(Arrays.asList(atoms));
         l.sort(Atom.comparator);
         this.list = Collections.unmodifiableList(simplifySorted(l));
     }
@@ -82,6 +82,7 @@ public class Goal implements List<Atom>, Comparable<Goal>{
     }
 
     public boolean same(Goal g){
+        //TODO optimise!
         List<Atom> tmp = new ArrayList<>(g);
         for (Atom a: this){
             if (!tmp.remove(a)){
@@ -169,6 +170,31 @@ public class Goal implements List<Atom>, Comparable<Goal>{
             return 0;
         }
         return div;
+    }
+
+
+    // returns the smallest number of atoms for the same location
+    public int minimumCount() {
+        if(list.isEmpty()){
+            return 0;
+        }
+        int cursor = 0;
+        int minCount = Integer.MAX_VALUE;
+        Atom a = list.get(cursor++);
+        int count = 1;
+        while(cursor < list.size()){
+            if(a.equals(list.get(cursor))) {
+                count++;
+            } else {
+                minCount = Math.min(minCount, count);
+                count = 1;
+                a = list.get(cursor);
+            }
+            cursor++;
+        }
+        minCount = Math.min(minCount, count);
+        return minCount;
+
     }
 
     public String getCharTableString(boolean border){
@@ -277,14 +303,14 @@ public class Goal implements List<Atom>, Comparable<Goal>{
 
     public static class Pair {
         private final Goal upper;
-        private final Goal.Bag lowers;
+        private final List<Goal> lowers;
         private final Transformation transformation;
 
         public Goal getUpper() {
             return upper;
         }
 
-        public Bag getLowers() {
+        public List<Goal> getLowers() {
             return lowers;
         }
 
@@ -298,17 +324,16 @@ public class Goal implements List<Atom>, Comparable<Goal>{
 
         public Pair(Goal u, Goal l, Transformation t) {
             upper = u;
-            lowers = new Goal.Bag();
-            lowers.add(l);
-            lowers.setImmutable();
+            ArrayList<Goal> list = new ArrayList<>();
+            list.add(l);
+            lowers = Collections.unmodifiableList(list);
             transformation = t;
         }
 
         public Pair(Goal u, List<Goal> ls, Transformation t) {
             upper = u;
-            lowers = new Goal.Bag();
-            lowers.addAll(ls);
-            lowers.setImmutable();
+            ArrayList<Goal> list = new ArrayList<>(ls);
+            lowers = Collections.unmodifiableList(list);
             transformation = t;
         }
 

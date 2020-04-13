@@ -4,7 +4,7 @@ import cpacgen.Atom;
 import cpacgen.Goal;
 import cpacgen.Transformation;
 
-class Distance {
+public class Distance {
     final int x, y, z;
 
     Distance(int x, int y, int z) {
@@ -13,7 +13,7 @@ class Distance {
         this.z = z;
     }
 
-    Distance(Atom a, Atom b){
+    public Distance(Atom a, Atom b){
         this.x = b.x-a.x;
         this.y = b.y-a.y;
         this.z = b.z-a.z;
@@ -25,11 +25,11 @@ class Distance {
         this.z = 0;
     }
 
-    boolean isZero(){
+    public boolean isZero(){
         return x==0 && y==0 && z==0;
     }
 
-    int manhattan() {
+    public int manhattan() {
         return Math.abs(x)+Math.abs(y)+Math.abs(z);
     }
 
@@ -48,11 +48,11 @@ class Distance {
         return o instanceof Distance && ((Distance) o).x == x && ((Distance) o).y == y && ((Distance) o).z == z;
     }
 
-    Distance inverse(){
+    public Distance inverse(){
         return new Distance(-x, -y, -z);
     }
 
-    Goal translate(Goal goal){
+    public Goal translate(Goal goal){
         Goal.Factory factory = new Goal.Factory();
         for (Atom a: goal) {
             factory.add(a.moved(x, y, z));
@@ -78,5 +78,9 @@ class Distance {
             throw new UnsupportedOperationException("Movement in Z not supported");
         }
         return null;
+    }
+
+    public Distance then(Transformation.Direction direction) {
+        return new Distance(x-direction.x, y-direction.y, z);
     }
 }
