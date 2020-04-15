@@ -1,9 +1,8 @@
-package cpacgen.pairgen;
+package uk.co.edstow.cpacgen.pairgen;
 
-import cpacgen.Atom;
-import cpacgen.Goal;
-import cpacgen.pairgen.SimplePairGenFactory;
-import cpacgen.util.Tuple;
+import uk.co.edstow.cpacgen.Atom;
+import uk.co.edstow.cpacgen.Goal;
+import uk.co.edstow.cpacgen.util.Tuple;
 
 import java.util.*;
 import java.util.stream.Collectors;

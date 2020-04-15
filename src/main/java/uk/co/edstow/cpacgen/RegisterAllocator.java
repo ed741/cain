@@ -1,6 +1,5 @@
-package cpacgen;
+package uk.co.edstow.cpacgen;
 
-import java.lang.reflect.Array;
 import java.util.*;
 
 public class RegisterAllocator {

@@ -1,4 +1,4 @@
-package cpacgen;
+package uk.co.edstow.cpacgen;
 
 import java.util.Comparator;
 

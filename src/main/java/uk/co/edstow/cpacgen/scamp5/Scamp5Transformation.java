@@ -1,14 +1,13 @@
-package cpacgen.scamp5;
+package uk.co.edstow.cpacgen.scamp5;
 
-import cpacgen.Atom;
-import cpacgen.Goal;
-import cpacgen.RegisterAllocator;
-import cpacgen.Transformation;
-import cpacgen.util.Tuple;
+import uk.co.edstow.cpacgen.Atom;
+import uk.co.edstow.cpacgen.Goal;
+import uk.co.edstow.cpacgen.RegisterAllocator;
+import uk.co.edstow.cpacgen.Transformation;
+import uk.co.edstow.cpacgen.util.Tuple;
 
 import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public abstract class Scamp5Transformation extends Transformation {
 
@@ -53,7 +52,7 @@ public abstract class Scamp5Transformation extends Transformation {
                 case S: return South;
                 case W: return West;
             }
-            return null;
+            throw new IllegalArgumentException();
         }
     }
 

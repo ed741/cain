@@ -1,16 +1,15 @@
-package cpacgen;
+package uk.co.edstow.cpacgen;
 
-import cpacgen.util.Bounds;
-import org.graphstream.graph.Graph;
-import org.graphstream.graph.Node;
-import org.graphstream.graph.implementations.SingleGraph;
-import org.graphstream.ui.view.Viewer;
+import uk.co.edstow.cpacgen.util.Bounds;
+//import org.graphstream.graph.Graph;
+//import org.graphstream.graph.Node;
+//import org.graphstream.graph.implementations.SingleGraph;
+//import org.graphstream.ui.view.Viewer;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class Plan {
     private List<Step> start = new ArrayList<>();
@@ -119,17 +118,17 @@ public class Plan {
                     "\n" + comment;
         }
 
-        private void addEdgesToGraph(Graph graph){
-            Node node = graph.getNode(name);
-            node.addAttribute("ui.label", toStringN());
-
-            node.setAttribute("ui.class", "basicBlock");
-
-            for(Step s: links) {
-                graph.addEdge(name + "-" +s.name, name, s.name, true);
-                //s.addEdgesToGraph(graph);
-            }
-        }
+//        private void addEdgesToGraph(Graph graph){
+//            Node node = graph.getNode(name);
+//            node.addAttribute("ui.label", toStringN());
+//
+//            node.setAttribute("ui.class", "basicBlock");
+//
+//            for(Step s: links) {
+//                graph.addEdge(name + "-" +s.name, name, s.name, true);
+//                //s.addEdgesToGraph(graph);
+//            }
+//        }
 
         public String toGoalsString() {
 
@@ -196,41 +195,41 @@ public class Plan {
     }
 
 
-    public void display(){
-        System.setProperty("org.graphstream.ui.renderer", "org.graphstream.ui.j2dviewer.J2DGraphRenderer");
-        Graph graph = new SingleGraph("Plan");
-
-        graph.setStrict(true);
-        String styleSheet =
-                "node { stroke-mode: plain; " +
-                        "fill-color: black; " +
-                        "shape: rounded-box; " +
-                        "size: 50px, 50px; " +
-                        "text-size:24; " +
-                        "padding: 4px, 4px; " +
-                        "text-alignment: at-right;" +
-                        "text-padding: 3px;" +
-                        "text-background-mode: plain;" +
-                        "}" +
-                "edge { arrow-shape: arrow; " +
-                        "arrow-size: 10px, 10px; " +
-                        "}";
-        graph.addAttribute("ui.stylesheet",styleSheet);
-        for (int i = 0; i < all.size(); i++) {
-            all.get(i).name = "N"+i;
-            graph.addNode(all.get(i).name);
-        }
-        for (Step s: all){
-            s.addEdgesToGraph(graph);
-        }
-
-        Viewer viewer = graph.display();
-        viewer.enableAutoLayout();
-        //viewer.addDefaultView(false).getCamera().setViewPercent(0.5);
-
-
-
-    }
+//    public void display(){
+//        System.setProperty("org.graphstream.ui.renderer", "org.graphstream.ui.j2dviewer.J2DGraphRenderer");
+//        Graph graph = new SingleGraph("Plan");
+//
+//        graph.setStrict(true);
+//        String styleSheet =
+//                "node { stroke-mode: plain; " +
+//                        "fill-color: black; " +
+//                        "shape: rounded-box; " +
+//                        "size: 50px, 50px; " +
+//                        "text-size:24; " +
+//                        "padding: 4px, 4px; " +
+//                        "text-alignment: at-right;" +
+//                        "text-padding: 3px;" +
+//                        "text-background-mode: plain;" +
+//                        "}" +
+//                "edge { arrow-shape: arrow; " +
+//                        "arrow-size: 10px, 10px; " +
+//                        "}";
+//        graph.addAttribute("ui.stylesheet",styleSheet);
+//        for (int i = 0; i < all.size(); i++) {
+//            all.get(i).name = "N"+i;
+//            graph.addNode(all.get(i).name);
+//        }
+//        for (Step s: all){
+//            s.addEdgesToGraph(graph);
+//        }
+//
+//        Viewer viewer = graph.display();
+//        viewer.enableAutoLayout();
+//        //viewer.addDefaultView(false).getCamera().setViewPercent(0.5);
+//
+//
+//
+//    }
 
 
 

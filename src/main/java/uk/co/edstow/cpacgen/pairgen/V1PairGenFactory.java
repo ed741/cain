@@ -1,8 +1,12 @@
-package cpacgen.pairgen;
+package uk.co.edstow.cpacgen.pairgen;
 
-import cpacgen.*;
-import cpacgen.util.Bounds;
-import cpacgen.util.Tuple;
+
+import uk.co.edstow.cpacgen.util.Bounds;
+import uk.co.edstow.cpacgen.util.Tuple;
+import uk.co.edstow.cpacgen.Atom;
+import uk.co.edstow.cpacgen.Goal;
+import uk.co.edstow.cpacgen.ReverseSplit;
+import uk.co.edstow.cpacgen.Transformation;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -11,7 +15,7 @@ public class V1PairGenFactory implements PairGenFactory{
 
 
     @Override
-    public Collection<Tuple<? extends Transformation, Goal>> applyAllUnaryOpForwards(Goal initialGoal, int depth) {
+    public Collection<Tuple<List<Goal.Pair>, Goal>> applyAllUnaryOpForwards(Goal initialGoal, int depth, Goal goal) {
         return SimplePairGenFactory.applyAllUnaryOps(initialGoal);
     }
 

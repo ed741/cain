@@ -1,7 +1,7 @@
-package cpacgen.util;
+package uk.co.edstow.cpacgen.util;
 
 
-import cpacgen.Atom;
+import uk.co.edstow.cpacgen.Atom;
 
 import java.util.Collection;
 

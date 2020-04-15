@@ -1,11 +1,11 @@
-package cpacgen;
+package uk.co.edstow.cpacgen;
 
-import cpacgen.scamp5.Scamp5PairGenFactory;
+import uk.co.edstow.cpacgen.scamp5.Scamp5PairGenFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static cpacgen.RegisterAllocator.Register.*;
+import static uk.co.edstow.cpacgen.RegisterAllocator.Register.*;
 
 public class Main {
     public static void main(String[] args) {
@@ -18,22 +18,22 @@ public class Main {
                 { 0, 1, 2, 1, 0},
                 { 0, 0, 0, 0, 0}
         };
-        final_goals.add(new Goal.Factory(multi2).get());
+        //final_goals.add(new Goal.Factory(multi2).get());
 
         int[][] multi3 = new int[][]{
                 { 0, 0, 0, 0, 0},
-                { 0, 0, 0, 0, 0},
-                { 0, 0, 0, 0, 0},
+                { 0, -1, 0, 0, 0},
+                { 0, 2, 1, 0, 0},
                 { 0, 1, 0, 0, 0},
                 { 0, 0, 0, 0, 0}
         };
         //final_goals.add(new Goal.Factory(multi3).get());
 
         int[][] multi4 = new int[][]{
-                { 0, 0, 1, 1, 1},
-                { 0, 0, 1, 1, 1},
-                { 0, 0, 1, 1, 1},
                 { 0, 0, 0, 0, 0},
+                { 0, 0, 0, 1, 0},
+                { 0, 0, 0, 2, 0},
+                { 0, 0, 0, 1, 0},
                 { 0, 0, 0, 0, 0}
         };
         //final_goals.add(new Goal.Factory(multi4).get());
@@ -72,7 +72,7 @@ public class Main {
                 { 1, 4, 6, 4, 1},
                 { 0, 1, 2, 1, 0}
         };
-//        final_goals.add(new Goal.Factory(multiGuass5x5).get());
+        final_goals.add(new Goal.Factory(multiGuass5x5).get());
 
 //        int[][] multi1 = new int[][]{
 //                { 0, 0, 0, 0, 0},
@@ -105,12 +105,14 @@ public class Main {
                 (goals, depth, rs1, initalGoal) ->
                         new Scamp5PairGenFactory.Config(
                                 true, true, true, true,
-                                true, true, true, depth)
+                                true, true,
+                                false, false, false,
+                                10, depth)
         );
         RegisterAllocator.Register[] availableRegisters = new RegisterAllocator.Register[]{A, B, C, D, E, F};
         int maxDepth = 30;
 
-        ReverseSplit rs = new ReverseSplit(4, final_goals, pairGenFactory, availableRegisters.length, maxDepth);
+        ReverseSplit rs = new ReverseSplit(6, final_goals, pairGenFactory, availableRegisters.length, maxDepth);
         rs.search();
 
         System.out.println("print plans");

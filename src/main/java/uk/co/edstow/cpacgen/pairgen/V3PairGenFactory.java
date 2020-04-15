@@ -1,21 +1,19 @@
-package cpacgen.pairgen;
+package uk.co.edstow.cpacgen.pairgen;
 
-import cpacgen.Atom;
-import cpacgen.Goal;
-import cpacgen.ReverseSplit;
-import cpacgen.Transformation;
-import cpacgen.util.Bounds;
-import cpacgen.util.Tuple;
+import uk.co.edstow.cpacgen.Goal;
+import uk.co.edstow.cpacgen.ReverseSplit;
+import uk.co.edstow.cpacgen.Transformation;
+import uk.co.edstow.cpacgen.util.Bounds;
+import uk.co.edstow.cpacgen.util.Tuple;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class V3PairGenFactory extends V2PairGenFactory{
 
     private static Comparator<Tuple<Distance, Goal>> entryComparator = Comparator.comparingInt((Tuple<Distance, Goal> t) -> t.getB().size()).thenComparingInt(t -> -t.getA().manhattan());
 
     @Override
-    public Collection<Tuple<? extends Transformation, Goal>> applyAllUnaryOpForwards(Goal initialGoal, int depth) {
+    public Collection<Tuple<List<Goal.Pair>, Goal>> applyAllUnaryOpForwards(Goal initialGoal, int depth, Goal goal) {
         return SimplePairGenFactory.applyAllUnaryOps(initialGoal);
     }
 
@@ -59,7 +57,7 @@ public class V3PairGenFactory extends V2PairGenFactory{
                 Goal b = goals.get(getj());
                 boolean diaganal = geti()==getj();
                 //System.out.println("ii: " + ii + " jj: " + jj + " i: " + geti() + " j: " +
-                List<Tuple<cpacgen.pairgen.Distance, Goal>> list = getAtomDistanceList(a, b, diaganal);
+                List<Tuple<Distance, Goal>> list = getAtomDistanceList(a, b, diaganal);
 
                 if (!diaganal) {
                     for (Tuple<Distance, Goal> tuple : list) {

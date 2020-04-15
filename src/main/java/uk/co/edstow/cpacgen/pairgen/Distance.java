@@ -1,8 +1,8 @@
-package cpacgen.pairgen;
+package uk.co.edstow.cpacgen.pairgen;
 
-import cpacgen.Atom;
-import cpacgen.Goal;
-import cpacgen.Transformation;
+import uk.co.edstow.cpacgen.Atom;
+import uk.co.edstow.cpacgen.Goal;
+import uk.co.edstow.cpacgen.Transformation;
 
 public class Distance {
     final int x, y, z;
@@ -17,6 +17,12 @@ public class Distance {
         this.x = b.x-a.x;
         this.y = b.y-a.y;
         this.z = b.z-a.z;
+    }
+
+    public Distance(Goal.AveragePosition position){
+        this.x = (int) Math.round(position.x);
+        this.y = (int) Math.round(position.y);
+        this.z = (int) Math.round(position.z);
     }
 
     Distance(Transformation.Direction dir, int length){

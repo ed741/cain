@@ -1,8 +1,11 @@
-package cpacgen.pairgen;
+package uk.co.edstow.cpacgen.pairgen;
 
-import cpacgen.*;
-import cpacgen.util.Bounds;
-import cpacgen.util.Tuple;
+import uk.co.edstow.cpacgen.util.Bounds;
+import uk.co.edstow.cpacgen.util.Tuple;
+import uk.co.edstow.cpacgen.Atom;
+import uk.co.edstow.cpacgen.Goal;
+import uk.co.edstow.cpacgen.ReverseSplit;
+import uk.co.edstow.cpacgen.Transformation;
 
 import java.util.*;
 
@@ -11,14 +14,14 @@ public class SimplePairGenFactory implements PairGenFactory {
     private Bounds bounds;
 
 
-    public static Collection<Tuple<? extends Transformation, Goal>> applyAllUnaryOps(Goal goal){
-        ArrayList<Tuple<? extends Transformation, Goal>> list = new ArrayList<>();
+    public static Collection<Tuple<List<Goal.Pair>, Goal>> applyAllUnaryOps(Goal goal){
+        ArrayList<Tuple<List<Goal.Pair>, Goal>> list = new ArrayList<>();
         for (Transformation.Direction d: Transformation.Direction.values()){
             for (int i = 0; i < 4; i++){
                 Transformation t = new Transformation.Move(i, d, goal);
                 try {
                     Goal go = t.applyForwards();
-                    list.add(new Tuple<>(t, go));
+                    list.add(new Tuple<>(Collections.singletonList(new Goal.Pair(go, goal, t)), go));
                 } catch (Transformation.TransformationApplicationException ignored) {}
             }
         }
@@ -26,14 +29,15 @@ public class SimplePairGenFactory implements PairGenFactory {
             Transformation t = new Transformation.Div(i, goal);
             try {
                 Goal go = t.applyForwards();
-                list.add(new Tuple<>(t, go));
+
+                list.add(new Tuple<>(Collections.singletonList(new Goal.Pair(go, goal, t)), go));
             } catch (Transformation.TransformationApplicationException ignored) {}
         }
         return list;
     }
 
     @Override
-    public Collection<Tuple<? extends Transformation, Goal>> applyAllUnaryOpForwards(Goal initialGoal, int depth) {
+    public Collection<Tuple<List<Goal.Pair>, Goal>> applyAllUnaryOpForwards(Goal initialGoal, int depth, Goal goal) {
         return applyAllUnaryOps(initialGoal);
     }
 

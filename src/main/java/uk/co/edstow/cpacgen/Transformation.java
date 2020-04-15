@@ -1,7 +1,6 @@
-package cpacgen;
+package uk.co.edstow.cpacgen;
 
-import cpacgen.util.Tuple;
-import sun.java2d.xr.MutableInteger;
+import uk.co.edstow.cpacgen.util.Tuple;
 
 import java.util.*;
 
@@ -84,14 +83,13 @@ public abstract class Transformation {
 
         private static Goal getForwardsApplication(int divisions, Goal goal) throws TransformationApplicationException {
             Goal.Factory factory = new Goal.Factory();
-            Map<Atom, MutableInteger> count = new HashMap<>();
+            Map<Atom, Integer> count = new HashMap<>();
             for (Atom a: goal){
-                count.putIfAbsent(a, new MutableInteger(0));
-                MutableInteger i = count.get(a);
-                i.setValue(i.getValue()+1);
+                Integer i = count.getOrDefault(a, 0);
+                count.put(a, i);
             }
-            for (Map.Entry<Atom, MutableInteger> entry : count.entrySet()) {
-                int i = entry.getValue().getValue();
+            for (Map.Entry<Atom, Integer> entry : count.entrySet()) {
+                int i = entry.getValue();
                 boolean isValid = i > 0 && ((i >> divisions) << divisions) == i;
                 if (!isValid){
                     throw new TransformationApplicationException(i + " Atoms cannot halved " + divisions + " time(s)");

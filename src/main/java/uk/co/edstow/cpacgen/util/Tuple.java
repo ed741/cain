@@ -1,4 +1,4 @@
-package cpacgen.util;
+package uk.co.edstow.cpacgen.util;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;

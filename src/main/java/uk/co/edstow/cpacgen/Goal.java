@@ -1,7 +1,7 @@
-package cpacgen;
+package uk.co.edstow.cpacgen;
 
-import cpacgen.util.Bounds;
-import cpacgen.util.Tuple;
+import uk.co.edstow.cpacgen.util.Bounds;
+import uk.co.edstow.cpacgen.util.Tuple;
 
 import java.util.*;
 
@@ -18,6 +18,12 @@ public class Goal implements List<Atom>, Comparable<Goal>{
 
     public Goal() {
         list = Collections.emptyList();
+    }
+
+
+    public Goal(Goal goal) { // No need to sort as Goal is already correctly sorted
+        ArrayList<Atom> l = new ArrayList<>(goal);
+        this.list = Collections.unmodifiableList(l);
     }
 
     public Goal(Atom... atoms) {
@@ -82,14 +88,24 @@ public class Goal implements List<Atom>, Comparable<Goal>{
     }
 
     public boolean same(Goal g){
-        //TODO optimise!
-        List<Atom> tmp = new ArrayList<>(g);
-        for (Atom a: this){
-            if (!tmp.remove(a)){
+        if(g.list.size() != list.size()){
+            return false;
+        }
+        for (int i = 0; i < list.size(); i++) {
+            if(!g.list.get(i).equals(list.get(i))){
                 return false;
             }
         }
-        return tmp.isEmpty();
+        return true;
+        //return list.equals(g.list);
+        //TODO optimise!
+//        List<Atom> tmp = new ArrayList<>(g);
+//        for (Atom a: this){
+//            if (!tmp.remove(a)){
+//                return false;
+//            }
+//        }
+//        return tmp.isEmpty();
     }
 
     public Goal negative(){
@@ -197,6 +213,26 @@ public class Goal implements List<Atom>, Comparable<Goal>{
 
     }
 
+    public AveragePosition getAveragePos(){
+        double x=0, y=0, z=0;
+        for (Atom a : list) {
+            x += a.x;
+            y += a.y;
+            z += a.z;
+        }
+        return new AveragePosition(x/list.size(), y/list.size(), z/list.size());
+    }
+
+    public static class AveragePosition {
+        public final double x, y, z;
+
+        public AveragePosition(double x, double y, double z) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+    }
+
     public String getCharTableString(boolean border){
         Bounds b = new Bounds(Bounds.BoundsFromGoal(this), new Atom(0,0,0, true));
         int height = 1 + b.yMax - b.yMin;
@@ -271,12 +307,12 @@ public class Goal implements List<Atom>, Comparable<Goal>{
         if(this.size() > goal.size()){
             return -1;
         }
-        for (int i = 0; i < size(); i++) {
-            int c = get(i).compareTo(goal.get(i));
-            if(c != 0){
-                return c;
-            }
-        }
+//        for (int i = 0; i < size(); i++) {
+//            int c = get(i).compareTo(goal.get(i));
+//            if(c != 0){
+//                return c;
+//            }
+//        }
         return 0;
     }
 

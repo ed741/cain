@@ -1,14 +1,13 @@
-package cpacgen;
+package uk.co.edstow.cpacgen;
 
-import cpacgen.pairgen.PairGenFactory;
-import cpacgen.util.Tuple;
+import uk.co.edstow.cpacgen.pairgen.PairGenFactory;
+import uk.co.edstow.cpacgen.util.Tuple;
 
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicIntegerArray;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 public class ReverseSplit {
@@ -21,7 +20,10 @@ public class ReverseSplit {
     private final PairGenFactory pairGenFactory;
     private final BlockingQueue<State> workQueue;
     private final int workers;
-    private AtomicIntegerArray activeWorkers;
+    private boolean[] activeWorkers;
+    private double[] averageWorkerDepth;
+    private int[] minWorkerDepth;
+    private ReentrantLock activeWorkersLock;
     private AtomicIntegerArray plansFound;
     private AtomicBoolean end;
     private Semaphore workersFinished;
@@ -49,7 +51,10 @@ public class ReverseSplit {
         this.pairGenFactory.init(this);
         workers = 4;
 
-        activeWorkers = new AtomicIntegerArray(workers);
+        activeWorkers = new boolean[workers];
+        averageWorkerDepth = new double[workers];
+        minWorkerDepth = new int[workers];
+        activeWorkersLock = new ReentrantLock();
         plansFound = new AtomicIntegerArray(workers);
         workQueue = new LinkedBlockingQueue<>();
 
@@ -89,28 +94,54 @@ public class ReverseSplit {
     }
 
     private void setWorking(int id, boolean working){
-        activeWorkers.set(id, working?1:0);
+        try {
+            activeWorkersLock.lock();
+            activeWorkers[id] = working;
+        } finally {
+            activeWorkersLock.unlock();
+        }
     };
     private boolean shareWork(int id){
-        boolean s =  workQueue.isEmpty() && activeWorkers.get((id+1)%workers)==0;
-        if (s) {
-            activeWorkers.set((id+1)%workers, 1);
+        boolean s = false;
+        try {
+            activeWorkersLock.lock();
+            s =  workQueue.isEmpty() && !activeWorkers[(id+1)%workers];
+//            if (s) {
+//                activeWorkers[(id+1)%workers]= true;
+//            }
+        } finally {
+            activeWorkersLock.unlock();
         }
         return s;
 
     }
-    private String workersActive(){
-
-        StringBuilder sb = new StringBuilder("[");
-        for (int i = 0; i < activeWorkers.length(); i++) {
-            boolean b = activeWorkers.get(i)==1;
-            sb.append(b);
-            if(i <activeWorkers.length()-1){
-                sb.append(", ");
+    private boolean allWorkersFinished(){
+        try {
+            boolean finished = true;
+            activeWorkersLock.lock();
+            for (boolean activeWorker : activeWorkers) {
+                finished = finished && activeWorker;
             }
+            return finished;
+        } finally {
+            activeWorkersLock.unlock();
         }
-        sb.append("]");
-        return sb.toString();
+    }
+    private String workersActive(){
+        try {
+            activeWorkersLock.lock();
+            StringBuilder sb = new StringBuilder("[");
+            for (int i = 0; i < activeWorkers.length; i++) {
+                sb.append(activeWorkers[i]);
+                if (i < activeWorkers.length - 1) {
+                    sb.append(", ");
+                }
+            }
+            sb.append("]");
+            return sb.toString();
+        } finally {
+            activeWorkersLock.unlock();
+        }
     }
 
     public void search(){
@@ -145,7 +176,22 @@ public class ReverseSplit {
             try {
                 Thread.sleep(100);
                 String active = workersActive();
-                System.out.print("\rRunning for: " + Duration.ofMillis(System.currentTimeMillis() - startTime).getSeconds() + " seconds - " + active);
+                StringBuilder sb = new StringBuilder("[");
+                for (int i = 0; i < averageWorkerDepth.length; i++) {
+                    String v = String.valueOf(((double) Math.round(averageWorkerDepth[i] * 100)) /100);
+                    sb.append(v);
+                    for(int j = v.length(); j<5; j++){
+                        sb.append(' ');
+                    }
+                    if(i == averageWorkerDepth.length-1){
+                        sb.append("]");
+                        break;
+                    }
+                    sb.append(',');
+
+                }
+                String avgdepth = sb.toString();
+                System.out.print("\rRunning for: " + Duration.ofMillis(System.currentTimeMillis() - startTime).getSeconds() + " seconds - " + active + " : " + avgdepth + " : " + Arrays.toString(minWorkerDepth));
                 if (timeout && System.currentTimeMillis() > startTime + maxTime) {
                     System.out.println("\nTime is up!");
                     endTime();
@@ -213,6 +259,8 @@ public class ReverseSplit {
 
 
         private void rSearch(int depth, Goal.Bag goals, Plan currentPlan) {
+            averageWorkerDepth[id] = averageWorkerDepth[id]*0.99 + depth*0.01;
+            minWorkerDepth[id] = Math.min(minWorkerDepth[id], depth);
             if (finish()){
                 return;
             }
@@ -245,13 +293,19 @@ public class ReverseSplit {
             if (goals.size() == 1) {
                 Goal g = goals.iterator().next();
                 if(g.equals(initialGoal)){
-                    addPlan(currentPlan, id);
+                    addPlan(currentPlan, id, depth);
                     return;
                 }
-                Transformation t = isTransformable(g, depth);
-                if (t != null) {
-                    Plan p = currentPlan.newAdd(new Goal.Pair(g, initialGoal, t), new Goal.Bag(initialGoal), "final step");
-                    addPlan(p, id);
+                List<Goal.Pair> pairs = isTransformable(g, depth);
+                if (pairs!= null && !pairs.isEmpty()) {
+                    Plan p = currentPlan;
+                    for (int i = 0; i < pairs.size(); i++) {
+                        Goal.Pair pair = pairs.get(i);
+                        goals.remove(pair.getUpper());
+                        goals.addAll(pair.getLowers());
+                        p = p.newAdd(pair, new Goal.Bag(goals), "final step "+i);
+                    }
+                    addPlan(p, id, depth);
                     return;
                 }
             }
@@ -284,7 +338,7 @@ public class ReverseSplit {
                     return;
                 }
                 if(shareWork(id)) {
-                    //System.out.println("Sharing work "+id);
+                    System.out.println("Sharing work "+id);
                     workQueue.add(new State(depth + 1, newGoals, currentPlan.newAdd(goalPair, newGoals, "r_step")));
                 } else {
                     rSearch(depth+1, newGoals, currentPlan.newAdd(goalPair, newGoals, "r_step"));
@@ -297,13 +351,16 @@ public class ReverseSplit {
 
     }
 
-    private synchronized void addPlan(Plan p, int id){
+    private synchronized void addPlan(Plan p, int id, int depth){
+        for (int i = 0; i < minWorkerDepth.length; i++) {
+            minWorkerDepth[i] = depth;
+        }
         plansFound.getAndIncrement(id);
 
         System.out.println("PlansFound by workers: "+ plansFound.toString());
         System.out.println("Found new Plan! (id:"+id+") length: " + p.depth() + " Cost: "+p.cost());
         System.out.println(p);
-        maxDepth.getAndUpdate(x->Math.min(p.depth()-1, x));
+        maxDepth.getAndUpdate(x->Math.min(depth, x));
 
         plans.add(p);
 
@@ -324,13 +381,13 @@ public class ReverseSplit {
      * @param goal a goal to find a trnsformation for.
      * @return the Transformation initial_goal -> goal; iff the initial goal can be directly transformed into goal, else null
      */
-    private Transformation isTransformable(Goal goal, int depth) {
+    private List<Goal.Pair> isTransformable(Goal goal, int depth) {
         assert !goal.isEmpty();
-        for(Tuple<? extends Transformation, Goal> tuple : this.pairGenFactory.applyAllUnaryOpForwards(initialGoal, depth)){
-            Transformation t = tuple.getA();
+        for(Tuple<List<Goal.Pair>, Goal> tuple : this.pairGenFactory.applyAllUnaryOpForwards(initialGoal, depth, goal)){
+            List<Goal.Pair> pairs = tuple.getA();
             Goal g = tuple.getB();
             if(goal.same(g)){
-                return t;
+                return pairs;
             }
         }
         return null;
