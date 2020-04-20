@@ -1,7 +1,7 @@
 package uk.co.edstow.cpacgen.pairgen;
 
 import uk.co.edstow.cpacgen.Goal;
-import uk.co.edstow.cpacgen.ReverseSplit;
+import uk.co.edstow.cpacgen.ReverseSearch;
 import uk.co.edstow.cpacgen.util.Tuple;
 
 import java.util.Collection;
@@ -14,7 +14,7 @@ public interface PairGenFactory {
         Goal.Pair next();
     }
 
-    void init(ReverseSplit rs);
+    void init(ReverseSearch rs);
 
     PairGen generatePairs(Goal.Bag goals, int depth);
 

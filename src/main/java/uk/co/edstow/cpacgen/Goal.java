@@ -16,11 +16,6 @@ public class Goal implements List<Atom>, Comparable<Goal>{
         this.list = Collections.unmodifiableList(simplifySorted(l));
     }
 
-    public Goal() {
-        list = Collections.emptyList();
-    }
-
-
     public Goal(Goal goal) { // No need to sort as Goal is already correctly sorted
         ArrayList<Atom> l = new ArrayList<>(goal);
         this.list = Collections.unmodifiableList(l);
@@ -124,7 +119,7 @@ public class Goal implements List<Atom>, Comparable<Goal>{
     /**
      * @return all possible sub Goals (subsets) of this goal, excluding the emptpy Goal.
      */
-    public Collection<Goal> allSplits(){
+    public List<Goal> allSplits(){
         List<Goal> out = rallSplits();
         out.remove(0);
         return out;
@@ -213,6 +208,29 @@ public class Goal implements List<Atom>, Comparable<Goal>{
 
     }
 
+
+    public int maximumCount() {
+        if(list.isEmpty()){
+            return 0;
+        }
+        int cursor = 0;
+        int maxCount = Integer.MIN_VALUE;
+        Atom a = list.get(cursor++);
+        int count = 1;
+        while(cursor < list.size()){
+            if(a.equals(list.get(cursor))) {
+                count++;
+            } else {
+                maxCount = Math.max(maxCount, count);
+                count = 1;
+                a = list.get(cursor);
+            }
+            cursor++;
+        }
+        maxCount = Math.max(maxCount, count);
+        return maxCount;
+    }
+
     public AveragePosition getAveragePos(){
         double x=0, y=0, z=0;
         for (Atom a : list) {
@@ -222,6 +240,21 @@ public class Goal implements List<Atom>, Comparable<Goal>{
         }
         return new AveragePosition(x/list.size(), y/list.size(), z/list.size());
     }
+
+    public boolean allSame() {
+        Atom a = list.get(0);
+        for (int i = 1; i < list.size(); i++) {
+            if(!a.equals(list.get(i))){
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public Goal subtract(Goal a) {
+        return new Goal.Factory(list).subAll(a).get();
+    }
+
 
     public static class AveragePosition {
         public final double x, y, z;
@@ -233,11 +266,11 @@ public class Goal implements List<Atom>, Comparable<Goal>{
         }
     }
 
-    public String getCharTableString(boolean border){
+    public String getCharTableString(boolean topBorder, boolean bottomBorder){
         Bounds b = new Bounds(Bounds.BoundsFromGoal(this), new Atom(0,0,0, true));
         int height = 1 + b.yMax - b.yMin;
         int width = 1 + b.xMax - b.xMin;
-        String[][] table = getCharTable(b, width, height, border);
+        String[][] table = getCharTable(b, width, height, topBorder, bottomBorder);
         StringBuilder sb = new StringBuilder();
         for (int j = height+1; j >= 0; j--) {
             for (int i = 0; i < table[j].length; i++) {
@@ -249,15 +282,15 @@ public class Goal implements List<Atom>, Comparable<Goal>{
         return sb.toString();
     }
 
-    public String[][] getCharTable(boolean border){
+    public String[][] getCharTable(boolean topBorder, boolean bottomBorder){
         Bounds b = new Bounds(Bounds.BoundsFromGoal(this), new Atom(0,0,0, true));
         int height = 1 + b.yMax - b.yMin;
         int width = 1 + b.xMax - b.xMin;
-        return getCharTable(b, width, height, border);
+        return getCharTable(b, width, height, topBorder, bottomBorder);
     }
 
 
-    public String[][] getCharTable(Bounds b, int width, int height, boolean border) {
+    public String[][] getCharTable(Bounds b, int width, int height, boolean topBorder, boolean bottomBorder) {
         String [][] tableArray = new String[height+2][width+2];
         int xZero = 1-b.xMin;
         int yZero = 1-b.yMin;
@@ -265,14 +298,16 @@ public class Goal implements List<Atom>, Comparable<Goal>{
             for (int y = b.yMin-1; y <= b.yMax+1; y++) {
                 if (b.xMin <= x && x <= b.xMax && b.yMin <= y && y <= b.yMax) {
                     tableArray[yZero + y][xZero + x] = "0";
+                } else if(x==0){
+                    tableArray[yZero + y][xZero + x] = "|";
+                } else if(y==0){
+                    tableArray[yZero + y][xZero + x] = "-";
+                } else if(yZero + y == 0 && bottomBorder){
+                    tableArray[yZero + y][xZero + x] = "v";
+                } else if(yZero + y == height+1 && topBorder) {
+                    tableArray[yZero + y][xZero + x] = "v";
                 } else {
-                    tableArray[yZero + y][xZero + x] = border? "*":"+";
-                    if(x==0){
-                        tableArray[yZero + y][xZero + x] = "|";
-                    }
-                    if(y==0){
-                        tableArray[yZero + y][xZero + x] = "-";
-                    }
+                    tableArray[yZero + y][xZero + x] = "+";
                 }
             }
         }
@@ -407,14 +442,54 @@ public class Goal implements List<Atom>, Comparable<Goal>{
     public static class Bag extends ArrayList<Goal>{
         private boolean immutable = false;
         private int atomCount = -1;
+        private static Comparator<Goal> fullComp = (a, b) -> {
+            if(a.size() < b.size()){
+                return 1;
+            }
+            if(a.size() > b.size()){
+                return -1;
+            }
+            for (int i = 0; i < a.size(); i++) {
+                int c = a.get(i).compareTo(b.get(i));
+                if(c != 0){
+                    return c;
+                }
+            }
+            return 0;
+        };
+        private static Comparator<Goal> halfComp = (a, b) -> {
+            if(a.size() < b.size()){
+                return 1;
+            }
+            if(a.size() > b.size()){
+                return -1;
+            }
+            return 0;
+        };
+
         public Bag(Bag b) {
             super(b);
         }
+
         public Bag() {
+            super();
         }
 
         public Bag(Goal goal) {
+            super(goal.size());
             add(goal);
+        }
+
+        public Bag(Bag b, boolean fullSort) {
+            super(b);
+            if(fullSort) {
+                sort(fullComp);
+            }
+        }
+
+        public Bag(Collection<Goal> goals) {
+            super(goals.size());
+            this.addAll(goals);
         }
 
         public void setImmutable(){
@@ -441,7 +516,7 @@ public class Goal implements List<Atom>, Comparable<Goal>{
         public boolean add(Goal goal) {
             assert !immutable;
             for (int i = 0; i < size(); i++) {
-                if(get(i).compareTo(goal) >= 0){
+                if(halfComp.compare(get(i), goal) >= 0){
                     super.add(i, goal);
                     return true;
                 }
@@ -459,6 +534,43 @@ public class Goal implements List<Atom>, Comparable<Goal>{
                 c = true;
             };
             return c;
+        }
+
+        public boolean addIfUnique(Goal goal){
+            assert !immutable;
+            for (int i = 0; i < size(); i++) {
+                int c = halfComp.compare(get(i),goal);
+                if(c > 0){
+                    super.add(i, goal);
+                    return true;
+                } else if(c==0){
+                    if(get(i).same(goal)){
+                        return false;
+                    }
+                }
+            }
+            super.add(goal);
+            return true;
+        }
+
+        @Override
+        public boolean remove(Object g){
+            assert !immutable;
+            if(!(g instanceof Goal)){
+                return false;
+            }
+            Goal goal = (Goal) g;
+            for (int i = 0; i < this.size(); i++) {
+                Goal goali = this.get(i);
+                if(goali.same(goal)){
+                    super.remove(i);
+                    return true;
+                }
+                if(halfComp.compare(goali,goal) > 0){
+                    return false;
+                }
+            }
+            return false;
         }
 
         @Override
@@ -484,7 +596,7 @@ public class Goal implements List<Atom>, Comparable<Goal>{
             List<String[][]> arrays = new ArrayList<>();
 
             for (int i = 0; i < size(); i++) {
-                String[][] tableArray = get(i).getCharTable(b, width, height, false);
+                String[][] tableArray = get(i).getCharTable(b, width, height, false, false);
                 arrays.add(tableArray);
             }
 
@@ -551,6 +663,13 @@ public class Goal implements List<Atom>, Comparable<Goal>{
 
         public Goal.Factory subAll(Collection<Atom> b) {
             b.forEach(atom -> list.add(atom.negate())); return this;
+        }
+
+        public Goal.Factory add(Atom a, int i) {
+            for (int j = 0; j < i; j++) {
+                list.add(a);
+            }
+            return this;
         }
     }
 

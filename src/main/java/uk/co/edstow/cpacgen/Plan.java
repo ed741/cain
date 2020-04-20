@@ -1,53 +1,48 @@
 package uk.co.edstow.cpacgen;
 
 import uk.co.edstow.cpacgen.util.Bounds;
-//import org.graphstream.graph.Graph;
-//import org.graphstream.graph.Node;
-//import org.graphstream.graph.implementations.SingleGraph;
-//import org.graphstream.ui.view.Viewer;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class Plan {
-    private List<Step> start = new ArrayList<>();
-    private List<Step> all = new ArrayList<>();
-    private List<Step> head = new ArrayList<>();
-    private final Goal initalGoal;
+    private final List<Step> all = new ArrayList<>();
+    private final Goal initialGoal;
 
-    public Plan(Goal.Bag finalGoal, Goal initalGoal, String comment){
-        finalGoal.setImmutable();
-        Goal.Pair p = new Goal.Pair(null, finalGoal, new Transformation.Null());
-        Step s = new Step(p, finalGoal, comment);
-        start.add(s);
+    public Plan(List<Goal> finalGoals, Goal initialGoal, String comment){
+        Goal.Pair p = new Goal.Pair(null, finalGoals, new Transformation.Null());
+        Step s = new Step(p, new Goal.Bag(finalGoals), comment);
 
-        all.addAll(start);
-        head.addAll(start);
-        this.initalGoal = initalGoal;
+        all.add(s);
+        this.initialGoal = initialGoal;
     }
 
-    private Plan(List<Step> init, Goal initalGoal){
-        start.addAll(init);
-        this.initalGoal = initalGoal;
+    private Plan(List<Step> init, Goal initialGoal){
+        all.addAll(init);
+        this.initialGoal = initialGoal;
+    }
+
+    public void push(Goal.Pair newPair, Goal.Bag currentGoals, String comment) {
+        Step newStep = new Step(newPair, currentGoals, comment);
+        all.add(newStep);
+    }
+
+    public void pop(){
+        all.remove(all.size()-1);
+    }
+
+    public Plan copy(){
+        Plan out = new Plan(all, this.initialGoal);
+        return out;
     }
 
     public Plan newAdd(Goal.Pair newPair, Goal.Bag currentGoals, String comment) {
-        Plan out = new Plan(start, this.initalGoal);
-        out.all.addAll(all);
-        out.head.addAll(head);
+        Plan out = new Plan(all, this.initialGoal);
         Step newStep = new Step(newPair, currentGoals, comment);
-        for(Step step: out.all){
-            for(Goal lowerGoal: step.goalPair.getLowers()){
-                if(lowerGoal.same(newPair.getUpper())){
-                    newStep.links.add(step);
-                    out.head.remove(step);
-                }
-            }
-        }
         out.all.add(newStep);
-        out.head.add(newStep);
         return out;
     }
 
@@ -68,7 +63,7 @@ public class Plan {
                         lowerStep = j;
                     }
                 }
-                if (lowerStep < 0 && lower.same(this.initalGoal)){
+                if (lowerStep < 0 && lower.same(this.initialGoal)){
                     lowerStep = all.size();
                 }
                 assert lowerStep > 0;
@@ -84,13 +79,13 @@ public class Plan {
         private final String comment;
         private final Goal.Pair goalPair;
         private final Goal.Bag currentGoals;
-        private final List<Step> links;
-        private String name;
+        private int idx;
+        private List<Step> forwardsLinks;
+        private List<Step> backwardsLinks;
 
         private Step(Goal.Pair t, Goal.Bag currentGoals, String comment) {
             goalPair = t;
             this.comment = comment;
-            links = new ArrayList<>();
             this.currentGoals = new Goal.Bag(currentGoals);
         }
 
@@ -107,30 +102,20 @@ public class Plan {
 
         @Override
         public String toString() {
-            return "Step{" +
+            List<String> foward = forwardsLinks==null?new ArrayList<>():forwardsLinks.stream().map(s->String.valueOf(s.idx)).collect(Collectors.toList());
+            List<String> backward = backwardsLinks==null?new ArrayList<>():backwardsLinks.stream().map(s->String.valueOf(s.idx)).collect(Collectors.toList());
+            return "Step("+ idx +")"+foward+""+backward+"{" +
                     "goalPair=" + goalPair.toString() +
                     ", " + comment +
                     '}';
         }
 
         public String toStringN() {
-            return name +" " + goalPair.toStringN() +
+            return idx +" " + goalPair.toStringN() +
                     "\n" + comment;
         }
 
-//        private void addEdgesToGraph(Graph graph){
-//            Node node = graph.getNode(name);
-//            node.addAttribute("ui.label", toStringN());
-//
-//            node.setAttribute("ui.class", "basicBlock");
-//
-//            for(Step s: links) {
-//                graph.addEdge(name + "-" +s.name, name, s.name, true);
-//                //s.addEdgesToGraph(graph);
-//            }
-//        }
-
-        public String toGoalsString() {
+        public String toGoalsString(List<Goal> input) {
 
             Bounds b = new Bounds(new Bounds(currentGoals), new Atom(0,0,0, true));
             int height = 1 + b.yMax - b.yMin;
@@ -138,7 +123,9 @@ public class Plan {
             List<String[][]> arrays = new ArrayList<>();
 
             for (int i = 0; i < currentGoals.size(); i++) {
-                String[][] tableArray = currentGoals.get(i).getCharTable(b, width, height, this.goalPair.getLowers().contains(currentGoals.get(i)));
+                boolean in = input.contains(currentGoals.get(i));
+                boolean out = this.goalPair.getLowers().contains(currentGoals.get(i));
+                String[][] tableArray = currentGoals.get(i).getCharTable(b, width, height, out, in);
                 arrays.add(tableArray);
             }
 
@@ -168,12 +155,59 @@ public class Plan {
         return all.size()-1;
     }
 
+    public void link(){
+        for (int i = 0; i < all.size(); i++) {
+            Step s = all.get(i);
+            s.backwardsLinks = new ArrayList<>();
+            s.forwardsLinks = new ArrayList<>();
+            s.idx = i;
+        }
+        for (int i = 0; i < all.size(); i++) {
+            Step step = all.get(i);
+            for (Goal lower : step.getLowers()) {
+                int j = i+1;
+                for (; j < all.size(); j++) {
+                    if(all.get(j).getUpper().same(lower)){
+                        step.backwardsLinks.add(all.get(j));
+                        all.get(j).forwardsLinks.add(step);
+                        break;
+                    }
+                }
+                assert j != all.size() || lower.same(initialGoal);
+
+            }
+        }
+    }
+
+    public void circuitDepth(){
+        for (int i = 0; i < all.get(0).getLowers().size(); i++) {
+            int[] depth = new int[all.size()];
+            for (int k = 0; k < depth.length; k++) {
+                depth[k] = -1;
+            }
+
+            depth[all.get(0).backwardsLinks.get(i).idx] = 0;
+            for (int j = all.get(0).backwardsLinks.get(i).idx+1; j < all.size(); j++) {
+                int max = Integer.MIN_VALUE;
+                for (Step forwardsLink : all.get(j).forwardsLinks) {
+                    if(depth[forwardsLink.idx] >= 0) {
+                        max = Math.max(max, 1 + depth[forwardsLink.idx]);
+                    }
+                }
+                depth[j] = max;
+            }
+            System.out.println("Depth of filter " + i + " is: "+ depth[depth.length-1]);
+
+        }
+
+    }
+
 
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder("plan:\n");
         for (int i = 0; i<all.size(); i++) {
-            sb.append(i+1);
+            sb.append(i);
             sb.append(": ");
             sb.append(all.get(i).toString());
             sb.append('\n');
@@ -188,50 +222,15 @@ public class Plan {
             sb.append(": ");
             sb.append(all.get(i).toStringN());
             sb.append("\n");
-            sb.append(all.get(i).toGoalsString());
+            List<Goal> input = new ArrayList<>();
+            if(i+1<all.size()){
+                input.add(all.get(i+1).getUpper());
+            }
+            sb.append(all.get(i).toGoalsString(input));
             sb.append('\n');
         }
         return sb.toString();
     }
-
-
-//    public void display(){
-//        System.setProperty("org.graphstream.ui.renderer", "org.graphstream.ui.j2dviewer.J2DGraphRenderer");
-//        Graph graph = new SingleGraph("Plan");
-//
-//        graph.setStrict(true);
-//        String styleSheet =
-//                "node { stroke-mode: plain; " +
-//                        "fill-color: black; " +
-//                        "shape: rounded-box; " +
-//                        "size: 50px, 50px; " +
-//                        "text-size:24; " +
-//                        "padding: 4px, 4px; " +
-//                        "text-alignment: at-right;" +
-//                        "text-padding: 3px;" +
-//                        "text-background-mode: plain;" +
-//                        "}" +
-//                "edge { arrow-shape: arrow; " +
-//                        "arrow-size: 10px, 10px; " +
-//                        "}";
-//        graph.addAttribute("ui.stylesheet",styleSheet);
-//        for (int i = 0; i < all.size(); i++) {
-//            all.get(i).name = "N"+i;
-//            graph.addNode(all.get(i).name);
-//        }
-//        for (Step s: all){
-//            s.addEdgesToGraph(graph);
-//        }
-//
-//        Viewer viewer = graph.display();
-//        viewer.enableAutoLayout();
-//        //viewer.addDefaultView(false).getCamera().setViewPercent(0.5);
-//
-//
-//
-//    }
-
-
 
 
 }

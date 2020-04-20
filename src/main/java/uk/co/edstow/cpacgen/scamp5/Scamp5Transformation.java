@@ -21,7 +21,7 @@ public abstract class Scamp5Transformation extends Transformation {
         final int idx;
         final int x;
         final int y;
-        final String code;
+        private final String code;
         Dir(int idx, int x, int y, String code){
             this.idx = idx;
             this.x = x;
@@ -584,7 +584,7 @@ public abstract class Scamp5Transformation extends Transformation {
         @Override
         public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("subx(%s, %s, %s, %s)", upper, lowers.get(0), dir, lowers.get(1));
+            return String.format("subx(%s, %s, %s, %s)", upper, lowers.get(0), dir.toCode(), lowers.get(1));
         }
 
         @Override
@@ -635,7 +635,7 @@ public abstract class Scamp5Transformation extends Transformation {
         @Override
         public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("sub2x(%s, %s, %s, %s, %s)", upper, lowers.get(0), dir1, dir2, lowers.get(1));
+            return String.format("sub2x(%s, %s, %s, %s, %s)", upper, lowers.get(0), dir1.toCode(), dir2.toCode(), lowers.get(1));
         }
 
         @Override

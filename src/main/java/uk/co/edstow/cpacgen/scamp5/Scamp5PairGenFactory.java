@@ -2,7 +2,7 @@ package uk.co.edstow.cpacgen.scamp5;
 
 import uk.co.edstow.cpacgen.Atom;
 import uk.co.edstow.cpacgen.Goal;
-import uk.co.edstow.cpacgen.ReverseSplit;
+import uk.co.edstow.cpacgen.ReverseSearch;
 import uk.co.edstow.cpacgen.Transformation;
 import uk.co.edstow.cpacgen.pairgen.Distance;
 import uk.co.edstow.cpacgen.pairgen.PairGenFactory;
@@ -17,6 +17,8 @@ public class Scamp5PairGenFactory implements PairGenFactory {
 
 
     public static class Config {
+        private final SearchStrategy stratergy;
+
         boolean useMov2x;
         boolean useAdd3;
 
@@ -25,31 +27,62 @@ public class Scamp5PairGenFactory implements PairGenFactory {
         boolean useSubx;
         boolean useSub2x;
 
-        boolean exhaustiveSearch;
-        boolean atomDistanceSortSearch;
-        boolean combinationSearch;
+        boolean subPowerOf2;
 
-        int depth;
-        public int threshold;
+        final int availableRegisters;
 
-        public Config(boolean useMov2x, boolean useAdd3, boolean useAddx, boolean useAdd2x, boolean useSubx, boolean useSub2x, boolean exhaustiveSearch, boolean atomDistanceSortSearch, boolean combinationSearch, int threshold, int depth) {
+        final int depth;
+
+        public enum SearchStrategy {
+            Exhuastive, AtomDistance, SortedAtomDistance;
+        }
+
+        public Config(SearchStrategy stratergy, int availableRegisters, int depth) {
+            this.stratergy = stratergy;
+            this.availableRegisters = availableRegisters;
+            this.depth = depth;
+        }
+
+        public void useAll(){
+            this.useMov2x = true;
+            this.useAdd3 = true;
+            this.useAddx = true;
+            this.useAdd2x = true;
+            this.useSubx = true;
+            this.useSub2x = true;
+        }
+
+        public void useBasicOps(){
+            this.useMov2x = false;
+            this.useAdd3 = false;
+            this.useAddx = false;
+            this.useAdd2x = false;
+            this.useSubx = false;
+            this.useSub2x = false;
+        }
+
+        public void useSubPowerOf2(){
+            this.subPowerOf2 = true;
+        }
+
+        public Config(SearchStrategy stratergy, boolean useMov2x, boolean useAdd3, boolean useAddx, boolean useAdd2x, boolean useSubx, boolean useSub2x, int availableRegisters, int depth) {
+            this.stratergy = stratergy;
+
             this.useMov2x = useMov2x;
             this.useAdd3 = useAdd3;
             this.useAddx = useAddx;
             this.useAdd2x = useAdd2x;
             this.useSubx = useSubx;
             this.useSub2x = useSub2x;
-            this.exhaustiveSearch = exhaustiveSearch;
-            this.atomDistanceSortSearch = atomDistanceSortSearch;
+
             this.depth = depth;
-            this.combinationSearch = combinationSearch;
-            this.threshold = threshold;
+            this.availableRegisters = availableRegisters;
         }
 
     }
 
     public interface ConfigGetter {
-        Config getConfig(Goal.Bag goals, int depth, ReverseSplit rs, boolean initalGoal);
+        Config getConfig(Goal.Bag goals, int depth, ReverseSearch rs, boolean initalGoal);
     }
 
     @Override
@@ -100,7 +133,7 @@ public class Scamp5PairGenFactory implements PairGenFactory {
     }
 
 
-    private ReverseSplit rs;
+    private ReverseSearch rs;
     private final ConfigGetter confGet;
     private Goal initialGoal;
 
@@ -111,23 +144,26 @@ public class Scamp5PairGenFactory implements PairGenFactory {
     }
     private int initialDivisions;
     @Override
-    public void init(ReverseSplit rs) {
+    public void init(ReverseSearch rs) {
         this.initialDivisions = rs.getInitialDivisions();
         this.rs =rs;
         this.initialGoal = rs.getInitialGoal();
     }
 
+
+
     @Override
     public PairGen generatePairs(Goal.Bag goals, int depth) {
        Config conf = confGet.getConfig(goals, depth, rs, false);
-       if(conf.combinationSearch){
-           return new ThresholdCombinationPairGen(conf, goals);
-       } else if(conf.exhaustiveSearch){
-           return new ExhaustivePairGen(goals, conf);
-       } else if(conf.atomDistanceSortSearch){
-           return new AtomDistanceSortedPairGen(goals, conf);
-       } else {
-           return new AtomDistancePairGen(goals, conf);
+       switch (conf.stratergy){
+           case Exhuastive:
+               return new ExhaustivePairGen(goals, conf);
+           case AtomDistance:
+               return new AtomDistancePairGen(goals, conf);
+           case SortedAtomDistance:
+               return new AtomDistanceSortedPairGen(goals, conf);
+           default:
+               throw new IllegalArgumentException();
        }
     }
 
@@ -159,7 +195,7 @@ public class Scamp5PairGenFactory implements PairGenFactory {
                                     getNaryOpStream(upper),
                                     getUnaryOpStream(upper)
                             )
-                    ).map(pair -> new Tuple<>(pair, getCost(pair, bounds, goals)))
+                    ).map(pair -> new Tuple<>(pair, getCost(pair, bounds, goals, conf)))
                     .sorted(comparator).collect(Collectors.toList());
             this.it = list.stream().map(Tuple::getA).iterator();
         }
@@ -201,23 +237,50 @@ public class Scamp5PairGenFactory implements PairGenFactory {
 
         private Stream<Goal.Pair> getNaryOpStream(Goal upper) {
             ArrayList<Goal.Pair> pairs = new ArrayList<>();
-            Collection<Goal> splits = upper.allSplits();
+            List<Goal> splits = upper.allSplits();
+            int normal = splits.size();
+            if(conf.subPowerOf2){
+                Goal.Factory sub1 = new Goal.Factory();
+                Goal.Factory sub2 = new Goal.Factory();
+                boolean tryPower = false;
+                Iterator<Tuple<Atom, Integer>> it = upper.uniqueCountIterator();
+                while(it.hasNext()){
+                    Tuple<Atom, Integer> t = it.next();
+                    if(t.getB() == 7 || t.getB() == 14 || t.getB() == 15){
+                        tryPower = true;
+                        sub1.add(t.getA().negate(), 2-(t.getB() & 1));
+                        sub2.add(t.getA(), t.getB()<<1 & ~t.getB());
+                    } else {
+                        sub1.add(t.getA(), t.getB());
+                    }
+                }
+                if(tryPower){
+                    splits.add(sub1.get());
+                    splits.add(sub2.get());
+                }
+            }
             Set<Goal> seen = new HashSet<>();
-            for (Goal a : splits) {
+            for (int i = 0; i < splits.size(); i++) {
+                Goal a = splits.get(i);
                 boolean skipAdd_2 = false;
-                if (seen.contains(a)){
+                if (seen.contains(a)) {
                     skipAdd_2 = true;
                 }
-                Goal b = upper.without(a);
+                Goal b;
+                if(i<normal){
+                    b = upper.without(a);
+                } else {
+                    b = upper.subtract(a);
+                }
                 seen.add(b);
 
-                if(a.isEmpty() || b.isEmpty()){
+                if (a.isEmpty() || b.isEmpty()) {
                     continue;
                 }
-                if(!skipAdd_2) {
+                if (!skipAdd_2) {
                     Scamp5Transformation.Add_2 add = new Scamp5Transformation.Add_2(a, b);
                     pairs.add(new Goal.Pair(upper, Arrays.asList(a, b), add));
-                    if(conf.useAddx) {
+                    if (conf.useAddx) {
                         for (Scamp5Transformation.Dir dir : Scamp5Transformation.Dir.values()) {
                             Goal mova = a.translated(-dir.x, -dir.y, 0);
                             Goal movb = b.translated(-dir.x, -dir.y, 0);
@@ -225,7 +288,7 @@ public class Scamp5PairGenFactory implements PairGenFactory {
                             pairs.add(new Goal.Pair(upper, Arrays.asList(mova, movb), addx));
                         }
                     }
-                    if(conf.useAdd2x){
+                    if (conf.useAdd2x) {
                         for (Scamp5Transformation.Dir dir1 : Scamp5Transformation.Dir.values()) {
                             Goal amova = a.translated(-dir1.x - dir1.x, -dir1.y - dir1.y, 0);
                             Goal bmova = b.translated(-dir1.x - dir1.x, -dir1.y - dir1.y, 0);
@@ -243,14 +306,14 @@ public class Scamp5PairGenFactory implements PairGenFactory {
                 Goal negB = b.negative();
                 Scamp5Transformation.Sub sub = new Scamp5Transformation.Sub(a, negB);
                 pairs.add(new Goal.Pair(upper, Arrays.asList(a, negB), sub));
-                if(conf.useSubx) {
+                if (conf.useSubx) {
                     for (Scamp5Transformation.Dir dir : Scamp5Transformation.Dir.values()) {
                         Goal mova = a.translated(-dir.x, -dir.y, 0);
                         Scamp5Transformation.Subx subx = new Scamp5Transformation.Subx(mova, negB, dir);
                         pairs.add(new Goal.Pair(upper, Arrays.asList(mova, negB), subx));
                     }
                 }
-                if(conf.useSub2x) {
+                if (conf.useSub2x) {
                     for (Scamp5Transformation.Dir dir1 : Scamp5Transformation.Dir.values()) {
                         Goal amova = a.translated(-dir1.x - dir1.x, -dir1.y - dir1.y, 0);
                         Scamp5Transformation.Sub2x sub2xa = new Scamp5Transformation.Sub2x(amova, negB, dir1, dir1);
@@ -262,7 +325,7 @@ public class Scamp5PairGenFactory implements PairGenFactory {
                     }
                 }
 
-                if(conf.useAdd3){
+                if (conf.useAdd3) {
                     Set<Goal> subSeen = new HashSet<>();
 
                     Collection<Goal> subSplits = a.allSplits();
@@ -273,7 +336,7 @@ public class Scamp5PairGenFactory implements PairGenFactory {
                         }
                         Goal ab = a.without(aa);
                         subSeen.add(ab);
-                        if(aa.isEmpty() || ab.isEmpty()){
+                        if (aa.isEmpty() || ab.isEmpty()) {
                             continue;
                         }
                         if (!skipAdd_3) {
@@ -281,13 +344,34 @@ public class Scamp5PairGenFactory implements PairGenFactory {
                             pairs.add(new Goal.Pair(upper, Arrays.asList(aa, ab, b), add));
                         }
                     }
-
                 }
-
-
             }
 
             return pairs.stream();
+        }
+    }
+
+    private class AtomDistanceListItem {
+        Goal.Pair pair;
+        double cost;
+        Goal a;
+        Goal b;
+        Distance distance;
+        boolean negate;
+        Goal to;
+
+        public AtomDistanceListItem() {
+        }
+        
+        public AtomDistanceListItem(AtomDistanceListItem item) {
+            this.pair = item.pair;
+            this.cost = item.cost;
+            this.a = item.a;
+            this.b = item.b;
+            this.distance = item.distance;
+            this.negate = item.negate;
+            this.to = item.to;
+
         }
     }
 
@@ -304,6 +388,12 @@ public class Scamp5PairGenFactory implements PairGenFactory {
             this.ijGetter = new SteppedCombinationIterator(goals.size());
         }
 
+        private AtomDistancePairGen(Goal.Bag goals, Config conf, Iterator<Tuple<Integer, Integer>> ijGetter) {
+            this.goals = goals;
+            this.conf = conf;
+            this.ijGetter = ijGetter;
+        }
+
         protected void fillCurrentList(){
             while (currentList.isEmpty()){
                 if(!ijGetter.hasNext()){
@@ -314,32 +404,50 @@ public class Scamp5PairGenFactory implements PairGenFactory {
                 Goal b = goals.get(ij.getB());
 
                 boolean diaganal = ij.getA().equals(ij.getB());
-                List<Tuple<Tuple<Distance, Boolean>, Goal>> list = getAtomDistanceList(a, b, diaganal);
-                list.sort(atomDistanceComparator);
-                if(!diaganal) {
-                    for (Tuple<Tuple<Distance, Boolean>, Goal> tuple : list) {
-                        addAtomDistancePairs(a, tuple.getA().getA(), tuple.getA().getB(), tuple.getB(), conf, currentList);
-                    }
-                } else {
-                    // diaganal == True
-                    addDirectMov(a);
-                    for (Tuple<Tuple<Distance, Boolean>, Goal> tuple : list) {
-                        addAtomDistanceDiagonalPairs(a, tuple.getA().getA(), tuple.getA().getB(), tuple.getB(), conf, currentList);
-                    }
+                List<AtomDistanceListItem> inList = getAtomDistanceList(a, b, diaganal);
+                List<AtomDistanceListItem> outList = new ArrayList<>();
+                inList.sort(atomDistanceComparator);
+                addPairs(a, diaganal, inList, outList);
+                outList.forEach(item -> currentList.add(item.pair));
+
+            }
+        }
+        protected void addPairs(Goal a, boolean diaganal, List<AtomDistanceListItem> inList, List<AtomDistanceListItem> outList) {
+            if(!diaganal) {
+                for (AtomDistanceListItem item : inList) {
+                    addAtomDistancePairs(item, conf, outList);
+                }
+            } else {
+                // diaganal == True
+                if(goals.size() < conf.availableRegisters) {
+                    addDirectMov(a, outList);
+                }
+
+                for (AtomDistanceListItem item : inList) {
+                    addAtomDistanceDiagonalPairs(item, conf, outList);
                 }
                 if(initialGoal.hasSubGoal(a)){
                     Goal l = new Goal.Factory(a).addAll(a).get();
-                    currentList.add(new Goal.Pair(a, l, new Scamp5Transformation.Divq(l)));
+                    AtomDistanceListItem newItem = new AtomDistanceListItem();
+                    newItem.a = a;
+                    newItem.distance = new Distance(0,0,0);
+                    newItem.pair = new Goal.Pair(a, l, new Scamp5Transformation.Divq(l));
+                    outList.add(newItem);
                 }
             }
         }
-        protected void addDirectMov(Goal a) {
+
+        protected void addDirectMov(Goal a, List<AtomDistanceListItem> outList) {
             Distance centre = new Distance(a.getAveragePos());
             if(centre.manhattan()>0){
                 Transformation.Direction d1 = centre.majorDirection();
-                Scamp5Transformation.Dir dir1 = Scamp5Transformation.Dir.fromDirection(d1).opposite();
+                Scamp5Transformation.Dir dir1 = Scamp5Transformation.Dir.fromDirection(d1);
                 Scamp5Transformation.Movx movx = new Scamp5Transformation.Movx(a, dir1, true);
-                currentList.add(new Goal.Pair(a, movx.a, movx));
+                AtomDistanceListItem newItem = new AtomDistanceListItem();
+                newItem.a = a;
+                newItem.distance = new Distance(d1, 1);
+                newItem.pair = new Goal.Pair(a, movx.a, movx);
+                outList.add(newItem);
             }
             if(conf.useMov2x && centre.manhattan()>1){
                 Transformation.Direction d1 = centre.majorDirection();
@@ -347,7 +455,11 @@ public class Scamp5PairGenFactory implements PairGenFactory {
                 Scamp5Transformation.Dir dir1 = Scamp5Transformation.Dir.fromDirection(d1).opposite();
                 Scamp5Transformation.Dir dir2 = Scamp5Transformation.Dir.fromDirection(d2).opposite();
                 Scamp5Transformation.Mov2x mov2x = new Scamp5Transformation.Mov2x(a, dir1, dir2, true);
-                currentList.add(new Goal.Pair(a, mov2x.a, mov2x));
+                AtomDistanceListItem newItem = new AtomDistanceListItem();
+                newItem.a = a;
+                newItem.distance = new Distance(d1, 1).then(d2);
+                newItem.pair = new Goal.Pair(a, mov2x.a, mov2x);
+                outList.add(newItem);
             }
         }
 
@@ -363,72 +475,42 @@ public class Scamp5PairGenFactory implements PairGenFactory {
         private final Bounds bounds;
 
         private AtomDistanceSortedPairGen(Goal.Bag goals, Config conf) {
-            super(goals, conf);
+            super(goals, conf, new PlainCombinationIterator(goals.size()));
             this.bounds = new Bounds(goals);
 
         }
 
         @Override
         protected void fillCurrentList() {
+            if(!currentList.isEmpty()){
+                return;
+            }
+            List<AtomDistanceListItem> outList = new ArrayList<>();
             while (ijGetter.hasNext()){
                 Tuple<Integer, Integer> ij = ijGetter.next();
                 Goal a = goals.get(ij.getA());
                 Goal b = goals.get(ij.getB());
                 boolean diaganal = ij.getA().equals(ij.getB());
-                List<Tuple<Tuple<Distance, Boolean>, Goal>> list = getAtomDistanceList(a, b, diaganal);
-                list.sort(atomDistanceComparator);
-                if(!diaganal) {
-                    for (Tuple<Tuple<Distance, Boolean>, Goal> tuple : list) {
-                        addAtomDistancePairs(a, tuple.getA().getA(), tuple.getA().getB(), tuple.getB(), conf, currentList);
-                    }
-                } else {
-                    // diaganal == True
-                    addDirectMov(a);
-
-                    for (Tuple<Tuple<Distance, Boolean>, Goal> tuple : list) {
-                        addAtomDistanceDiagonalPairs(a, tuple.getA().getA(), tuple.getA().getB(), tuple.getB(), conf, currentList);
-                    }
-                }
-                if(initialGoal.hasSubGoal(a)){
-                    Goal l = new Goal.Factory(a).addAll(a).get();
-                    currentList.add(new Goal.Pair(a, l, new Scamp5Transformation.Divq(l)));
-                }
-
+                List<AtomDistanceListItem> inList = getAtomDistanceList(a, b, diaganal);
+                inList.sort(atomDistanceComparator);
+                addPairs(a, diaganal, inList, outList);
             }
-            currentList = currentList.stream().map(pair -> new Tuple<>(pair, getCost(pair, bounds, goals)))
-                    .sorted(Comparator.comparingDouble((Tuple<Goal.Pair, Double> t) -> t.getB()).reversed()).map(Tuple::getA).collect(Collectors.toList());
+            outList.parallelStream().forEach(item -> item.cost = getCost(item.pair, bounds, goals, conf));
+            outList.sort(Comparator.comparingDouble((AtomDistanceListItem item) -> item.cost).reversed());
+            List<AtomDistanceListItem> l = outList.stream().filter(i -> i.distance.equals(new Distance(-2,0,0))).collect(Collectors.toList());
+            currentList = outList.stream().map(item -> item.pair).collect(Collectors.toList());
         }
     }
 
-    private class ThresholdCombinationPairGen implements PairGen {
-        final PairGen pg;
+    private static Comparator<AtomDistanceListItem> atomDistanceComparator = Comparator.comparingInt((AtomDistanceListItem i) -> i.to.size()).thenComparingInt(i -> -i.distance.manhattan());
 
-        private ThresholdCombinationPairGen(Config conf, Goal.Bag goals) {
-            int max = Integer.MIN_VALUE;
-            for (Goal goal : goals) {
-                max = Math.max(max, goal.atomCount());
-            }
-            if (max < conf.threshold){
-                pg = new ExhaustivePairGen(goals, conf);
-            } else {
-                pg = new AtomDistancePairGen(goals, conf);
-            }
-        }
-
-        @Override
-        public Goal.Pair next() {
-            return pg.next();
-        }
-    }
-
-    private static Comparator<Tuple<Tuple<Distance, Boolean>, Goal>> atomDistanceComparator = Comparator.comparingInt((Tuple<Tuple<Distance, Boolean>, Goal> t) -> t.getB().size()).thenComparingInt(t -> -t.getA().getA().manhattan());
-
-    private double getCost(Goal.Pair pair, Bounds bounds, Goal.Bag goals) {
+    private double getCost(Goal.Pair pair, Bounds bounds, Goal.Bag goals, Config config) {
         HashSet<Goal> goalSet = new HashSet<>(goals);
         goalSet.remove(pair.getUpper());
 
         goalSet.addAll(pair.getLowers());
         double cost = 0;
+//        cost += Math.pow(goalSet.size(), (5-Math.min(5, config.availableRegisters-goalSet.size())));
         for (Goal g : goalSet) {
             int subset = 0;
             for(Goal g2 : goalSet){
@@ -439,12 +521,9 @@ public class Scamp5PairGenFactory implements PairGenFactory {
                     break;
                 }
             }
-            if(subset < 2 && initialGoal.hasSubGoal(g)){
-                subset++;
-            }
             if(subset < 2) {
                 for (Atom a : g) {
-                    cost += Math.abs(a.x) + Math.abs(a.y) + Math.abs(a.z);
+                    cost += Math.abs(a.x) + Math.abs(a.y) + Math.abs(a.z) + (a.positive?0:1);
                 }
             }
         }
@@ -455,16 +534,18 @@ public class Scamp5PairGenFactory implements PairGenFactory {
             List<Goal> toRemove = patternRepeated(bounds, goalSet, goal);
             goalList.removeAll(toRemove);
             goalList.add(i, goal);
-        }
-        for (Goal g: goalList){
-            if(!initialGoal.hasSubGoal(g)) {
-                cost += Math.pow(g.atomCount(), 2);
+            cost += toRemove.size()*goal.atomCount();
+            if(!goal.allSame()) {
+                cost += Math.pow(goal.atomCount(), 2);
             }
-            int min = g.minimumCount();
+            int min = goal.minimumCount();
             //cost += (initialDivisions - (Math.log(min)/Math.log(2)));
             cost += (1<<initialDivisions) / min;
+            int max = goal.maximumCount();
+            cost += max / (1<<initialDivisions);
 
         }
+
         return cost;
     }
 
@@ -484,41 +565,49 @@ public class Scamp5PairGenFactory implements PairGenFactory {
         return matches;
     }
 
-    private void addAtomDistanceDiagonalPairs(Goal a, Distance distance, Boolean negate, Goal b,
-                                              Config conf, List<Goal.Pair> currentList) {
-        Distance centre = new Distance(a.getAveragePos());
-
+    private void addAtomDistanceDiagonalPairs(AtomDistanceListItem item,
+                                              Config conf, List<AtomDistanceListItem> outList) {
+        Distance centre = new Distance(item.a.getAveragePos());
+        Goal aWithoutTo = item.a.without(item.to);
         //add_2, sub
-        if(!negate) {
-            Goal split1 = a.without(b);
-            Goal split2 = b;
-            currentList.add(new Goal.Pair(a, Arrays.asList(split1, split2), new Scamp5Transformation.Add_2(split1, split2)));
+        if(!item.negate) {
+            Goal split1 = aWithoutTo;
+            Goal split2 = item.to;
+            AtomDistanceListItem newItem = new AtomDistanceListItem(item);
+			newItem.pair = new Goal.Pair(item.a, Arrays.asList(split1, split2), new Scamp5Transformation.Add_2(split1, split2));
+			outList.add(newItem);
         } else {
-            Goal split1 = a.without(b);
-            Goal split2 = b.negative();
-            currentList.add(new Goal.Pair(a, Arrays.asList(split1, split2), new Scamp5Transformation.Sub(split1, split2)));
+            Goal split1 = aWithoutTo;
+            Goal split2 = item.to.negative();
+            AtomDistanceListItem newItem = new AtomDistanceListItem(item);
+			newItem.pair = new Goal.Pair(item.a, Arrays.asList(split1, split2), new Scamp5Transformation.Sub(split1, split2));
+			outList.add(newItem);
         }
 
         if (conf.useAdd3) {
-            Goal tmpMov = distance.inverse().translate(b);
+            Goal tmpMov = item.distance.inverse().translate(item.to);
             Goal tmp = tmpMov;
-            if (negate) {
+            if (item.negate) {
                 tmp = tmpMov.negative();
             }
-            Goal split1 = a.without(b).without(tmp);
+            Goal split1 = aWithoutTo.without(tmp);
             if(!split1.isEmpty()) {
                 Goal split2 = tmp;
-                Goal split3 = b;
-                currentList.add(new Goal.Pair(a, Arrays.asList(split1, split2, split3), new Scamp5Transformation.Add_3(split1, split2, split3)));
+                Goal split3 = item.to;
+                AtomDistanceListItem newItem = new AtomDistanceListItem(item);
+			newItem.pair = new Goal.Pair(item.a, Arrays.asList(split1, split2, split3), new Scamp5Transformation.Add_3(split1, split2, split3));
+			outList.add(newItem);
             }
         }
         //addx
         if(conf.useAddx && centre.manhattan()>0){
             Scamp5Transformation.Dir dir1 = Scamp5Transformation.Dir.fromDirection(centre.majorDirection());
-            Goal split1 = a.without(b).translated(-dir1.x, -dir1.y, 0);
-            Goal split2 = b.translated(-dir1.x, -dir1.y, 0);
+            Goal split1 = aWithoutTo.translated(-dir1.x, -dir1.y, 0);
+            Goal split2 = item.to.translated(-dir1.x, -dir1.y, 0);
             Scamp5Transformation.Addx addx = new Scamp5Transformation.Addx(split1, split2, dir1);
-            currentList.add(new Goal.Pair(a, Arrays.asList(split1, split2), addx));
+            AtomDistanceListItem newItem = new AtomDistanceListItem(item);
+			newItem.pair = new Goal.Pair(item.a, Arrays.asList(split1, split2), addx);
+			outList.add(newItem);
         }
 
         //add2x
@@ -527,99 +616,121 @@ public class Scamp5PairGenFactory implements PairGenFactory {
             Transformation.Direction d2 = centre.then(d1.opposite()).majorDirection();
             Scamp5Transformation.Dir dir1 = Scamp5Transformation.Dir.fromDirection(d1);
             Scamp5Transformation.Dir dir2 = Scamp5Transformation.Dir.fromDirection(d2);
-            Goal split1 = a.without(b).translated(-dir1.x -dir2.x, -dir1.y-dir2.y, 0);
-            Goal split2 = b.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0);
+            Goal split1 = aWithoutTo.translated(-dir1.x -dir2.x, -dir1.y-dir2.y, 0);
+            Goal split2 = item.to.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0);
             Scamp5Transformation.Add2x add2x = new Scamp5Transformation.Add2x(split1, split2, dir1, dir2);
-            currentList.add(new Goal.Pair(a, Arrays.asList(split1, split2), add2x));
+            AtomDistanceListItem newItem = new AtomDistanceListItem(item);
+			newItem.pair = new Goal.Pair(item.a, Arrays.asList(split1, split2), add2x);
+			outList.add(newItem);
         }
     }
 
-    private void addAtomDistancePairs(Goal a, Distance distance, Boolean negate, Goal b,
-                                      Config conf, List<Goal.Pair> currentList) {
-        Goal tmpMov = distance.inverse().translate(b);
+    private void addAtomDistancePairs(AtomDistanceListItem item,
+                                      Config conf, List<AtomDistanceListItem> outList) {
+        Goal tmpMov = item.distance.inverse().translate(item.to);
         Goal tmp = tmpMov;
-        if(negate){
+        if(item.negate){
             tmp = tmpMov.negative();
         }
-        if(tmp.same(a)){
-            if(conf.useMov2x && distance.manhattan()>1){
+        if(tmp.same(item.a)){
+            if(conf.useMov2x && item.distance.manhattan()>1){
                 //mov2x
-                Transformation.Direction d1 = distance.majorDirection();
-                Transformation.Direction d2 = distance.then(d1.opposite()).majorDirection();
+                Transformation.Direction d1 = item.distance.majorDirection();
+                Transformation.Direction d2 = item.distance.then(d1.opposite()).majorDirection();
                 Scamp5Transformation.Dir dir1 = Scamp5Transformation.Dir.fromDirection(d1).opposite();
                 Scamp5Transformation.Dir dir2 = Scamp5Transformation.Dir.fromDirection(d2).opposite();
-                Scamp5Transformation.Mov2x mov2x = new Scamp5Transformation.Mov2x(a, dir1, dir2, true);
-                currentList.add(new Goal.Pair(a, mov2x.a, mov2x));
-            } else if (distance.manhattan() > 0){
+                Scamp5Transformation.Mov2x mov2x = new Scamp5Transformation.Mov2x(item.a, dir1, dir2, true);
+                AtomDistanceListItem newItem = new AtomDistanceListItem(item);
+                newItem.pair = new Goal.Pair(item.a, mov2x.a, mov2x);
+                outList.add(newItem);
+            } else if (item.distance.manhattan() > 0){
                 //movx
-                Transformation.Direction d1 = distance.majorDirection();
+                Transformation.Direction d1 = item.distance.majorDirection();
                 Scamp5Transformation.Dir dir1 = Scamp5Transformation.Dir.fromDirection(d1).opposite();
-                Scamp5Transformation.Movx movx = new Scamp5Transformation.Movx(a, dir1, true);
-                currentList.add(new Goal.Pair(a, movx.a, movx));
-            } else if(negate){
-                currentList.add(new Goal.Pair(a, b, new Scamp5Transformation.Neg(b)));
+                Scamp5Transformation.Movx movx = new Scamp5Transformation.Movx(item.a, dir1, true);
+                AtomDistanceListItem newItem = new AtomDistanceListItem(item);
+                newItem.pair = new Goal.Pair(item.a, movx.a, movx);
+                outList.add(newItem);
+            } else if(item.negate){
+                AtomDistanceListItem newItem = new AtomDistanceListItem(item);
+                newItem.pair = new Goal.Pair(item.a, item.to, new Scamp5Transformation.Neg(item.to));
+                outList.add(newItem);
             }
         } else {
+            Goal aWithoutTmp = item.a.without(tmp);
+
             //Add_2
             {
-                Goal split2 = a.without(tmp);
+                Goal split2 = aWithoutTmp;
                 List<Goal> lowers = Arrays.asList(tmp, split2);
-                currentList.add(new Goal.Pair(a, lowers, new Scamp5Transformation.Add_2(tmp, split2)));
+                AtomDistanceListItem newItem = new AtomDistanceListItem(item);
+                newItem.pair = new Goal.Pair(item.a, lowers, new Scamp5Transformation.Add_2(tmp, split2));
+                outList.add(newItem);
             }
 
             //Sub
             {
-                Goal split2 = a.without(tmp).negative();
+                Goal split2 = aWithoutTmp.negative();
                 List<Goal> lowers = Arrays.asList(tmp, split2);
-                currentList.add(new Goal.Pair(a, lowers, new Scamp5Transformation.Sub(tmp, split2)));
+                AtomDistanceListItem newItem = new AtomDistanceListItem(item);
+                newItem.pair = new Goal.Pair(item.a, lowers, new Scamp5Transformation.Sub(tmp, split2));
+                outList.add(newItem);
             }
             //TODO add_3 support?
 
             //addx
-            if(conf.useAddx && distance.manhattan()>0){
-                Scamp5Transformation.Dir dir1 = Scamp5Transformation.Dir.fromDirection(distance.majorDirection()).opposite();
-                Goal split1 = a.without(tmp).translated(-dir1.x, -dir1.y, 0);
+            if(conf.useAddx && item.distance.manhattan()>0){
+                Scamp5Transformation.Dir dir1 = Scamp5Transformation.Dir.fromDirection(item.distance.majorDirection()).opposite();
+                Goal split1 = aWithoutTmp.translated(-dir1.x, -dir1.y, 0);
                 Goal split2 = tmp.translated(-dir1.x, -dir1.y, 0);
                 Scamp5Transformation.Addx addx = new Scamp5Transformation.Addx(split1, split2, dir1);
-                currentList.add(new Goal.Pair(a, Arrays.asList(split1, split2), addx));
+                AtomDistanceListItem newItem = new AtomDistanceListItem(item);
+                newItem.pair = new Goal.Pair(item.a, Arrays.asList(split1, split2), addx);
+                outList.add(newItem);
             }
 
             //add2x
-            if(conf.useAdd2x && distance.manhattan()>1){
-                Transformation.Direction d1 = distance.majorDirection();
-                Transformation.Direction d2 = distance.then(d1.opposite()).majorDirection();
+            if(conf.useAdd2x && item.distance.manhattan()>1){
+                Transformation.Direction d1 = item.distance.majorDirection();
+                Transformation.Direction d2 = item.distance.then(d1.opposite()).majorDirection();
                 Scamp5Transformation.Dir dir1 = Scamp5Transformation.Dir.fromDirection(d1).opposite();
                 Scamp5Transformation.Dir dir2 = Scamp5Transformation.Dir.fromDirection(d2).opposite();
-                Goal split1 = a.without(tmp).translated(-dir1.x -dir2.x, -dir1.y-dir2.y, 0);
+                Goal split1 = aWithoutTmp.translated(-dir1.x -dir2.x, -dir1.y-dir2.y, 0);
                 Goal split2 = tmp.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0);
                 Scamp5Transformation.Add2x add2x = new Scamp5Transformation.Add2x(split1, split2, dir1, dir2);
-                currentList.add(new Goal.Pair(a, Arrays.asList(split1, split2), add2x));
+                AtomDistanceListItem newItem = new AtomDistanceListItem(item);
+                newItem.pair = new Goal.Pair(item.a, Arrays.asList(split1, split2), add2x);
+                outList.add(newItem);
             }
 
             //Subx
-            if(conf.useSubx && distance.manhattan()>0){
-                Scamp5Transformation.Dir dir1 = Scamp5Transformation.Dir.fromDirection(distance.majorDirection()).opposite();
+            if(conf.useSubx && item.distance.manhattan()>0){
+                Scamp5Transformation.Dir dir1 = Scamp5Transformation.Dir.fromDirection(item.distance.majorDirection()).opposite();
                 Goal split1 = tmp.translated(-dir1.x, -dir1.y, 0);
-                Goal split2 = a.without(tmp).negative();
+                Goal split2 = aWithoutTmp.negative();
                 Scamp5Transformation.Subx subx = new Scamp5Transformation.Subx(split1, split2, dir1);
-                currentList.add(new Goal.Pair(a, Arrays.asList(split1, split2), subx));
+                AtomDistanceListItem newItem = new AtomDistanceListItem(item);
+                newItem.pair = new Goal.Pair(item.a, Arrays.asList(split1, split2), subx);
+                outList.add(newItem);
             }
 
             //Sub2x
-            if(conf.useSub2x && distance.manhattan()>1){
-                Transformation.Direction d1 = distance.majorDirection();
-                Transformation.Direction d2 = distance.then(d1.opposite()).majorDirection();
+            if(conf.useSub2x && item.distance.manhattan()>1){
+                Transformation.Direction d1 = item.distance.majorDirection();
+                Transformation.Direction d2 = item.distance.then(d1.opposite()).majorDirection();
                 Scamp5Transformation.Dir dir1 = Scamp5Transformation.Dir.fromDirection(d1).opposite();
                 Scamp5Transformation.Dir dir2 = Scamp5Transformation.Dir.fromDirection(d2).opposite();
                 Goal split1 = tmp.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0);
-                Goal split2 = a.without(tmp).negative();
+                Goal split2 = aWithoutTmp.negative();
                 Scamp5Transformation.Sub2x sub2x = new Scamp5Transformation.Sub2x(split1, split2, dir1, dir2);
-                currentList.add(new Goal.Pair(a, Arrays.asList(split1, split2), sub2x));
+                AtomDistanceListItem newItem = new AtomDistanceListItem(item);
+                newItem.pair = new Goal.Pair(item.a, Arrays.asList(split1, split2), sub2x);
+                outList.add(newItem);
             }
         }
     }
 
-    private List<Tuple<Tuple<Distance, Boolean>, Goal>> getAtomDistanceList(Goal a, Goal b, boolean diagonal) {
+    private List<AtomDistanceListItem> getAtomDistanceList(Goal a, Goal b, boolean diagonal) {
         Map<Tuple<Distance, Boolean>, Goal.Factory> distanceMap = new HashMap<>();
         for (Iterator<Tuple<Atom, Integer>> ita = a.uniqueCountIterator(); ita.hasNext(); ) {
             Tuple<Atom, Integer> ta = ita.next();
@@ -643,11 +754,21 @@ public class Scamp5PairGenFactory implements PairGenFactory {
 
             }
         }
-        List<Tuple<Tuple<Distance, Boolean>, Goal>> list = new ArrayList<>(distanceMap.size());
-        distanceMap.forEach((key, value) -> list.add(new Tuple<>(key, value.get())));
+        List<AtomDistanceListItem> list = new ArrayList<>(distanceMap.size());
+        distanceMap.forEach((key, value) -> {
+            AtomDistanceListItem i = new AtomDistanceListItem();
+            i.a=a;
+            i.b=b;
+            i.distance = key.getA();
+            i.negate = key.getB();
+            i.to = value.get();
+            list.add(i);
+
+        });
         if (!diagonal) {
-            list.removeIf(t -> !(b.equals(t.getB())));
+            list.removeIf(t -> !(b.same(t.to)));
         }
+        list.removeIf(t->t.to.size()==0);
         return list;
     }
 
@@ -705,6 +826,34 @@ public class Scamp5PairGenFactory implements PairGenFactory {
         @Override
         public Tuple<Integer, Integer> next() {
             Tuple<Integer, Integer> t = new Tuple<>(geti(), getj());
+            updateIJ();
+            return t;
+        }
+    }
+    private class PlainCombinationIterator implements Iterator<Tuple<Integer, Integer>> {
+        int ii = 0;
+        int jj = 0;
+
+        final int maxSize;
+        private PlainCombinationIterator(int maxSize) {
+            this.maxSize = maxSize;
+        }
+        private void updateIJ(){
+            ii++;
+            if(ii >= maxSize){
+                jj++;
+                ii=0;
+            }
+        }
+
+        @Override
+        public boolean hasNext() {
+            return jj < maxSize;
+        }
+
+        @Override
+        public Tuple<Integer, Integer> next() {
+            Tuple<Integer, Integer> t = new Tuple<>(ii, jj);
             updateIJ();
             return t;
         }

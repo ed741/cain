@@ -2,7 +2,7 @@ package uk.co.edstow.cpacgen.pairgen;
 
 import uk.co.edstow.cpacgen.Atom;
 import uk.co.edstow.cpacgen.Goal;
-import uk.co.edstow.cpacgen.ReverseSplit;
+import uk.co.edstow.cpacgen.ReverseSearch;
 import uk.co.edstow.cpacgen.Transformation;
 import uk.co.edstow.cpacgen.util.Tuple;
 
@@ -19,7 +19,7 @@ public class V2PairGenFactory implements PairGenFactory{
     }
 
     @Override
-    public void init(ReverseSplit rs) {
+    public void init(ReverseSearch rs) {
     }
 
     @Override

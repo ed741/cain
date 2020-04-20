@@ -7,7 +7,7 @@ import uk.co.edstow.cpacgen.Transformation;
 public class Distance {
     final int x, y, z;
 
-    Distance(int x, int y, int z) {
+    public Distance(int x, int y, int z) {
         this.x = x;
         this.y = y;
         this.z = z;
@@ -25,7 +25,7 @@ public class Distance {
         this.z = (int) Math.round(position.z);
     }
 
-    Distance(Transformation.Direction dir, int length){
+    public Distance(Transformation.Direction dir, int length){
         this.x = -dir.x * length;
         this.y = -dir.y * length;
         this.z = 0;
