@@ -266,11 +266,11 @@ public class Goal implements List<Atom>, Comparable<Goal>{
         }
     }
 
-    public String getCharTableString(boolean topBorder, boolean bottomBorder){
+    public String getCharTableString(boolean topBorder, boolean bottomBorder, boolean centreDot, boolean colourNeg){
         Bounds b = new Bounds(Bounds.BoundsFromGoal(this), new Atom(0,0,0, true));
         int height = 1 + b.yMax - b.yMin;
         int width = 1 + b.xMax - b.xMin;
-        String[][] table = getCharTable(b, width, height, topBorder, bottomBorder);
+        String[][] table = getCharTable(b, width, height, topBorder, bottomBorder, centreDot, colourNeg);
         StringBuilder sb = new StringBuilder();
         for (int j = height+1; j >= 0; j--) {
             for (int i = 0; i < table[j].length; i++) {
@@ -282,15 +282,15 @@ public class Goal implements List<Atom>, Comparable<Goal>{
         return sb.toString();
     }
 
-    public String[][] getCharTable(boolean topBorder, boolean bottomBorder){
+    public String[][] getCharTable(boolean topBorder, boolean bottomBorder, boolean centreDot, boolean colourNeg){
         Bounds b = new Bounds(Bounds.BoundsFromGoal(this), new Atom(0,0,0, true));
         int height = 1 + b.yMax - b.yMin;
         int width = 1 + b.xMax - b.xMin;
-        return getCharTable(b, width, height, topBorder, bottomBorder);
+        return getCharTable(b, width, height, topBorder, bottomBorder, centreDot, colourNeg);
     }
 
 
-    public String[][] getCharTable(Bounds b, int width, int height, boolean topBorder, boolean bottomBorder) {
+    public String[][] getCharTable(Bounds b, int width, int height, boolean topBorder, boolean bottomBorder, boolean centreDot, boolean colourNeg) {
         String [][] tableArray = new String[height+2][width+2];
         int xZero = 1-b.xMin;
         int yZero = 1-b.yMin;
@@ -318,16 +318,16 @@ public class Goal implements List<Atom>, Comparable<Goal>{
             boolean neg = !t.getA().positive;
             StringBuilder sb = new StringBuilder();
             if(neg){
-                sb.append("\u001B[34m");//blue
+                sb.append(colourNeg?"\u001B[34m":"-");//blue
             }
             sb.append(count);
-            if(neg){
+            if(neg && colourNeg){
                 sb.append("\u001B[0m");//reset
             }
 
             tableArray[yZero + t.getA().y][xZero+t.getA().x] = sb.toString();
         }
-        if (tableArray[yZero][xZero].equals("0")){
+        if (centreDot && tableArray[yZero][xZero].equals("0")){
             tableArray[yZero][xZero] = ".";
 
         }
@@ -596,7 +596,7 @@ public class Goal implements List<Atom>, Comparable<Goal>{
             List<String[][]> arrays = new ArrayList<>();
 
             for (int i = 0; i < size(); i++) {
-                String[][] tableArray = get(i).getCharTable(b, width, height, false, false);
+                String[][] tableArray = get(i).getCharTable(b, width, height, false, false, true, true);
                 arrays.add(tableArray);
             }
 
@@ -637,6 +637,18 @@ public class Goal implements List<Atom>, Comparable<Goal>{
                     int count = Math.abs(matrix[i][j]);
                     boolean positive = matrix[i][j]>0;
                     for (int k = 0; k < count; k++) {
+                        list.add(new Atom(j-(matrix[i].length/2), (matrix.length/2)-i, 0, positive));
+                    }
+                }
+            }
+        }
+        public Factory(int[][] matrix, int multiples) {
+            this.list = new ArrayList<>();
+            for (int i = 0; i < matrix.length; i++) {
+                for (int j = 0; j < matrix[i].length; j++) {
+                    int count = Math.abs(matrix[i][j]);
+                    boolean positive = matrix[i][j]>0;
+                    for (int k = 0; k < count*multiples; k++) {
                         list.add(new Atom(j-(matrix[i].length/2), (matrix.length/2)-i, 0, positive));
                     }
                 }

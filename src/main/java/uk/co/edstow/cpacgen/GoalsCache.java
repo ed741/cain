@@ -1,46 +1,40 @@
 package uk.co.edstow.cpacgen;
 
-import java.util.*;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.concurrent.locks.StampedLock;
+
+import java.util.concurrent.ConcurrentHashMap;
+
 
 public class GoalsCache {
-    private Map<Goal.Bag, Double> costMap;
-    private ReentrantLock mapLock;
-    private StampedLock statsLock;
-    private long hits = 0;
-    private long checks = 0;
+    private ConcurrentHashMap<Goal.Bag, Double> costMap;
+
 
     public GoalsCache() {
-        this.costMap = new HashMap<>();
-        this.mapLock = new ReentrantLock();
+        this.costMap = new ConcurrentHashMap<>();
     }
 
-    public synchronized boolean isBest(Goal.Bag b, double d) {
+    public boolean isBest(Goal.Bag b, double d) {
         Goal.Bag sortedB = new Goal.Bag(b, true);
-        try {
-            mapLock.lock();
-            checks++;
-            Double cost = costMap.get(sortedB);
-            boolean best = cost == null || d < cost;
-            if (best) {
-                costMap.put(sortedB, d);
+        double c = costMap.compute(sortedB, (k, v) -> {
+            if(v == null) {
+                return d;
+            } else if (v < d){
+                return v;
+            } else if(v == d) {
+                return Math.nextDown(v);
             } else {
-                hits++;
+                return d;
             }
-            return best;
-        } finally {
-            mapLock.unlock();
-        }
+        });
+        return c==d;
     }
 
     @Override
     public String toString() {
-        try {
-            mapLock.lock();
-            return "GoalsCache: {Size: " + costMap.size() + ", Hits: " + hits + ", Checks: " + checks + "}";
-        } finally {
-            mapLock.unlock();
-        }
+
+            return "GoalsCache: {Size: " + costMap.size() + "}";
+    }
+
+    public int size(){
+        return costMap.size();
     }
 }

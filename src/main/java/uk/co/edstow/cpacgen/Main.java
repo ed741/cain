@@ -144,8 +144,8 @@ public class Main {
                 }
         );
         ReverseSearch.RunConfig config = new ReverseSearch.RunConfig();
-        config.setWorkers(1).setAvailableRegisters(availableRegisters.length).setTimeOut(true);
-        ReverseSearch rs = new ReverseSearch(3, final_goals, pairGenFactory, availableRegisters.length, config);
+        config.setWorkers(4).setAvailableRegisters(availableRegisters.length).setTimeOut(true);
+        ReverseSearch rs = new ReverseSearch(3, final_goals, pairGenFactory, config);
         rs.search();
 
         System.out.println("print plans");

@@ -321,7 +321,7 @@ public class Scamp5PairGenFactory implements PairGenFactory {
                         Scamp5Transformation.Dir dir2 = dir1.cw();
                         Goal amovb = a.translated(-dir1.x - dir2.x, -dir1.y - dir2.y, 0);
                         Scamp5Transformation.Sub2x sub2xb = new Scamp5Transformation.Sub2x(amovb, negB, dir1, dir2);
-                        pairs.add(new Goal.Pair(upper, Arrays.asList(amova, negB), sub2xb));
+                        pairs.add(new Goal.Pair(upper, Arrays.asList(amovb, negB), sub2xb));
                     }
                 }
 

@@ -125,7 +125,7 @@ public class Plan {
             for (int i = 0; i < currentGoals.size(); i++) {
                 boolean in = input.contains(currentGoals.get(i));
                 boolean out = this.goalPair.getLowers().contains(currentGoals.get(i));
-                String[][] tableArray = currentGoals.get(i).getCharTable(b, width, height, out, in);
+                String[][] tableArray = currentGoals.get(i).getCharTable(b, width, height, out, in, true, true);
                 arrays.add(tableArray);
             }
 

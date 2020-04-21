@@ -136,17 +136,13 @@ public class ReverseSearch {
     private final int finalGoalAtoms;
 
     private final List<Plan> plans;
+    private final ReentrantLock planLock;
     private final GoalsCache cache;
 
     private final PairGenFactory pairGenFactory;
 
     private final BlockingQueue<State> workQueue;
     private final int workers;
-    private boolean[] activeWorkers;
-    private int[] minWorkerDepth;
-    private int[] maxWorkerDepth;
-    private ReentrantLock activeWorkersLock;
-    private AtomicIntegerArray plansFound;
     private AtomicBoolean end;
     private Semaphore workersFinished;
 
@@ -162,7 +158,7 @@ public class ReverseSearch {
     private final int goalReductionsTolerance;
     private final int maxChildrenInDFS;
 
-    public ReverseSearch(int divisions, List<Goal> finalGoals, PairGenFactory pairGenFactory, int availableRegisters, RunConfig runConfig) {
+    public ReverseSearch(int divisions, List<Goal> finalGoals, PairGenFactory pairGenFactory, RunConfig runConfig) {
 
         // Set up final and initial Goals
         this.finalGoals = Collections.unmodifiableList(new ArrayList<>(finalGoals));
@@ -172,6 +168,7 @@ public class ReverseSearch {
 
         // Init Internal components
         this.plans = new ArrayList<>();
+        this.planLock = new ReentrantLock();
         this.cache = new GoalsCache();
 
 
@@ -179,17 +176,12 @@ public class ReverseSearch {
         this.workers = runConfig.workers;
         this.workQueue = new LinkedBlockingQueue<>();
 
-        this.activeWorkers = new boolean[workers];
-        this.minWorkerDepth = new int[workers];
-        this.maxWorkerDepth = new int[workers];
-        this.activeWorkersLock = new ReentrantLock();
         this.end = new AtomicBoolean(false);
         this.workersFinished = new Semaphore(1-this.workers);
-        this.plansFound = new AtomicIntegerArray(workers);
 
 
         // Init search parameters
-        this.availableRegisters = availableRegisters;
+        this.availableRegisters = runConfig.availableRegisters;
         this.maxDepth = new AtomicInteger(runConfig.initialMaxDepth);
         this.maxTime = runConfig.searchTime;
         this.timeout = runConfig.timeOut;
@@ -233,52 +225,55 @@ public class ReverseSearch {
         end.set(true);
     }
 
-    private void setWorking(int id, boolean working){
-        try {
-            activeWorkersLock.lock();
-            activeWorkers[id] = working;
-        } finally {
-            activeWorkersLock.unlock();
+    private String getWorkerInfo(List<Worker> workers){
+        StringBuilder sb = new StringBuilder();
+        sb.append("Active:[");
+        for (int i = 0; i < workers.size(); i++) {
+            sb.append(workers.get(i).active ? 'A' : 'W');
+            sb.append(i==workers.size()-1?']':',');
         }
-    };
-    private boolean shareWork(int id){
-        try {
-            activeWorkersLock.lock();
-            return workQueue.isEmpty() && !activeWorkers[(id+1)%workers];
-        } finally {
-            activeWorkersLock.unlock();
+        sb.append(" | MinDepth:[");
+        for (int i = 0; i < workers.size(); i++) {
+            sb.append(workers.get(i).workerMinDepth);
+            sb.append(i==workers.size()-1?']':',');
         }
-
-    }
-
-    private String workersActive(){
-        try {
-            activeWorkersLock.lock();
-            StringBuilder sb = new StringBuilder("[");
-            for (int i = 0; i < activeWorkers.length; i++) {
-                sb.append(activeWorkers[i]);
-                if (i < activeWorkers.length - 1) {
-                    sb.append(", ");
-                }
-            }
-            sb.append("]");
-            return sb.toString();
-        } finally {
-            activeWorkersLock.unlock();
+        sb.append(" | MaxDepth:[");
+        for (int i = 0; i < workers.size(); i++) {
+            sb.append(workers.get(i).workerMaxDepth);
+            sb.append(i==workers.size()-1?']':',');
         }
+        sb.append(" | PlansFound:[");
+        for (int i = 0; i < workers.size(); i++) {
+            sb.append(workers.get(i).plansFound);
+            sb.append(i==workers.size()-1?']':',');
+        }
+        sb.append(" | CacheHits:[");
+        for (int i = 0; i < workers.size(); i++) {
+            sb.append(workers.get(i).cacheHits);
+            sb.append(i==workers.size()-1?']':',');
+        }
+        sb.append(" | CacheChecks:[");
+        for (int i = 0; i < workers.size(); i++) {
+            sb.append(workers.get(i).cacheChecks);
+            sb.append(i==workers.size()-1?']':',');
+        }
+        return sb.toString();
     }
 
     public void search(){
         startTime = System.currentTimeMillis();
         Goal.Bag goals = new Goal.Bag(finalGoals);
         workQueue.add(new State(0, goals, new Plan(finalGoals, initialGoal, "final goals")));
-        List<Thread> workersThreads = new ArrayList<>();
+        List<Worker> workersThreads = new ArrayList<>();
         for (int i = 0; i < this.workers; i++) {
-            Thread t = new Thread(new Worker(i));
-            workersThreads.add(t);
-            t.start();
-
+            Worker worker = new Worker(i);
+            workersThreads.add(worker);
+            if(i>0){
+                worker.next = workersThreads.get(i-1);
+            }
         }
+        workersThreads.get(0).next = workersThreads.get(workersThreads.size()-1);
+        workersThreads.forEach(Thread::start);
         Thread mainThread = Thread.currentThread();
 
         if (!timeout){
@@ -293,9 +288,9 @@ public class ReverseSearch {
                         input = scan.next();//nextLine();
                         System.out.println('"' + input + '"');
                         if(input.equals("r")){
-                            for (int i = 0; i < minWorkerDepth.length; i++) {
-                                minWorkerDepth[i] = Integer.MAX_VALUE;
-                                maxWorkerDepth[i] = 0;
+                            for (Worker workersThread : workersThreads) {
+                                workersThread.workerMinDepth = Integer.MAX_VALUE;
+                                workersThread.workerMaxDepth = 0;
                             }
                         }
 
@@ -310,12 +305,8 @@ public class ReverseSearch {
         while (!finish()) {
             try {
                 Thread.sleep(1000);
-                String active = workersActive();
                 System.out.print("\rRunning for: " + Duration.ofMillis(System.currentTimeMillis() - startTime).getSeconds() + " seconds"
-                        + " | Active:" + active
-                        + " | MinDepth:" + Arrays.toString(minWorkerDepth)
-                        + " | MaxDepth:" + Arrays.toString(maxWorkerDepth)
-                        + " | PlansFound:" + plansFound.toString());
+                        + " | " + getWorkerInfo(workersThreads)  + " | Cache Size: " + cache.size());
                 if (timeout && System.currentTimeMillis() > startTime + maxTime) {
                     System.out.println("\nTime is up!");
                     endTime();
@@ -358,9 +349,17 @@ public class ReverseSearch {
 
     }
 
-    private class Worker implements Runnable {
+    private class Worker extends Thread {
         int id;
         boolean finishing = false;
+        boolean active = false;
+        int workerMinDepth = 0;
+        int workerMaxDepth = 0;
+        Worker next;
+        int plansFound = 0;
+
+        int cacheChecks = 0;
+        int cacheHits = 0;
 
         public Worker(int id) {
             this.id = id;
@@ -371,15 +370,15 @@ public class ReverseSearch {
             System.out.println("Worker " + id + " Starting");
             try {
                 while (!finish()) {
-                    State s = workQueue.poll();
+                    ReverseSearch.State s = workQueue.poll();
                     if (s == null) {
-                        setWorking(id, false);
+                        active = false;
                         s = workQueue.take();
                     }
                     if (s == null) {
-                        setWorking(id, false);
+                        active = false;
                     } else {
-                        setWorking(id, true);
+                        active = true;
                         rSearch(s.depth, s.goals, s.currentPlan, s.pairGen);
                     }
                 }
@@ -391,14 +390,18 @@ public class ReverseSearch {
             workersFinished.release();
         }
 
+        private boolean shareWork(int id){
+            return workQueue.isEmpty() && next != null && !next.active;
+        }
+
 
         private void rSearch(int depth, Goal.Bag goals, Plan currentPlan, PairGenFactory.PairGen iterator) {
-            minWorkerDepth[id] = Math.min(minWorkerDepth[id], depth);
-            maxWorkerDepth[id] = Math.max(maxWorkerDepth[id], depth);
+            this.workerMinDepth = Math.min(this.workerMinDepth, depth);
+            this.workerMaxDepth = Math.max(this.workerMaxDepth, depth);
             if (finish()){
                 if(!finishing) {
                     System.out.println("Finishing before complete");
-                    System.out.println(currentPlan.toGoalsString());
+//                    System.out.println(currentPlan.toGoalsString());
                 }
                 finishing = true;
                 return;
@@ -422,9 +425,13 @@ public class ReverseSearch {
             if (goals.size() > availableRegisters){
                 return;
             }
+
+            cacheChecks++;
             if (!cache.isBest(goals, currentPlan.cost())) {
+                cacheHits++;
                 return;
             }
+
             if (goals.size() == 1) {
                 Goal g = goals.iterator().next();
                 if(g.equals(initialGoal)){
@@ -465,14 +472,14 @@ public class ReverseSearch {
                 if (finish()){
                     if(!finishing) {
                         System.out.println("Finishing before complete");
-                        System.out.println(currentPlan.toGoalsString());
+//                        System.out.println(currentPlan.toGoalsString());
                     }
                     finishing = true;
                     return;
                 }
                 if(shareWork(id)) {
                     //System.out.println("Sharing work "+id);
-                    workQueue.add(new State(depth + 1, newGoals, currentPlan.newAdd(goalPair, newGoals, "r_step"), null));
+                    workQueue.add(new ReverseSearch.State(depth + 1, newGoals, currentPlan.newAdd(goalPair, newGoals, "r_step"), null));
                 } else {
                     currentPlan.push(goalPair, newGoals, "r_step");
                     rSearch(depth+1, newGoals, currentPlan, null);
@@ -482,35 +489,43 @@ public class ReverseSearch {
                 goalPair = goalPairs.next();
             }
             if (goalPair != null){
-                workQueue.add(new State(depth, goals, currentPlan.copy(), goalPairs));
+                workQueue.add(new ReverseSearch.State(depth, goals, currentPlan.copy(), goalPairs));
             }
 
         }
+        private void addPlan(Plan p, int id, int depth){
+            Worker w = this;
+            do {
+                w.workerMinDepth = depth;
+                w.workerMaxDepth = 0;
+                w = w.next;
+            } while(w != this);
 
-    }
+            this.plansFound++;
 
-    private synchronized void addPlan(Plan p, int id, int depth){
-        for (int i = 0; i < minWorkerDepth.length; i++) {
-            minWorkerDepth[i] = depth;
-            maxWorkerDepth[i] = 0;
-        }
-        plansFound.getAndIncrement(id);
+            System.out.println("Found new Plan (id:"+id+"): Length: " + p.depth() + " ("+depth + ") | Cost: "+p.cost());
+            System.out.println(p);
+            maxDepth.getAndUpdate(x->Math.min(p.depth()-forcedDepthReduction, x));
+            try {
+                planLock.lock();
+                plans.add(p);
 
-        System.out.println("PlansFound by workers: "+ plansFound.toString());
-        System.out.println("Found new Plan (id:"+id+"): Length: " + p.depth() + " ("+depth + ") | Cost: "+p.cost());
-        System.out.println(p);
-        maxDepth.getAndUpdate(x->Math.min(p.depth()-forcedDepthReduction, x));
-        plans.add(p);
-
-        if(plans.size()>1) {
-            Plan lastPlan = plans.get(plans.size() - 2);
-            int i = 0;
-            while (1 < p.getAll().size() && lastPlan.getAll().get(i) == p.getAll().get(i)) {
-                i++;
+                if (plans.size() > 1) {
+                    Plan lastPlan = plans.get(plans.size() - 2);
+                    int i = 0;
+                    while (i < p.getAll().size() && i < lastPlan.getAll().size() &&
+                            lastPlan.getAll().get(i) == p.getAll().get(i)) {
+                        i++;
+                    }
+                    System.out.println("Diverges from last plan at step: " + i);
+                }
+            } finally {
+                planLock.unlock();
             }
-            System.out.println("Diverges from last plan at step: " + i);
         }
     }
+
+
 
 
 
