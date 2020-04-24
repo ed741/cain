@@ -12,6 +12,9 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class ReverseSearch {
 
+    public enum TraversalAlgorithm {
+        DFS, BFS, SOT
+    }
     public static class RunConfig {
         //interface
         public boolean liveCounter;
@@ -23,22 +26,24 @@ public class ReverseSearch {
         public int searchTime;
         public boolean timeOut;
 
-        //Search Heuristics
+        // Search Rules
+        public TraversalAlgorithm traversalAlgorithm;
         public int initialMaxDepth;
         public int forcedDepthReduction; // once a plan is found at depth 10, cull searches at "depth - forcedDepthReduction".
-        //public int availableRegisters; // The maximum number of current goals
         public RegisterAllocator registerAllocator; // The register allocator to ensure plans are allocatable
 
+        // Search Heuristics
         public int allowableAtomsCoefficent; // cull plans that use more atoms than: "finalGoal * allowableAtomsCoefficent + initalGoal".
         public int goalReductionsPerStep; // cull plans that have more active goals than steps before max depth to reduce the number to one.
         public int goalReductionsTolorance; // add a tolerance to allow for a "less conservative" (lower) goalReductionsPerStep if larger reductions are unlikely.
         public int maxChildrenInDFS; // Number of goal pairs to search at each point before returning (pairs not searched are saved into the work queue for later).
 
-        public RunConfig(boolean liveCounter, int workers, int searchTime, boolean timeOut, int initialMaxDepth, int forcedDepthReduction, RegisterAllocator registerAllocator, int allowableAtomsCoefficent, int goalReductionsPerStep, int goalReductionsTolorance, int maxChildrenInDFS) {
+        public RunConfig(boolean liveCounter, int workers, int searchTime, boolean timeOut, TraversalAlgorithm traversalAlgorithm, int initialMaxDepth, int forcedDepthReduction, RegisterAllocator registerAllocator, int allowableAtomsCoefficent, int goalReductionsPerStep, int goalReductionsTolorance, int maxChildrenInDFS) {
             this.liveCounter = liveCounter;
             this.workers = workers;
             this.searchTime = searchTime;
             this.timeOut = timeOut;
+            this.traversalAlgorithm = traversalAlgorithm;
             this.initialMaxDepth = initialMaxDepth;
             this.forcedDepthReduction = forcedDepthReduction;
             this.registerAllocator=registerAllocator;
@@ -53,6 +58,7 @@ public class ReverseSearch {
             this.workers = 1;
             this.searchTime = 60000;
             this.timeOut = false;
+            this.traversalAlgorithm = TraversalAlgorithm.SOT;
             this.initialMaxDepth = 200;
             this.forcedDepthReduction = 1;
             this.allowableAtomsCoefficent = 2;
@@ -84,6 +90,11 @@ public class ReverseSearch {
 
         public RunConfig setTimeOut(boolean timeOut) {
             this.timeOut = timeOut;
+            return this;
+        }
+
+        public RunConfig setTraversalAlgorithm(TraversalAlgorithm traversalAlgorithm) {
+            this.traversalAlgorithm = traversalAlgorithm;
             return this;
         }
 
@@ -155,7 +166,7 @@ public class ReverseSearch {
 
     private final PairGenFactory pairGenFactory;
 
-    private final BlockingQueue<State> workQueue;
+//    private final BlockingQueue<WorkState> workQueue;
     private final int workers;
     private AtomicBoolean end;
     private Semaphore workersFinished;
@@ -168,6 +179,7 @@ public class ReverseSearch {
     private final AtomicInteger maxDepth;
     private final RegisterAllocator registerAllocator;
     private final int availableRegisters;
+    private final TraversalAlgorithm traversalAlgorithm;
 
     private final int allowableAtomsCoefficent;
     private final int forcedDepthReduction;
@@ -192,13 +204,14 @@ public class ReverseSearch {
 
         // Init worker thread trackers and job distribution
         this.workers = runConfig.workers;
-        this.workQueue = new LinkedBlockingQueue<>();
+//        this.workQueue = new LinkedBlockingQueue<>();
 
         this.end = new AtomicBoolean(false);
         this.workersFinished = new Semaphore(1-this.workers);
 
 
         // Init search parameters
+        this.traversalAlgorithm = runConfig.traversalAlgorithm;
         this.availableRegisters = runConfig.registerAllocator.getAvailableRegisters();
         this.maxDepth = new AtomicInteger(runConfig.initialMaxDepth);
         this.maxTime = runConfig.searchTime;
@@ -282,8 +295,8 @@ public class ReverseSearch {
     public void search(){
         startTime = System.currentTimeMillis();
         Goal.Bag goals = new Goal.Bag(finalGoals);
-        workQueue.add(new State(0, goals, new Plan(finalGoals, initialGoal, "final goals")));
         List<Worker> workersThreads = new ArrayList<>();
+
         for (int i = 0; i < this.workers; i++) {
             Worker worker = new Worker(i);
             workersThreads.add(worker);
@@ -291,6 +304,7 @@ public class ReverseSearch {
                 worker.next = workersThreads.get(i-1);
             }
         }
+        workersThreads.get(0).localWorkQueue.add(new WorkState(0, goals, new Plan(finalGoals, initialGoal, "final goals")));
         workersThreads.get(0).next = workersThreads.get(workersThreads.size()-1);
         workersThreads.forEach(Thread::start);
         Thread mainThread = Thread.currentThread();
@@ -348,20 +362,20 @@ public class ReverseSearch {
 
     }
 
-    private static class State {
+    private static class WorkState {
         final int depth;
         final Goal.Bag goals;
         final Plan currentPlan;
         final PairGenFactory.PairGen pairGen;
 
-        public State(int depth, Goal.Bag goals, Plan currentPlan, PairGenFactory.PairGen pairGen) {
+        public WorkState(int depth, Goal.Bag goals, Plan currentPlan, PairGenFactory.PairGen pairGen) {
             this.depth = depth;
             this.goals = goals;
             this.currentPlan = currentPlan;
             this.pairGen = pairGen;
         }
 
-        public State(int depth, Goal.Bag goals, Plan currentPlan) {
+        public WorkState(int depth, Goal.Bag goals, Plan currentPlan) {
             this.depth = depth;
             this.goals = goals;
             this.currentPlan = currentPlan;
@@ -374,15 +388,21 @@ public class ReverseSearch {
         int id;
         boolean finishing = false;
         boolean active = false;
+        boolean stealing = false;
         int workerMinDepth = 0;
         int workerMaxDepth = 0;
         Worker next;
+
+        BlockingDeque<WorkState> localWorkQueue;
         int plansFound = 0;
         int cacheChecks = 0;
         int cacheHits = 0;
+        int steals = 0;
 
         public Worker(int id) {
             this.id = id;
+            this.localWorkQueue = new LinkedBlockingDeque<>();
+
         }
 
         @Override
@@ -390,177 +410,185 @@ public class ReverseSearch {
             System.out.println("Worker " + id + " Starting");
             try {
                 while (!finish()) {
-                    ReverseSearch.State s = workQueue.poll();
+                    WorkState s = localWorkQueue.pollFirst();
                     if (s == null) {
                         active = false;
-                        s = workQueue.take();
+                        s = stealWork();
                     }
-                    if (s == null) {
-                        active = false;
-                    } else {
-                        active = true;
-                        rSearch(s.depth, s.goals, s.currentPlan, s.pairGen);
-                    }
+                    active = true;
+                    iSearch(s);
                 }
             } catch (InterruptedException e) {
                 //ignore
                 //System.out.println(id + " interpreted!");
             }
-            System.out.println(String.format("Worker %d Finished:  Active: %b,  Min Depth: %d,  Max Depth: %d,  PlansFound: %d, CacheHits: %d,  CacheChecks: %d  ", id, active, workerMinDepth, workerMaxDepth, plansFound, cacheHits, cacheChecks));
+            System.out.println(String.format("Worker %d Finished:  Active: %b,  Min Depth: %d,  Max Depth: %d,  PlansFound: %d, CacheHits: %d,  CacheChecks: %d,  Steals: %d", id, active, workerMinDepth, workerMaxDepth, plansFound, cacheHits, cacheChecks, steals));
             workersFinished.release();
         }
 
-        private boolean shareWork(int id){
-            return workQueue.isEmpty() && next != null && !next.active;
+        private WorkState stealWork() throws InterruptedException {
+            stealing = true;
+            Worker c = next;
+            WorkState s = null;
+            while (s==null){
+                s = c.localWorkQueue.pollLast(100, TimeUnit.MILLISECONDS);
+                c = c.next;
+            }
+            steals++;
+            stealing = false;
+            return s;
         }
 
+//        private boolean shareWork(int id){
+//            return workQueue.isEmpty() && next != null && !next.active;
+//        }
 
-        private void rSearch(int depth, Goal.Bag goals, Plan currentPlan, PairGenFactory.PairGen iterator) {
+        private void iSearch(WorkState s){
+            int depth = s.depth;
+            Goal.Bag goals = s.goals;
+            Plan currentPlan = s.currentPlan;
+            PairGenFactory.PairGen goalPairs = s.pairGen;
+
+
+
             this.workerMinDepth = Math.min(this.workerMinDepth, depth);
             this.workerMaxDepth = Math.max(this.workerMaxDepth, depth);
-            if (finish()){
-                if(!finishing) {
-                    System.out.println("Finishing before complete");
-//                    System.out.println(currentPlan.toGoalsString());
-                }
-                finishing = true;
-                return;
-            }
             int currentMaxDepth = maxDepth.get();
-//            System.out.println(depth);
-//            System.out.println(currentPlan.toGoalsString());
-//            System.out.println("Current Goals");
-//            System.out.println(goals.toGoalsString());
+//                System.out.println(depth);
+//                System.out.println(currentPlan.toGoalsString());
+//                System.out.println("Current Goals");
+//                System.out.println(goals.toGoalsString());
 
 ////            System.out.println("search");
             if (depth > currentMaxDepth) {
                 return;
             }
-            if(goals.size() - (((currentMaxDepth-depth)*goalReductionsPerStep)+goalReductionsTolerance) > 1){
-                return;
-            }
-            if (goals.atomCount() >= ((allowableAtomsCoefficent * finalGoalAtoms) + initialGoal.atomCount())) {
+            if (goals.size() - (((currentMaxDepth - depth) * goalReductionsPerStep) + goalReductionsTolerance) > 1) {
                 return;
             }
 
-            cacheChecks++;
-            if (!cache.isBest(goals, currentPlan.cost())) {
-                cacheHits++;
-                return;
-            }
+            if(goalPairs == null) {
 
-            if (goals.size() == 1) {
-                Goal g = goals.iterator().next();
-                if(g.equals(initialGoal)){
-                    if(addPlan(currentPlan.copy(), id, depth)){
-                        return;
-                    }
-                }
-                List<Goal.Pair> pairs = isTransformable(g, depth);
-                if (pairs!= null && !pairs.isEmpty()) {
-                    Plan p = currentPlan.copy();
-                    for (int i = 0; i < pairs.size(); i++) {
-                        Goal.Pair pair = pairs.get(i);
-                        boolean e = goals.removeEquivalent(pair.getUpper());
-                        if(!e){
-
-                            System.out.println(currentPlan.toGoalsString());
-
-                            System.out.println("ERROR"+id + " \n" + pair.getUpper().getCharTableString(true, true, true, true) + "--");
-                            System.out.println("ERROR"+id + " \n" + pair.getTransformation().toString() + "--");
-                            System.out.println("ERROR"+id + " \n" + pair.getTransformation().toStringN() + "--");
-                            System.exit(-1);
-
-                        }
-                        assert pair.getLowers().size() == 1;
-                        goals.addAll(pair.getLowers());
-                        Goal[] translation = new Goal[1];
-                        translation[0] = pair.getLowers().get(0);
-                        p.push(pair, new Goal.Bag(goals), translation, "final step "+i);
-                    }
-                    if(addPlan(p, id, depth)){
-                        return;
-                    }
-                }
-            }
-            PairGenFactory.PairGen goalPairs;
-            if(iterator == null) {
-                goalPairs = pairGenFactory.generatePairs(goals, depth);
-            } else {
-                goalPairs = iterator;
-            }
-            Goal.Pair goalPair = goalPairs.next();
-            int count = maxChildrenInDFS;
-            while (goalPair != null && count > 0) {
-//                System.out.println(goalPair.toStringN());
-
-                Goal.Bag newGoals = new Goal.Bag(goals);
-                if(!newGoals.removeEquivalent(goalPair.getUpper())){
-                    assert false: "Pair Upper ERROR";
-                }
-                ArrayList<Goal> toAdd = new ArrayList<>();
-                List<Goal> lowers = goalPair.getLowers();
-                int[] interference = goalPair.getTransformation().inputRegisterIntraInterference();
-                Goal[] translation = new Goal[interference.length];
-                for (int i = 0; i < lowers.size(); i++) {
-                    Goal l = lowers.get(i);
-
-                    boolean add = true;
-                    int c = i;
-                    while (c != interference[c]){
-                        if(lowers.get(i).same(lowers.get(interference[c]))){
-                            add = false;
-                            break;
-                        }
-                        c = interference[c];
-                    }
-                    if(add) {
-                        boolean addNew = true;
-                        for (int j = 0; j < newGoals.size(); j++) {
-                            Goal goal = newGoals.get(j);
-                            if (goal.same(l)) {
-                                newGoals.remove(j);
-                                toAdd.add(goal);
-                                translation[i] = goal;
-                                addNew = false;
-                                break;
-                            }
-                        }
-                        if(addNew) {
-                            toAdd.add(l);
-                            translation[i] = l;
-                        }
-                    } else {
-                        translation[i] = translation[interference[c]];
-                    }
-                }
-                newGoals.addAll(toAdd);
-
-                if (finish()){
-                    if(!finishing) {
-                        System.out.println("Finishing before complete");
-//                        System.out.println(currentPlan.toGoalsString());
-                    }
-                    finishing = true;
+                if (goals.atomCount() >= ((allowableAtomsCoefficent * finalGoalAtoms) + initialGoal.atomCount())) {
                     return;
                 }
 
-                if (newGoals.size() +(goalPair.getTransformation().inputRegisterOutputInterferes()?1:0) <= availableRegisters) {
-                    if (shareWork(id)) {
-                        //System.out.println("Sharing work "+id);
-                        workQueue.add(new ReverseSearch.State(depth + 1, newGoals, currentPlan.newAdd(goalPair, newGoals, translation, "r_step"), null));
-                    } else {
-                        currentPlan.push(goalPair, newGoals, translation, "r_step");
-                        rSearch(depth + 1, newGoals, currentPlan, null);
-                        currentPlan.pop();
+                cacheChecks++;
+                if (!cache.isBest(goals, currentPlan.cost())) {
+                    cacheHits++;
+                    return;
+                }
+
+                if (goals.size() == 1) {
+                    Goal g = goals.iterator().next();
+                    if (g.equals(initialGoal)) {
+                        if (addPlan(currentPlan.copy(), id, depth)) {
+                            return;
+                        }
+                    }
+                    List<Goal.Pair> pairs = isTransformable(g, depth);
+                    if (pairs != null && !pairs.isEmpty()) {
+                        Plan p = currentPlan.copy();
+                        for (int i = 0; i < pairs.size(); i++) {
+                            Goal.Pair pair = pairs.get(i);
+                            boolean e = goals.removeEquivalent(pair.getUpper());
+                            if (!e) {
+
+                                System.out.println(currentPlan.toGoalsString());
+
+                                System.out.println("ERROR" + id + " \n" + pair.getUpper().getCharTableString(true, true, true, true) + "--");
+                                System.out.println("ERROR" + id + " \n" + pair.getTransformation().toString() + "--");
+                                System.out.println("ERROR" + id + " \n" + pair.getTransformation().toStringN() + "--");
+                                System.exit(-1);
+
+                            }
+                            assert pair.getLowers().size() == 1;
+                            goals.addAll(pair.getLowers());
+                            Goal[] translation = new Goal[1];
+                            translation[0] = pair.getLowers().get(0);
+                            p.push(pair, new Goal.Bag(goals), translation, "final step " + i);
+                        }
+                        if (addPlan(p, id, depth)) {
+                            return;
+                        }
                     }
                 }
-                count--;
-                goalPair = goalPairs.next();
+                goalPairs = pairGenFactory.generatePairs(goals, depth);
             }
-            if (goalPair != null){
-                workQueue.add(new ReverseSearch.State(depth, goals, currentPlan.copy(), goalPairs));
+            Goal.Pair goalPair = goalPairs.next();
+            if(goalPair == null){
+                return;
             }
+
+//                System.out.println(goalPair.toStringN());
+
+            Goal.Bag newGoals = new Goal.Bag(goals);
+            boolean removed = newGoals.removeEquivalent(goalPair.getUpper());
+            assert removed: "Pair Upper ERROR";
+
+            ArrayList<Goal> toAdd = new ArrayList<>();
+            List<Goal> lowers = goalPair.getLowers();
+            int[] interference = goalPair.getTransformation().inputRegisterIntraInterference();
+            Goal[] translation = new Goal[interference.length];
+
+            for (int i = 0; i < lowers.size(); i++) {
+                Goal l = lowers.get(i);
+
+                boolean add = true;
+                int c = i;
+                while (c != interference[c]){
+                    if(lowers.get(i).same(lowers.get(interference[c]))){
+                        add = false;
+                        break;
+                    }
+                    c = interference[c];
+                }
+                if(add) {
+                    boolean addNew = true;
+                    for (int j = 0; j < newGoals.size(); j++) {
+                        Goal goal = newGoals.get(j);
+                        if (goal.same(l)) {
+                            newGoals.remove(j);
+                            toAdd.add(goal);
+                            translation[i] = goal;
+                            addNew = false;
+                            break;
+                        }
+                    }
+                    if(addNew) {
+                        toAdd.add(l);
+                        translation[i] = l;
+                    }
+                } else {
+                    translation[i] = translation[interference[c]];
+                }
+            }
+            newGoals.addAll(toAdd);
+
+            boolean tryChildren = newGoals.size() +(goalPair.getTransformation().inputRegisterOutputInterferes()?1:0) <= availableRegisters;
+            switch (traversalAlgorithm){
+                case DFS:
+                    localWorkQueue.addFirst(new WorkState(depth, goals, currentPlan.copy(), goalPairs));
+                    if(tryChildren){
+                        currentPlan.push(goalPair, newGoals, translation, "r_step");
+                        localWorkQueue.addFirst(new WorkState(depth + 1, newGoals, currentPlan, null));
+                    }
+                    break;
+                case BFS:
+                    if(tryChildren){
+                        localWorkQueue.addLast(new WorkState(depth + 1, newGoals, currentPlan.newAdd(goalPair, newGoals, translation, "r_step"), null));
+                    }
+                    localWorkQueue.addFirst(new WorkState(depth, goals, currentPlan, goalPairs));
+                    break;
+                case SOT:
+                    localWorkQueue.addLast(new WorkState(depth, goals, currentPlan.copy(), goalPairs));
+                    if(tryChildren) {
+                        currentPlan.push(goalPair, newGoals, translation, "r_step");
+                        localWorkQueue.addFirst(new WorkState(depth + 1, newGoals, currentPlan, null));
+                    }
+
+            }
+
 
         }
         private boolean addPlan(Plan p, int id, int depth){

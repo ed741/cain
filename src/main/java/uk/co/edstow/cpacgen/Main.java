@@ -5,7 +5,6 @@ import uk.co.edstow.cpacgen.scamp5.Scamp5PairGenFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 import static uk.co.edstow.cpacgen.RegisterAllocator.Register.*;
 import static uk.co.edstow.cpacgen.scamp5.Scamp5PairGenFactory.Config.SearchStrategy.Exhuastive;
@@ -146,7 +145,10 @@ public class Main {
                 }
         );
         ReverseSearch.RunConfig config = new ReverseSearch.RunConfig();
-        config.setWorkers(4).setRegisterAllocator(registerAllocator).setTimeOut(false).setLiveCounter(true).setSearchTime(60000);
+        config.setWorkers(1)
+                .setRegisterAllocator(registerAllocator)
+                .setTimeOut(false).setLiveCounter(true).setSearchTime(60000)
+                .setTraversalAlgorithm(ReverseSearch.TraversalAlgorithm.SOT);
         ReverseSearch rs = new ReverseSearch(6, final_goals, pairGenFactory, config);
         rs.search();
 
