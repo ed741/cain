@@ -8,6 +8,7 @@ import java.util.*;
 
 public class Goal implements List<Atom>, Comparable<Goal>{
 
+    private static long idx = 1;
     private final List<Atom> list;
 
     public Goal(List<Atom> list) {
@@ -83,6 +84,7 @@ public class Goal implements List<Atom>, Comparable<Goal>{
     }
 
     public boolean same(Goal g){
+        if(g == this){return true;}
         if(g.list.size() != list.size()){
             return false;
         }
@@ -92,15 +94,10 @@ public class Goal implements List<Atom>, Comparable<Goal>{
             }
         }
         return true;
-        //return list.equals(g.list);
-        //TODO optimise!
-//        List<Atom> tmp = new ArrayList<>(g);
-//        for (Atom a: this){
-//            if (!tmp.remove(a)){
-//                return false;
-//            }
-//        }
-//        return tmp.isEmpty();
+    }
+
+    public boolean equivalent(Goal g){
+        return this == g;
     }
 
     public Goal negative(){
@@ -119,7 +116,7 @@ public class Goal implements List<Atom>, Comparable<Goal>{
     /**
      * @return all possible sub Goals (subsets) of this goal, excluding the emptpy Goal.
      */
-    public List<Goal> allSplits(){
+    public List<Goal> allSplitsRecursive(){
         List<Goal> out = rallSplits();
         out.remove(0);
         return out;
@@ -145,6 +142,34 @@ public class Goal implements List<Atom>, Comparable<Goal>{
             if (out.stream().noneMatch(gp::same)){
                 out.add(gp);
             }
+        }
+        return out;
+    }
+
+    public List<Goal> allSplits(){
+
+        List<List<Atom>> lists = new ArrayList<>();
+        lists.add(new ArrayList<>());
+        for (Iterator<Tuple<Atom, Integer>> iterator = uniqueCountIterator(); iterator.hasNext(); ) {
+            Tuple<Atom, Integer> tuple = iterator.next();
+            Atom atom = tuple.getA();
+            int count = tuple.getB();
+
+            int length = lists.size();
+            for (int i = 0; i < length; i++) {
+                List<Atom> currentList = lists.get(i);
+                for (int j = 1; j <= count; j++) {
+                    List<Atom> l = new ArrayList<>(currentList);
+                    l.add(atom);
+                    currentList = l;
+                    lists.add(l);
+                }
+            }
+        }
+        ArrayList<Goal> out = new ArrayList<>();
+        for (int i = 1; i < lists.size(); i++) {
+            List<Atom> atoms = lists.get(i);
+            out.add(new Goal(atoms));
         }
         return out;
     }
@@ -194,6 +219,10 @@ public class Goal implements List<Atom>, Comparable<Goal>{
         Atom a = list.get(cursor++);
         int count = 1;
         while(cursor < list.size()){
+            if (minCount == 1){
+                return minCount;
+            }
+
             if(a.equals(list.get(cursor))) {
                 count++;
             } else {
@@ -254,7 +283,6 @@ public class Goal implements List<Atom>, Comparable<Goal>{
     public Goal subtract(Goal a) {
         return new Goal.Factory(list).subAll(a).get();
     }
-
 
     public static class AveragePosition {
         public final double x, y, z;
@@ -437,12 +465,16 @@ public class Goal implements List<Atom>, Comparable<Goal>{
 
             return "{T:" + transformation + ", U: " + goalStringN(upper) + ", Ls:" + sLowers.toString() + "}";
         }
+
     }
 
     public static class Bag extends ArrayList<Goal>{
         private boolean immutable = false;
         private int atomCount = -1;
         private static Comparator<Goal> fullComp = (a, b) -> {
+            if(a==b){
+                return 0;
+            }
             if(a.size() < b.size()){
                 return 1;
             }
@@ -458,13 +490,10 @@ public class Goal implements List<Atom>, Comparable<Goal>{
             return 0;
         };
         private static Comparator<Goal> halfComp = (a, b) -> {
-            if(a.size() < b.size()){
-                return 1;
+            if(a==b){
+                return 0;
             }
-            if(a.size() > b.size()){
-                return -1;
-            }
-            return 0;
+            return Integer.compare(b.size(), a.size());
         };
 
         public Bag(Bag b) {
@@ -567,6 +596,20 @@ public class Goal implements List<Atom>, Comparable<Goal>{
                     return true;
                 }
                 if(halfComp.compare(goali,goal) > 0){
+                    return false;
+                }
+            }
+            return false;
+        }
+
+        public boolean removeEquivalent(Goal g){
+            for (int i = 0; i < this.size(); i++) {
+                Goal goali = this.get(i);
+                if(goali.equivalent(g)){
+                    super.remove(i);
+                    return true;
+                }
+                if(halfComp.compare(goali,g) > 0){
                     return false;
                 }
             }
@@ -885,6 +928,6 @@ public class Goal implements List<Atom>, Comparable<Goal>{
 
     @Override
     public boolean equals(Object o) {
-        return o instanceof Goal && list.equals(((Goal) o).list);
+        return o instanceof Goal && same((Goal) o);
     }
 }

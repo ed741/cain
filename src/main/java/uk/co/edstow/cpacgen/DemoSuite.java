@@ -15,20 +15,26 @@ public class DemoSuite {
         final List<Goal> finalGoals;
         final int divisions;
         Plan result;
-        final int aukeScore;
+        final String aukeScore;
 
         private Test(String name, List<Goal> finalGoals, int divisions) {
             this.name = name;
             this.finalGoals = finalGoals;
             this.divisions = divisions;
-            this.aukeScore = 0;
+            this.aukeScore = "";
+        }
+
+        public Test(String name, List<Goal> finalGoals, int divisions, String aukeScore) {
+            this.name = name;
+            this.finalGoals = finalGoals;
+            this.divisions = divisions;
+            this.aukeScore = aukeScore;
         }
     }
 
     private static final List<Test> demos = new ArrayList<>();
-    private static Random r = new Random(2001);
 
-    private static int[][] makeRandom(int size, int min, int max, double sparsity){
+    private static int[][] makeRandom(Random r, int size, int min, int max, double sparsity){
 
         int[][] filter = new int[size][size];
         for (int i = 0; i < filter.length; i++) {
@@ -59,8 +65,8 @@ public class DemoSuite {
                     {0, 0, 0, 0, 0}
             };
 
-            demos.add(new Test("Vertical Sobel", Collections.singletonList(new Goal.Factory(SobelV).get()), 0));
-            demos.add(new Test("Vertical and Horizontal Sobel", Arrays.asList(new Goal.Factory(SobelV).get(), new Goal.Factory(SobelH).get()), 0));
+            demos.add(new Test("Vertical Sobel", Collections.singletonList(new Goal.Factory(SobelV).get()), 0, "7"));
+            demos.add(new Test("Vertical and Horizontal Sobel", Arrays.asList(new Goal.Factory(SobelV).get(), new Goal.Factory(SobelH).get()), 0, "(7+7)"));
         }
         {
             final int[][] Box2x2 = new int[][]{
@@ -71,7 +77,7 @@ public class DemoSuite {
                     {0, 0, 0, 0, 0}
             };
 
-            demos.add(new Test("2x2 Box", Collections.singletonList(new Goal.Factory(Box2x2).get()), 0));
+            demos.add(new Test("2x2 Box", Collections.singletonList(new Goal.Factory(Box2x2).get()), 0, "4"));
 
             final int[][] Box3x3 = new int[][]{
                     {0, 0, 0, 0, 0},
@@ -81,7 +87,7 @@ public class DemoSuite {
                     {0, 0, 0, 0, 0}
             };
 
-            demos.add(new Test("3x3 Box", Collections.singletonList(new Goal.Factory(Box3x3).get()), 0));
+            demos.add(new Test("3x3 Box", Collections.singletonList(new Goal.Factory(Box3x3).get()), 0, "8"));
 
             final int[][] Box5x5 = new int[][]{
                     {1, 1, 1, 1, 1},
@@ -90,8 +96,8 @@ public class DemoSuite {
                     {1, 1, 1, 1, 1},
                     {1, 1, 1, 1, 1}
             };
-            demos.add(new Test("5x5 Box", Collections.singletonList(new Goal.Factory(Box5x5).get()), 0));
-            demos.add(new Test("5x5 and 3x3 Box", Arrays.asList(new Goal.Factory(Box5x5).get(), new Goal.Factory(Box3x3).get()), 0));
+            demos.add(new Test("5x5 Box", Collections.singletonList(new Goal.Factory(Box5x5).get()), 0, "15"));
+            demos.add(new Test("5x5 and 3x3 Box", Arrays.asList(new Goal.Factory(Box3x3).get(), new Goal.Factory(Box5x5).get()), 0, "(8+15)"));
         }
         {
             int[][] Guass3x3 = new int[][]{
@@ -101,7 +107,7 @@ public class DemoSuite {
                     {0, 1, 2, 1, 0},
                     {0, 0, 0, 0, 0}
             };
-            demos.add(new Test("3x3 Guass", Collections.singletonList(new Goal.Factory(Guass3x3).get()), 4));
+            demos.add(new Test("3x3 Guass", Collections.singletonList(new Goal.Factory(Guass3x3).get()), 4, "12"));
 
             int[][] Guass5x5 = new int[][]{
                     {0, 1, 2, 1, 0},
@@ -110,37 +116,39 @@ public class DemoSuite {
                     {1, 4, 6, 4, 1},
                     {0, 1, 2, 1, 0}
             };
-            demos.add(new Test("5x5 Guass", Collections.singletonList(new Goal.Factory(Guass5x5).get()), 6));
-            demos.add(new Test("5x5 and 3x3 Guass", Arrays.asList(new Goal.Factory(Guass5x5).get(), new Goal.Factory(Guass3x3, 4).get()), 6));
-        }
-
-        {
-            Goal[] r = new Goal[4];
-            for (int i = 0; i < r.length; i++) {
-                r[i] = new Goal.Factory(makeRandom(3, 0, 8, 0)).get();
-            }
-            demos.add(new Test("Random0 3x3 [0-8] 0%", Collections.singletonList(r[0]), 3));
-            demos.add(new Test("Random1 3x3 [0-8] 0%", Collections.singletonList(r[1]), 3));
-            demos.add(new Test("Random2 3x3 [0-8] 0%", Collections.singletonList(r[2]), 3));
-            demos.add(new Test("Random3 3x3 [0-8] 0%", Collections.singletonList(r[3]), 3));
-
-
-            demos.add(new Test("Random0&1 3x3 [0-8] 0%", Arrays.asList(r[0], r[1]), 3));
-            demos.add(new Test("Random2&3 3x3 [0-8] 0%", Arrays.asList(r[2], r[3]), 3));
+            demos.add(new Test("5x5 Guass", Collections.singletonList(new Goal.Factory(Guass5x5).get()), 6, "50 (44?)"));
+            demos.add(new Test("5x5 and 3x3 Guass", Arrays.asList(new Goal.Factory(Guass5x5).get(), new Goal.Factory(Guass3x3, 4).get()), 6, "(50+12)"));
         }
         {
-            Goal[] r = new Goal[4];
-            for (int i = 0; i < r.length; i++) {
-                r[i] = new Goal.Factory(makeRandom(3, 1, 8, 0.5)).get();
+            Random rand = new Random(2001);
+            {
+                Goal[] r = new Goal[4];
+                for (int i = 0; i < r.length; i++) {
+                    r[i] = new Goal.Factory(makeRandom(rand, 3, 0, 8, 0)).get();
+                }
+                demos.add(new Test("Random0 3x3 [0-8] 0%", Collections.singletonList(r[0]), 3, "30"));
+                demos.add(new Test("Random1 3x3 [0-8] 0%", Collections.singletonList(r[1]), 3, "35"));
+                demos.add(new Test("Random2 3x3 [0-8] 0%", Collections.singletonList(r[2]), 3, "37"));
+                demos.add(new Test("Random3 3x3 [0-8] 0%", Collections.singletonList(r[3]), 3, "34"));
+
+
+                demos.add(new Test("Random0&1 3x3 [0-8] 0%", Arrays.asList(r[0], r[1]), 3, "(28+35)"));
+                demos.add(new Test("Random2&3 3x3 [0-8] 0%", Arrays.asList(r[2], r[3]), 3, "(37+35)"));
             }
-            demos.add(new Test("Random0 3x3 [1-8] 50%", Collections.singletonList(r[0]), 3));
-            demos.add(new Test("Random1 3x3 [1-8] 50%", Collections.singletonList(r[1]), 3));
-            demos.add(new Test("Random2 3x3 [1-8] 50%", Collections.singletonList(r[2]), 3));
-            demos.add(new Test("Random3 3x3 [1-8] 50%", Collections.singletonList(r[3]), 3));
+            {
+                Goal[] r = new Goal[4];
+                for (int i = 0; i < r.length; i++) {
+                    r[i] = new Goal.Factory(makeRandom(rand, 3, 1, 8, 0.5)).get();
+                }
+                demos.add(new Test("Random0 3x3 [1-8] 50%", Collections.singletonList(r[0]), 3, "22"));
+                demos.add(new Test("Random1 3x3 [1-8] 50%", Collections.singletonList(r[1]), 3, "15"));
+                demos.add(new Test("Random2 3x3 [1-8] 50%", Collections.singletonList(r[2]), 3, "22"));
+                demos.add(new Test("Random3 3x3 [1-8] 50%", Collections.singletonList(r[3]), 3, "33"));
 
 
-            demos.add(new Test("Random0&1 3x3 [1-8] 50%", Arrays.asList(r[0], r[1]), 3));
-            demos.add(new Test("Random2&3 3x3 [1-8] 50%", Arrays.asList(r[2], r[3]), 3));
+                demos.add(new Test("Random0&1 3x3 [1-8] 50%", Arrays.asList(r[0], r[1]), 3,"(22+15)"));
+                demos.add(new Test("Random2&3 3x3 [1-8] 50%", Arrays.asList(r[2], r[3]), 3, "(23+33)"));
+            }
         }
     }
 
@@ -182,8 +190,10 @@ public class DemoSuite {
                     return conf;
                 }
         );
+        RegisterAllocator ra = new RegisterAllocator(A, availableRegisters);
+
         ReverseSearch.RunConfig config = new ReverseSearch.RunConfig();
-        config.setSearchTime(60000).setWorkers(4).setAvailableRegisters(availableRegisters.length).setTimeOut(true);
+        config.setSearchTime(60000).setWorkers(4).setRegisterAllocator(ra).setTimeOut(true);
         ReverseSearch rs = new ReverseSearch(test.divisions, test.finalGoals, pairGenFactory, config);
         rs.search();
 
@@ -201,12 +211,10 @@ public class DemoSuite {
         System.out.println("Best:");
         Plan p = rs.getPlans().get(imin);
         System.out.println("length: " + p.depth() + " Cost: "+p.cost());
-        p.link();
         System.out.println(p);
-        p.circuitDepth();
+        System.out.println("CircuitDepths:" + Arrays.toString(p.circuitDepths()));
         //System.out.println(p.toGoalsString());
-        RegisterAllocator ra = new RegisterAllocator(p, A, availableRegisters);
-        Map<Integer, RegisterAllocator.Register> mapping = ra.solve();
+        RegisterAllocator.Mapping mapping = ra.solve(p);
         //System.out.println(mapping);
         System.out.println(p.produceCode(mapping));
         System.out.println(p.getAll().get(0).toGoalsString(Collections.emptyList()));
@@ -235,7 +243,7 @@ public class DemoSuite {
             }
             sb.append("&");
 
-            if(demo.aukeScore > 0) {
+            if(demo.aukeScore != null && demo.aukeScore.length() > 0) {
                 sb.append(demo.aukeScore);
             } else {
                 sb.append("Unknown");
@@ -256,6 +264,11 @@ public class DemoSuite {
 
     private static List<String> goalsToLatex(List<Goal> goals){
         Bounds b = new Bounds(new Bounds(goals), new Atom(0,0,0, true));
+        int xr = Math.max(Math.abs(b.xMax), Math.abs(b.xMin));
+        int yr = Math.max(Math.abs(b.yMax), Math.abs(b.yMin));
+        int r = Math.max(xr, yr);
+        b = new Bounds(b, new Atom(-r,-r,0, true));
+        b = new Bounds(b, new Atom(r,r,0, true));
         int height = 1 + b.yMax - b.yMin;
         int width = 1 + b.xMax - b.xMin;
         List<String> out = new ArrayList<>(goals.size());

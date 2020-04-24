@@ -16,7 +16,7 @@ public class V1PairGenFactory implements PairGenFactory{
 
     @Override
     public Collection<Tuple<List<Goal.Pair>, Goal>> applyAllUnaryOpForwards(Goal initialGoal, int depth, Goal goal) {
-        return SimplePairGenFactory.applyAllUnaryOps(initialGoal);
+        return SimplePairGenFactory.applyAllUnaryOps(initialGoal, goal);
     }
 
     private Bounds bounds;
@@ -85,7 +85,7 @@ public class V1PairGenFactory implements PairGenFactory{
     private List<Goal.Pair> getAddTransformations(Goal upper) {
         List<Goal.Pair> pairs = new ArrayList<>();
         // Addition
-        Collection<Goal> splits = upper.allSplits();
+        Collection<Goal> splits = upper.allSplitsRecursive();
         Set<Goal> seen = new HashSet<>();
         for (Goal a : splits) {
             if (seen.contains(a)){

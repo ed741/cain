@@ -93,4 +93,16 @@ public class Bounds {
         return a<b ? a : b;
     }
 
+
+    @Override
+    public String toString() {
+        return "Bounds{" +
+                "xMax=" + xMax +
+                ", xMin=" + xMin +
+                ", yMax=" + yMax +
+                ", yMin=" + yMin +
+                ", zMax=" + zMax +
+                ", zMin=" + zMin +
+                '}';
+    }
 }

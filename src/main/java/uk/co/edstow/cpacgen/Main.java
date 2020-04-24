@@ -3,6 +3,7 @@ package uk.co.edstow.cpacgen;
 import uk.co.edstow.cpacgen.scamp5.Scamp5PairGenFactory;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -23,7 +24,7 @@ public class Main {
                 { 8, 7, 5, 6, 0},
                 { 0, 8, 6, 8, 4}
         };
-        final_goals.add(new Goal.Factory(multi3).get());
+        //final_goals.add(new Goal.Factory(multi3).get());
 
         int[][] multiSobelV = new int[][]{
                 { 0, 0, 0, 0, 0},
@@ -32,7 +33,7 @@ public class Main {
                 { 0, 1, 0, -1, 0},
                 { 0, 0, 0, 0, 0}
         };
-        //final_goals.add(new Goal.Factory(multiSobelV).get());
+//        final_goals.add(new Goal.Factory(multiSobelV).get());
 
         int[][] multiSobelH = new int[][]{
                 { 0, 0, 0, 0, 0},
@@ -41,7 +42,7 @@ public class Main {
                 { 0, -1, -2, -1, 0},
                 { 0, 0, 0, 0, 0}
         };
-        //final_goals.add(new Goal.Factory(multiSobelH).get());
+//        final_goals.add(new Goal.Factory(multiSobelH).get());
 
         int[][] multiBox1x1 = new int[][]{
                 { 0, 0, 0, 0, 0},
@@ -87,7 +88,7 @@ public class Main {
                 { 0, 1, 2, 1, 0},
                 { 0, 0, 0, 0, 0}
         };
-        //final_goals.add(new Goal.Factory(multiGuass3x3).get());
+        final_goals.add(new Goal.Factory(multiGuass3x3, 4).get());
 
         int[][] multiGuass5x5 = new int[][]{
                 { 0, 1, 2, 1, 0},
@@ -101,7 +102,7 @@ public class Main {
         int[][] multi1 = new int[][]{
                 { 0, 0, 0, 0, 0},
                 { 0, 0, 0, 0, 0},
-                { 0, 0, 7, 0, 0},
+                { 0, 0, 4, 0, 0},
                 { 0, 0, 0, 0, 0},
                 { 0, 0, 0, 0, 0}
         };
@@ -127,6 +128,7 @@ public class Main {
 //        final_goals.add(new Goal.Factory(multi4).get());
 
         RegisterAllocator.Register[] availableRegisters = new RegisterAllocator.Register[]{A, B, C, D, E, F};
+        RegisterAllocator registerAllocator = new RegisterAllocator(A, availableRegisters);
 
         Scamp5PairGenFactory pairGenFactory = new Scamp5PairGenFactory(
                 (goals, depth, rs1, initalGoal) -> {
@@ -135,7 +137,7 @@ public class Main {
                     for (Goal goal : goals) {
                         max = Math.max(max, goal.atomCount());
                     }
-                    int threshold = 10;
+                    int threshold = 0;
                     Scamp5PairGenFactory.Config conf = new Scamp5PairGenFactory.Config(max>threshold? SortedAtomDistance: Exhuastive, availableRegisters.length, depth);
                     conf.useAll();
                     conf.useSubPowerOf2();
@@ -144,8 +146,8 @@ public class Main {
                 }
         );
         ReverseSearch.RunConfig config = new ReverseSearch.RunConfig();
-        config.setWorkers(4).setAvailableRegisters(availableRegisters.length).setTimeOut(true);
-        ReverseSearch rs = new ReverseSearch(3, final_goals, pairGenFactory, config);
+        config.setWorkers(4).setRegisterAllocator(registerAllocator).setTimeOut(false).setLiveCounter(true).setSearchTime(60000);
+        ReverseSearch rs = new ReverseSearch(6, final_goals, pairGenFactory, config);
         rs.search();
 
         System.out.println("print plans");
@@ -164,14 +166,12 @@ public class Main {
         System.out.println("Best");
         Plan p = rs.getPlans().get(imin);
         System.out.println("length: " + p.depth() + " Cost: "+p.cost());
-        p.link();
+        System.out.println("CircuitDepths:" + Arrays.toString(p.circuitDepths()));
         System.out.println(p);
         System.out.println(p.toGoalsString());
-        RegisterAllocator ra = new RegisterAllocator(p, A, availableRegisters);
-        Map<Integer, RegisterAllocator.Register> mapping = ra.solve();
+        RegisterAllocator.Mapping mapping = registerAllocator.solve(p);
         System.out.println(mapping);
         System.out.println(p.produceCode(mapping));
-        p.circuitDepth();
 
 
 

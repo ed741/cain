@@ -1,7 +1,5 @@
 package uk.co.edstow.cpacgen;
 
-import uk.co.edstow.cpacgen.Atom;
-import uk.co.edstow.cpacgen.Goal;
 import uk.co.edstow.cpacgen.util.Tuple;
 import org.junit.jupiter.api.Test;
 
@@ -71,7 +69,7 @@ class GoalTest {
     }
 
     @Test
-    void testAllSplits() {
+    void testAllSplitsRecursive() {
         Goal g1 = new Goal(
                 new Atom(0,1,0, true),
                 new Atom(1,1,0, false));
@@ -84,7 +82,7 @@ class GoalTest {
         Goal ge3 = new Goal(
                 new Atom(1,1,0, false));
 
-        Collection<Goal> allSplits = g1.allSplits();
+        Collection<Goal> allSplits = g1.allSplitsRecursive();
         assertTrue(allSplits.contains(ge1));
         assertTrue(allSplits.contains(ge2));
         assertTrue(allSplits.contains(ge3));
@@ -245,5 +243,124 @@ class GoalTest {
         assertTrue(g2.equals(g2));
         assertFalse(g1.equals(g2));
 
+    }
+
+    @Test
+    void testEquivalent() {
+        Goal g1 = new Goal(
+                new Atom(0,1,0, true),
+                new Atom(0,1,0, true),
+                new Atom(1,1,0, false),
+                new Atom(1,1,0, false),
+                new Atom(1,1,0, false));
+
+        Goal g2 = new Goal(g1);
+
+        assertTrue(g1.equivalent(g1));
+        assertTrue(g2.equivalent(g2));
+        assertFalse(g1.equivalent(g2));
+        assertFalse(g2.equivalent(g1));
+    }
+
+    @Test
+    void testallSplits() {
+        Goal g1 = new Goal(
+                new Atom(1,1,0, true),
+                new Atom(2,1,0, true),
+                new Atom(3,1,0, true),
+                new Atom(4,1,0, true));
+        List<Goal> lists = g1.allSplits();
+
+        assertTrue(lists.contains(new Goal(new Atom(1,1,0,true))));
+        assertTrue(lists.contains(new Goal(new Atom(2,1,0,true))));
+        assertTrue(lists.contains(new Goal(new Atom(3,1,0,true))));
+        assertTrue(lists.contains(new Goal(new Atom(4,1,0,true))));
+
+        assertTrue(lists.contains(new Goal(new Atom(1,1,0,true), new Atom(2,1,0,true))));
+        assertTrue(lists.contains(new Goal(new Atom(1,1,0,true), new Atom(3,1,0,true))));
+        assertTrue(lists.contains(new Goal(new Atom(1,1,0,true), new Atom(4,1,0,true))));
+
+        assertTrue(lists.contains(new Goal(new Atom(2,1,0,true), new Atom(3,1,0,true))));
+        assertTrue(lists.contains(new Goal(new Atom(2,1,0,true), new Atom(4,1,0,true))));
+
+        assertTrue(lists.contains(new Goal(new Atom(3,1,0,true), new Atom(4,1,0,true))));
+
+        assertTrue(lists.contains(new Goal(new Atom(2,1,0,true), new Atom(3,1,0,true), new Atom(4,1,0,true))));
+        assertTrue(lists.contains(new Goal(new Atom(1,1,0,true), new Atom(3,1,0,true), new Atom(4,1,0,true))));
+        assertTrue(lists.contains(new Goal(new Atom(1,1,0,true), new Atom(2,1,0,true), new Atom(4,1,0,true))));
+        assertTrue(lists.contains(new Goal(new Atom(1,1,0,true), new Atom(2,1,0,true), new Atom(3,1,0,true))));
+
+        assertTrue(lists.contains(new Goal(new Atom(1,1,0,true), new Atom(2,1,0,true), new Atom(3,1,0,true), new Atom(4,1,0,true))));
+
+        assertEquals(15, lists.size());
+
+    }
+
+    @Test
+    void testMaximumCount() {
+        Goal g1 = new Goal(
+                new Atom(0,1,0, true),
+                new Atom(0,1,0, true),
+                new Atom(1,1,0, false),
+                new Atom(1,1,0, false),
+                new Atom(1,1,0, false));
+
+        assertEquals(3, g1.maximumCount());
+        Goal g2 = new Goal(
+                new Atom(0,1,0, true),
+                new Atom(0,1,0, true),
+                new Atom(1,1,0, false),
+                new Atom(1,2,0, false),
+                new Atom(1,3,0, false));
+
+        assertEquals(2, g2.maximumCount());
+    }
+
+    @Test
+    void testGetAveragePos() {
+        Goal g1 = new Goal(
+                new Atom(0,1,0, true),
+                new Atom(0,1,0, true),
+                new Atom(1,1,0, false),
+                new Atom(1,1,0, false),
+                new Atom(1,1,0, false));
+
+        assertEquals(3d/5d, g1.getAveragePos().x, 0.001);
+        assertEquals(1, g1.getAveragePos().y, 0.001);
+        assertEquals(0, g1.getAveragePos().z, 0.001);
+
+    }
+
+    @Test
+    void testAllSame() {
+        Goal g1 = new Goal(
+                new Atom(0,1,0, true),
+                new Atom(0,1,0, true),
+                new Atom(1,1,0, false),
+                new Atom(0,1,0, true),
+                new Atom(0,1,0, false));
+        assertFalse(g1.allSame());
+        Goal g2 = new Goal(
+                new Atom(0,1,0, true),
+                new Atom(0,1,0, true),
+                new Atom(0,1,0, false),
+                new Atom(0,1,0, true));
+        assertTrue(g2.allSame());
+    }
+
+    @Test
+    void testSubtract() {
+        Goal g1 = new Goal(
+                new Atom(0,1,0, true),
+                new Atom(0,1,0, true),
+                new Atom(0,1,0, false),
+                new Atom(0,1,0, true),
+                new Atom(1,1,0, false));
+        Goal g2 = new Goal(
+                new Atom(0,1,0, true),
+                new Atom(0,1,0, true),
+                new Atom(0,1,0, true),
+                new Atom(0,1,0, true));
+        assertEquals(new Goal(new Atom(1,1,0, false), new Atom(0,1,0, false), new Atom(0,1,0, false)), g1.subtract(g2));
     }
 }

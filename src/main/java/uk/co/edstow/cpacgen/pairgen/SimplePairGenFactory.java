@@ -14,14 +14,16 @@ public class SimplePairGenFactory implements PairGenFactory {
     private Bounds bounds;
 
 
-    public static Collection<Tuple<List<Goal.Pair>, Goal>> applyAllUnaryOps(Goal goal){
+    public static Collection<Tuple<List<Goal.Pair>, Goal>> applyAllUnaryOps(Goal goal, Goal upper){
         ArrayList<Tuple<List<Goal.Pair>, Goal>> list = new ArrayList<>();
         for (Transformation.Direction d: Transformation.Direction.values()){
             for (int i = 0; i < 4; i++){
                 Transformation t = new Transformation.Move(i, d, goal);
                 try {
                     Goal go = t.applyForwards();
-                    list.add(new Tuple<>(Collections.singletonList(new Goal.Pair(go, goal, t)), go));
+                    if(go.same(upper)) {
+                        list.add(new Tuple<>(Collections.singletonList(new Goal.Pair(upper, goal, t)), go));
+                    }
                 } catch (Transformation.TransformationApplicationException ignored) {}
             }
         }
@@ -29,8 +31,9 @@ public class SimplePairGenFactory implements PairGenFactory {
             Transformation t = new Transformation.Div(i, goal);
             try {
                 Goal go = t.applyForwards();
-
-                list.add(new Tuple<>(Collections.singletonList(new Goal.Pair(go, goal, t)), go));
+                if(go.same(upper)) {
+                    list.add(new Tuple<>(Collections.singletonList(new Goal.Pair(upper, goal, t)), go));
+                }
             } catch (Transformation.TransformationApplicationException ignored) {}
         }
         return list;
@@ -38,7 +41,7 @@ public class SimplePairGenFactory implements PairGenFactory {
 
     @Override
     public Collection<Tuple<List<Goal.Pair>, Goal>> applyAllUnaryOpForwards(Goal initialGoal, int depth, Goal goal) {
-        return applyAllUnaryOps(initialGoal);
+        return applyAllUnaryOps(initialGoal, goal);
     }
 
     @Override
@@ -134,7 +137,7 @@ public class SimplePairGenFactory implements PairGenFactory {
         List<Goal.Pair> getAddTransformations(Goal upper) {
             List<Goal.Pair> pairs = new ArrayList<>();
             // Addition
-            Collection<Goal> splits = upper.allSplits();
+            Collection<Goal> splits = upper.allSplitsRecursive();
             for (Goal a : splits) {
                 Goal b = upper.without(a);
                 if (b.isEmpty()) {

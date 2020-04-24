@@ -85,7 +85,93 @@ public abstract class Scamp5Transformation extends Transformation {
             return "Res/1";
         }
 
+        private static boolean[] inputRegisterOutputInterference = new boolean[0];
+        private static int[] inputRegisterIntraInterference = new int[0];
+
+        @Override
+        public boolean[] inputRegisterOutputInterference() {
+            return inputRegisterOutputInterference;
+        }
+
+        @Override
+        public boolean inputRegisterOutputInterferes() {
+            return false;
+        }
+
+        @Override
+        public int[] inputRegisterIntraInterference() {
+            return inputRegisterIntraInterference;
+        }
     }
+
+
+    public static class Mov extends Scamp5Transformation {
+        //u := a
+
+        final Goal a;
+        Goal moved = null;
+
+        public Mov(Goal a) {
+            this.a = a;
+        }
+
+        public Mov(Goal in, boolean upper) {
+            if (upper) {
+                this.a = new Goal(in);
+                this.moved = in;
+            } else {
+                this.a = in;
+            }
+        }
+
+        @Override
+        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+            assert lowers.size() == inputCount();
+            return String.format("mov(%s, %s)", upper, lowers.get(0));
+        }
+
+        @Override
+        public int inputCount() {
+            return 1;
+        }
+
+        @Override
+        public Goal applyForwards() {
+            if(this.moved == null){
+                this.moved = new Goal(a);
+            }
+            return this.moved;
+        }
+
+        @Override
+        public double cost() {
+            return 2;
+        }
+
+        @Override
+        public String toStringN() {
+            return String.format("Mov (%s)", this.a);
+        }
+
+        private static boolean[] inputRegisterOutputInterference = new boolean[1];
+        private static int[] inputRegisterIntraInterference = new int[1];
+
+        @Override
+        public boolean[] inputRegisterOutputInterference() {
+            return inputRegisterOutputInterference;
+        }
+
+        @Override
+        public boolean inputRegisterOutputInterferes() {
+            return false;
+        }
+
+        @Override
+        public int[] inputRegisterIntraInterference() {
+            return inputRegisterIntraInterference;
+        }
+    }
+
 
     public static class Add_2 extends Scamp5Transformation {
         // u := a + b
@@ -127,6 +213,24 @@ public abstract class Scamp5Transformation extends Transformation {
         @Override
         public String toStringN() {
             return String.format("Add2(%s, %s)", a, b);
+        }
+
+        private static boolean[] inputRegisterOutputInterference = {false, false};
+        private static int[] inputRegisterIntraInterference = {0,1};
+
+        @Override
+        public boolean[] inputRegisterOutputInterference() {
+            return inputRegisterOutputInterference;
+        }
+
+        @Override
+        public boolean inputRegisterOutputInterferes() {
+            return false;
+        }
+
+        @Override
+        public int[] inputRegisterIntraInterference() {
+            return inputRegisterIntraInterference;
         }
 
     }
@@ -174,6 +278,24 @@ public abstract class Scamp5Transformation extends Transformation {
         public String toStringN() {
             return String.format("Add3(%s, %s, %s)", a, b, c);
         }
+
+        private static boolean[] inputRegisterOutputInterference = new boolean[3];
+        private static int[] inputRegisterIntraInterference = {0,1,2};
+
+        @Override
+        public boolean[] inputRegisterOutputInterference() {
+            return inputRegisterOutputInterference;
+        }
+
+        @Override
+        public boolean inputRegisterOutputInterferes() {
+            return false;
+        }
+
+        @Override
+        public int[] inputRegisterIntraInterference() {
+            return inputRegisterIntraInterference;
+        }
     }
 
     public static class Sub extends Scamp5Transformation {
@@ -217,6 +339,24 @@ public abstract class Scamp5Transformation extends Transformation {
          public String toStringN() {
              return String.format("Sub(%s, %s)", a, b);
          }
+
+        private static boolean[] inputRegisterOutputInterference = {false, true};
+        private static int[] inputRegisterIntraInterference = {0,0};
+
+        @Override
+        public boolean[] inputRegisterOutputInterference() {
+            return inputRegisterOutputInterference;
+        }
+
+        @Override
+        public boolean inputRegisterOutputInterferes() {
+            return true;
+        }
+
+        @Override
+        public int[] inputRegisterIntraInterference() {
+            return inputRegisterIntraInterference;
+        }
     }
 
     public static class Neg extends Scamp5Transformation {
@@ -232,12 +372,12 @@ public abstract class Scamp5Transformation extends Transformation {
         }
 
         public Neg(Goal in, boolean upper){
-            if(!upper){
-               this.a = in;
-               this.neg = null;
-            } else {
+            if (upper) {
                 this.a = in.negative();
                 this.neg = in;
+            } else {
+               this.a = in;
+               this.neg = null;
             }
         }
 
@@ -268,6 +408,24 @@ public abstract class Scamp5Transformation extends Transformation {
         @Override
         public String toStringN() {
             return String.format("Neg(%s)", a);
+        }
+
+        private static boolean[] inputRegisterOutputInterference = {true};
+        private static int[] inputRegisterIntraInterference = {0};
+
+        @Override
+        public boolean[] inputRegisterOutputInterference() {
+            return inputRegisterOutputInterference;
+        }
+
+        @Override
+        public boolean inputRegisterOutputInterferes() {
+            return true;
+        }
+
+        @Override
+        public int[] inputRegisterIntraInterference() {
+            return inputRegisterIntraInterference;
         }
     }
 
@@ -353,41 +511,47 @@ public abstract class Scamp5Transformation extends Transformation {
         public String toStringN() {
             return String.format("Div(%s)", this.a);
         }
+
+        private static boolean[] inputRegisterOutputInterference = new boolean[1];
+        private static int[] inputRegisterIntraInterference = {0};
+
+        @Override
+        public boolean[] inputRegisterOutputInterference() {
+            return inputRegisterOutputInterference;
+        }
+
+        @Override
+        public boolean inputRegisterOutputInterferes() {
+            return false;
+        }
+
+        @Override
+        public int[] inputRegisterIntraInterference() {
+            return inputRegisterIntraInterference;
+        }
     }
 
 
-    public static class Movx extends Scamp5Transformation {
+    public static class Movx extends Mov {
         //u := a_dir
 
-        final Goal a;
-        Goal moved = null;
         final Dir dir;
 
         public Movx(Goal a, Dir dir) {
-            this.a = a;
+            super(a);
             this.dir = dir;
         }
 
         public Movx(Goal in, Dir dir, boolean upper) {
-            if(!upper){
-                this.a = in;
-                this.dir = dir;
-            } else {
-                this.a = in.translated(-dir.x, -dir.y, 0);
-                this.moved = in;
-                this.dir = dir;
-            }
+            super(upper?in.translated(-dir.x, -dir.y, 0):in);
+            this.moved = upper?in:null;
+            this.dir = dir;
         }
 
         @Override
         public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
             return String.format("movx(%s, %s, %s)", upper, lowers.get(0), dir.toCode());
-        }
-
-        @Override
-        public int inputCount() {
-            return 1;
         }
 
         @Override
@@ -399,53 +563,35 @@ public abstract class Scamp5Transformation extends Transformation {
         }
 
         @Override
-        public double cost() {
-            return 2;
-        }
-
-        @Override
         public String toStringN() {
             return String.format("MovX %s (%s)", dir, this.a);
         }
     }
 
 
-    public static class Mov2x extends Scamp5Transformation {
+    public static class Mov2x extends Mov{
         // u := a_dir1_dir2
 
-        final Goal a;
-        Goal moved = null;
         final Dir dir1;
         final Dir dir2;
 
         public Mov2x(Goal a, Dir dir1, Dir dir2) {
-            this.a = a;
+            super(a);
             this.dir1 = dir1;
             this.dir2 = dir2;
         }
 
         public Mov2x(Goal in, Dir dir1, Dir dir2, boolean upper) {
-            if(!upper){
-                this.a = in;
-                this.dir1 = dir1;
-                this.dir2 = dir2;
-            } else {
-                this.a = in.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0);
-                this.moved = in;
-                this.dir1 = dir1;
-                this.dir2 = dir2;
-            }
+            super(upper?in.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0):in);
+            this.moved = upper?in:null;
+            this.dir1 = dir1;
+            this.dir2 = dir2;
         }
 
         @Override
         public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
             return String.format("mov2x(%s, %s, %s, %s)", upper, lowers.get(0), dir1.toCode(), dir2.toCode());
-        }
-
-        @Override
-        public int inputCount() {
-            return 1;
         }
 
         @Override
@@ -457,28 +603,20 @@ public abstract class Scamp5Transformation extends Transformation {
         }
 
         @Override
-        public double cost() {
-            return 2;
-        }
-
-        @Override
         public String toStringN() {
             return String.format("MovX %s %s (%s)", dir1, dir2, this.a);
         }
+
     }
 
 
-    public static class Addx extends Scamp5Transformation {
+    public static class Addx extends Add_2 {
         // u := a_dir + b_dir
 
-        final Goal a;
-        final Goal b;
-        Goal sum = null;
         final Dir dir;
 
         public Addx(Goal a, Goal b, Dir dir) {
-            this.a = a;
-            this.b = b;
+            super(a, b);
             this.dir = dir;
         }
 
@@ -486,11 +624,6 @@ public abstract class Scamp5Transformation extends Transformation {
         public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
             return String.format("addx(%s, %s, %s, %s)", upper, lowers.get(0), lowers.get(1), dir.toCode());
-        }
-
-        @Override
-        public int inputCount() {
-            return 2;
         }
 
         @Override
@@ -505,29 +638,21 @@ public abstract class Scamp5Transformation extends Transformation {
         }
 
         @Override
-        public double cost() {
-            return 2;
-        }
-
-        @Override
         public String toStringN() {
             return String.format("Addx %s (%s, %s)", dir, this.a, this.b);
         }
+
+
     }
 
 
-    public static class Add2x extends Scamp5Transformation {
+    public static class Add2x extends Add_2 {
         // u := a_dir1_dir2 + b_dir1_dir2
-
-        final Goal a;
-        final Goal b;
-        Goal sum = null;
         final Dir dir1;
         final Dir dir2;
 
         public Add2x(Goal a, Goal b, Dir dir1, Dir dir2) {
-            this.a = a;
-            this.b = b;
+            super(a, b);
             this.dir1 = dir1;
             this.dir2 = dir2;
         }
@@ -536,11 +661,6 @@ public abstract class Scamp5Transformation extends Transformation {
         public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
             return String.format("add2x(%s, %s, %s, %s, %s)", upper, lowers.get(0), lowers.get(1), dir1.toCode(), dir2.toCode());
-        }
-
-        @Override
-        public int inputCount() {
-            return 2;
         }
 
         @Override
@@ -555,41 +675,26 @@ public abstract class Scamp5Transformation extends Transformation {
         }
 
         @Override
-        public double cost() {
-            return 2;
-        }
-
-        @Override
         public String toStringN() {
             return String.format("Add2x %s %s (%s, %s)", dir1, dir2, this.a, this.b);
         }
     }
 
 
-    public static class Subx extends Scamp5Transformation {
+    public static class Subx extends Sub {
         // u := a_dir - b
 
-        final Goal a;
-        final Goal b;
         final Dir dir;
-        Goal difference;
-
 
         public Subx(Goal a, Goal b, Dir dir) {
-            this.a = a;
-            this.b = b;
+            super(a, b);
             this.dir = dir;
-            this.difference = null;
         }
+
         @Override
         public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
             return String.format("subx(%s, %s, %s, %s)", upper, lowers.get(0), dir.toCode(), lowers.get(1));
-        }
-
-        @Override
-        public int inputCount() {
-            return 2;
         }
 
         @Override
@@ -604,30 +709,20 @@ public abstract class Scamp5Transformation extends Transformation {
         }
 
         @Override
-        public double cost() {
-            return 2;
-        }
-
-        @Override
         public String toStringN() {
             return String.format("SubX %s (%s, %s)", dir, a, b);
         }
     }
 
 
-    public static class Sub2x extends Scamp5Transformation {
+    public static class Sub2x extends Sub {
         // u := a_dir1_dir2 - b
 
-        final Goal a;
-        final Goal b;
         final Dir dir1;
         final Dir dir2;
-        Goal difference;
-
 
         public Sub2x(Goal a, Goal b, Dir dir1, Dir dir2) {
-            this.a = a;
-            this.b = b;
+            super(a, b);
             this.dir1 = dir1;
             this.dir2 = dir2;
             this.difference = null;
@@ -639,11 +734,6 @@ public abstract class Scamp5Transformation extends Transformation {
         }
 
         @Override
-        public int inputCount() {
-            return 2;
-        }
-
-        @Override
         public Goal applyForwards() {
             if (this.difference == null){
                 Goal.Factory factory = new Goal.Factory();
@@ -652,11 +742,6 @@ public abstract class Scamp5Transformation extends Transformation {
                 this.difference = factory.get();
             }
             return this.difference;
-        }
-
-        @Override
-        public double cost() {
-            return 2;
         }
 
         @Override

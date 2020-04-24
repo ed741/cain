@@ -6,15 +6,24 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class Plan {
+    private static ReentrantLock linkLock = new ReentrantLock();
+    private static Plan linked = null;
+
     private final List<Step> all = new ArrayList<>();
     private final Goal initialGoal;
 
     public Plan(List<Goal> finalGoals, Goal initialGoal, String comment){
-        Goal.Pair p = new Goal.Pair(null, finalGoals, new Transformation.Null());
-        Step s = new Step(p, new Goal.Bag(finalGoals), comment);
+        Goal.Pair p = new Goal.Pair(null, finalGoals, new Transformation.Null(finalGoals.size()));
+        Goal[] translation  = new Goal[finalGoals.size()];
+        for (int i = 0; i < translation.length; i++) {
+            translation[i] = finalGoals.get(i);
+        }
+        Step s = new Step(p, new Goal.Bag(finalGoals), translation, comment);
 
         all.add(s);
         this.initialGoal = initialGoal;
@@ -25,8 +34,8 @@ public class Plan {
         this.initialGoal = initialGoal;
     }
 
-    public void push(Goal.Pair newPair, Goal.Bag currentGoals, String comment) {
-        Step newStep = new Step(newPair, currentGoals, comment);
+    public void push(Goal.Pair newPair, Goal.Bag currentGoals, Goal[] translation, String comment) {
+        Step newStep = new Step(newPair, currentGoals, translation, comment);
         all.add(newStep);
     }
 
@@ -39,9 +48,9 @@ public class Plan {
         return out;
     }
 
-    public Plan newAdd(Goal.Pair newPair, Goal.Bag currentGoals, String comment) {
+    public Plan newAdd(Goal.Pair newPair, Goal.Bag currentGoals, Goal[] translation, String comment) {
         Plan out = new Plan(all, this.initialGoal);
-        Step newStep = new Step(newPair, currentGoals, comment);
+        Step newStep = new Step(newPair, currentGoals, translation, comment);
         out.all.add(newStep);
         return out;
     }
@@ -50,24 +59,15 @@ public class Plan {
         return Collections.unmodifiableList(all);
     }
 
-    public String produceCode(Map<Integer, RegisterAllocator.Register> registerMap) {
+    public String produceCode(RegisterAllocator.Mapping registerMap) {
         StringBuilder sb = new StringBuilder("Kernel Code!\n");
         for (int i = all.size()-1; i >= 0; i--) {
             Step step = all.get(i);
-            RegisterAllocator.Register upper = registerMap.get(i);
+            RegisterAllocator.Register upper = step.getUpper()!=null?registerMap.get(step.getUpper()):null;
             List<RegisterAllocator.Register> lowers = new ArrayList<>();
-            for(Goal lower: step.getLowers()){
-                int lowerStep = -1;
-                for (int j = i+1; j < all.size() && lowerStep<0; j++) {
-                    if(all.get(j).getUpper().same(lower)){
-                        lowerStep = j;
-                    }
-                }
-                if (lowerStep < 0 && lower.same(this.initialGoal)){
-                    lowerStep = all.size();
-                }
-                assert lowerStep > 0;
-                lowers.add(registerMap.get(lowerStep));
+            for (int j = 0; j < step.getLowers().size(); j++) {
+                Goal lowerGoal = step.getLowerTrueGoal(j);
+                lowers.add(registerMap.get(lowerGoal));
             }
             sb.append(step.code(upper, lowers));
             sb.append("\n");
@@ -79,14 +79,16 @@ public class Plan {
         private final String comment;
         private final Goal.Pair goalPair;
         private final Goal.Bag currentGoals;
+        private final Goal[] translation;
         private int idx;
         private List<Step> forwardsLinks;
         private List<Step> backwardsLinks;
 
-        private Step(Goal.Pair t, Goal.Bag currentGoals, String comment) {
+        private Step(Goal.Pair t, Goal.Bag currentGoals, Goal[] translation, String comment) {
             goalPair = t;
             this.comment = comment;
             this.currentGoals = new Goal.Bag(currentGoals);
+            this.translation = translation;
         }
 
         public Goal.Bag liveGoals(){
@@ -97,6 +99,9 @@ public class Plan {
         }
         public List<Goal> getLowers(){
             return goalPair.getLowers();
+        }
+        public Transformation getTransformation(){
+            return goalPair.getTransformation();
         }
 
 
@@ -145,6 +150,10 @@ public class Plan {
         public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             return goalPair.getTransformation().code(upper, lowers);
         }
+
+        public Goal getLowerTrueGoal(int i) {
+            return translation[i];
+        }
     }
 
     public Double cost(){
@@ -155,7 +164,33 @@ public class Plan {
         return all.size()-1;
     }
 
-    public void link(){
+    public void unlink(){
+        try{
+            linkLock.lock();
+            assert linked == this;
+            linked = null;
+        } finally {
+            linkLock.unlock();
+        }
+    }
+
+    public <T> T link(Supplier<T> action){
+        try {
+            linkLock.lock();
+            doLinking();
+            return action == null? null:action.get();
+        } finally {
+            linkLock.unlock();
+
+        }
+    }
+
+
+    private void doLinking(){
+        assert linkLock.isHeldByCurrentThread();
+        if(linked == this){
+            return;
+        }
         for (int i = 0; i < all.size(); i++) {
             Step s = all.get(i);
             s.backwardsLinks = new ArrayList<>();
@@ -165,9 +200,9 @@ public class Plan {
         for (int i = 0; i < all.size(); i++) {
             Step step = all.get(i);
             for (Goal lower : step.getLowers()) {
-                int j = i+1;
+                int j = i + 1;
                 for (; j < all.size(); j++) {
-                    if(all.get(j).getUpper().same(lower)){
+                    if (all.get(j).getUpper().same(lower)) {
                         step.backwardsLinks.add(all.get(j));
                         all.get(j).forwardsLinks.add(step);
                         break;
@@ -177,29 +212,33 @@ public class Plan {
 
             }
         }
+        linked = this;
     }
 
-    public void circuitDepth(){
-        for (int i = 0; i < all.get(0).getLowers().size(); i++) {
-            int[] depth = new int[all.size()];
-            for (int k = 0; k < depth.length; k++) {
-                depth[k] = -1;
-            }
-
-            depth[all.get(0).backwardsLinks.get(i).idx] = 0;
-            for (int j = all.get(0).backwardsLinks.get(i).idx+1; j < all.size(); j++) {
-                int max = Integer.MIN_VALUE;
-                for (Step forwardsLink : all.get(j).forwardsLinks) {
-                    if(depth[forwardsLink.idx] >= 0) {
-                        max = Math.max(max, 1 + depth[forwardsLink.idx]);
-                    }
+    public int[] circuitDepths(){
+        return link(()->{
+            int[] depths = new int[all.get(0).getLowers().size()];
+            for (int i = 0; i < depths.length; i++) {
+                int[] depth = new int[all.size()];
+                for (int k = 0; k < depth.length; k++) {
+                    depth[k] = -1;
                 }
-                depth[j] = max;
+
+                depth[all.get(0).backwardsLinks.get(i).idx] = 0;
+                for (int j = all.get(0).backwardsLinks.get(i).idx + 1; j < all.size(); j++) {
+                    int max = Integer.MIN_VALUE;
+                    for (Step forwardsLink : all.get(j).forwardsLinks) {
+                        if (depth[forwardsLink.idx] >= 0) {
+                            max = Math.max(max, 1 + depth[forwardsLink.idx]);
+                        }
+                    }
+                    depth[j] = max;
+                }
+                System.out.println("Depth of filter " + i + " is: " + depth[depth.length - 1]);
+                depths[i] = depth[depth.length-1];
             }
-            System.out.println("Depth of filter " + i + " is: "+ depth[depth.length-1]);
-
-        }
-
+            return depths;
+        });
     }
 
 

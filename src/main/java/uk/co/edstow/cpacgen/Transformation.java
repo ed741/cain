@@ -13,9 +13,31 @@ public abstract class Transformation {
         public TransformationApplicationException(String s) {
             super(s);
         }
-    };
 
+    };
     public abstract int inputCount();
+
+    public boolean[] inputRegisterOutputInterference(){
+        boolean[] out =  new boolean[inputCount()];
+        for (int i = 0; i < out.length; i++) {
+            out[i] = true;
+        }
+        return out;
+    }
+    public boolean inputRegisterOutputInterferes(){
+        for (boolean b : inputRegisterOutputInterference()) {
+            if(b){return true;}
+        }
+        return false;
+    }
+    public int[] inputRegisterIntraInterference(){
+
+        int[] out = new int[inputCount()];
+        for (int i = 0; i < out.length; i++) {
+            out[i]=i;
+        }
+        return out;
+    };
     public abstract Goal applyForwards() throws TransformationApplicationException;
     //public abstract List<Goal> applyBackwards()throws TransformationApplicationException;
     public abstract double cost();
@@ -27,6 +49,16 @@ public abstract class Transformation {
     }
 
     public static class Null extends Transformation {
+        private final int inputCount;
+
+        public Null(int inputCount) {
+            this.inputCount = inputCount;
+        }
+
+        @Override
+        public boolean[] inputRegisterOutputInterference(){
+            return new boolean[inputCount()];
+        }
 
         @Override
         public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
@@ -35,7 +67,7 @@ public abstract class Transformation {
 
         @Override
         public int inputCount() {
-            return 0;
+            return inputCount;
         }
 
         @Override
