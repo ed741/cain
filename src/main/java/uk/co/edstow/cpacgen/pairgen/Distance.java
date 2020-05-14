@@ -89,4 +89,17 @@ public class Distance {
     public Distance then(Transformation.Direction direction) {
         return new Distance(x-direction.x, y-direction.y, z);
     }
+
+    public boolean same(Atom a, Atom b) {
+        if(this.x != b.x-a.x){
+            return false;
+        }
+        if(this.y != b.y-a.y){
+            return false;
+        }
+        if(this.z != b.z-a.z){
+            return false;
+        }
+        return true;
+    }
 }

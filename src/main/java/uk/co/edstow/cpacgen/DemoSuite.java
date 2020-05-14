@@ -6,15 +6,88 @@ import uk.co.edstow.cpacgen.util.Bounds;
 import java.util.*;
 
 import static uk.co.edstow.cpacgen.RegisterAllocator.Register.*;
+import static uk.co.edstow.cpacgen.ReverseSearch.TraversalAlgorithm.DFS;
+import static uk.co.edstow.cpacgen.ReverseSearch.TraversalAlgorithm.SOT;
 import static uk.co.edstow.cpacgen.scamp5.Scamp5PairGenFactory.Config.SearchStrategy.Exhuastive;
 import static uk.co.edstow.cpacgen.scamp5.Scamp5PairGenFactory.Config.SearchStrategy.SortedAtomDistance;
 
 public class DemoSuite {
+
+
+
+
+    private static class TestSetup {
+        final String name;
+        final RegisterAllocator.Register[] availableRegisters;
+        final RegisterAllocator ra;
+        final Scamp5PairGenFactory pairGenFactory;
+        final ReverseSearch.RunConfig runConfig;
+
+        final int cores;
+        final ReverseSearch.TraversalAlgorithm traversalAlgorithm;
+        final int registerCount;
+        final int threshold;
+        final boolean allOps;
+        final int seconds;
+
+        private TestSetup(int cores, ReverseSearch.TraversalAlgorithm traversalAlgorithm, int registerCount, int threshold, boolean allOps, int seconds){
+            RegisterAllocator.Register[] allRegisters = new RegisterAllocator.Register[]{A, B, C, D, E, F};
+            final RegisterAllocator.Register[] availableRegisters = Arrays.copyOfRange(allRegisters, 0, registerCount);
+            this.ra = new RegisterAllocator(A, availableRegisters);
+            Scamp5PairGenFactory pairGenFactory = new Scamp5PairGenFactory(
+                    (goals, depth, rs1, initalGoal) -> {
+                        int max = Integer.MIN_VALUE;
+                        for (Goal goal : goals) {
+                            max = Math.max(max, goal.atomCount());
+                        }
+                        Scamp5PairGenFactory.Config conf = new Scamp5PairGenFactory.Config(max>threshold? SortedAtomDistance: Exhuastive, availableRegisters.length, depth);
+                        if(allOps) {
+                            conf.useAll();
+                            conf.useSubPowerOf2();
+                        }else{
+                            conf.useBasicOps();
+                        }
+                        return conf;
+                    }
+            );
+
+            ReverseSearch.RunConfig config = new ReverseSearch.RunConfig();
+            config.setSearchTime(seconds*1000).setWorkers(cores).setRegisterAllocator(ra).setTimeOut(true)
+                    .setTraversalAlgorithm(traversalAlgorithm);
+
+            this.name = String.format("%d Core, %s, %d registers, threshold %d, %s, %d seconds", cores, traversalAlgorithm, registerCount, threshold, allOps?"AllOps":"BasicOps", seconds);
+            this.availableRegisters = availableRegisters;
+            this.pairGenFactory = pairGenFactory;
+            this.runConfig = config;
+            this.cores = cores;
+            this.traversalAlgorithm = traversalAlgorithm;
+            this.registerCount = registerCount;
+            this.threshold = threshold;
+            this.allOps = allOps;
+            this.seconds = seconds;
+
+        }
+    }
+
+
+
+    private static List<TestSetup> initialiseTestSetups() {
+        List<TestSetup> setups = new ArrayList<>();
+        setups.add(new TestSetup(4, SOT, 6, 10, true, 60));
+        setups.add(new TestSetup(1, SOT, 6, 10, true, 60));
+        setups.add(new TestSetup(1, SOT, 6, 10, false, 60));
+        setups.add(new TestSetup(4, DFS, 6, 10, true, 60));
+        setups.add(new TestSetup(4, SOT, 6, 0, true, 60));
+        setups.add(new TestSetup(4, SOT, 6, 10, true, 5));
+
+        return setups;
+    }
+
     private static class Test{
         final String name;
         final List<Goal> finalGoals;
         final int divisions;
-        Plan result;
+        final Map<TestSetup, Plan> results;
         final String aukeScore;
 
         private Test(String name, List<Goal> finalGoals, int divisions) {
@@ -22,6 +95,7 @@ public class DemoSuite {
             this.finalGoals = finalGoals;
             this.divisions = divisions;
             this.aukeScore = "";
+            this.results = new HashMap<>();
         }
 
         public Test(String name, List<Goal> finalGoals, int divisions, String aukeScore) {
@@ -29,10 +103,10 @@ public class DemoSuite {
             this.finalGoals = finalGoals;
             this.divisions = divisions;
             this.aukeScore = aukeScore;
+            this.results = new HashMap<>();
+
         }
     }
-
-    private static final List<Test> demos = new ArrayList<>();
 
     private static int[][] makeRandom(Random r, int size, int min, int max, double sparsity){
 
@@ -47,7 +121,8 @@ public class DemoSuite {
         return filter;
     }
 
-    private static void initialiseDemosList(){
+    private static List<Test> initialiseDemosList(){
+        List<Test> demos = new ArrayList<>();
         {
             final int[][] SobelV = new int[][]{
                     {0, 0, 0, 0, 0},
@@ -150,88 +225,114 @@ public class DemoSuite {
                 demos.add(new Test("Random2&3 3x3 [1-8] 50%", Arrays.asList(r[2], r[3]), 3, "(23+33)"));
             }
         }
+        return demos;
     }
 
     public static void main(String[] args) {
-        initialiseDemosList();
-
+        List<Test> demos = initialiseDemosList();
+        List<TestSetup> setups = initialiseTestSetups();
 
         for (Test demo : demos) {
-            runFilter(demo);
+            runFilter(demo, setups);
         }
 
         for (Test demo : demos) {
-            System.out.println(demo.name  + " -> " + demo.result.cost() + " ("+demo.result.depth()+ ")");
-            System.out.println(demo.result.getAll().get(0).toGoalsString(Collections.emptyList()));
+            System.out.println(demo.name + ":");
+            for(Map.Entry<TestSetup, Plan> entry: demo.results.entrySet())
+                System.out.println("\t" + entry.getKey().name + " -> " + entry.getValue().cost() + " ("+entry.getValue().depth()+ ")");
 
         }
 
-        System.out.println(makeLatexTable(demos));
+        System.out.println(makeLatexTable(demos, setups));
 
 
 
     }
 
 
-    private static void runFilter(Test test){
+
+    private static void runFilter(Test test, List<TestSetup> setups){
         System.out.println("Running: "+ test.name);
-        RegisterAllocator.Register[] availableRegisters = new RegisterAllocator.Register[]{A, B, C, D, E, F};
 
-        Scamp5PairGenFactory pairGenFactory = new Scamp5PairGenFactory(
-                (goals, depth, rs1, initalGoal) -> {
-                    int max = Integer.MIN_VALUE;
-                    for (Goal goal : goals) {
-                        max = Math.max(max, goal.atomCount());
-                    }
-                    int threshold = 10;
-                    Scamp5PairGenFactory.Config conf = new Scamp5PairGenFactory.Config(max>threshold? SortedAtomDistance: Exhuastive, availableRegisters.length, depth);
-                    conf.useAll();
-                    conf.useSubPowerOf2();
-                    return conf;
+        for (TestSetup setup : setups) {
+            ReverseSearch rs = new ReverseSearch(test.divisions, test.finalGoals, setup.pairGenFactory, setup.runConfig);
+            rs.search();
+
+            double min = Double.MAX_VALUE;
+            int imin = 0;
+            for (int i = 0; i < rs.getPlans().size(); i++) {
+                Plan pl = rs.getPlans().get(i);
+                if (pl.cost() < min) {
+                    imin = i;
+                    min = pl.cost();
                 }
-        );
-        RegisterAllocator ra = new RegisterAllocator(A, availableRegisters);
+            }
+            rs.printStats();
 
-        ReverseSearch.RunConfig config = new ReverseSearch.RunConfig();
-        config.setSearchTime(60000).setWorkers(4).setRegisterAllocator(ra).setTimeOut(true);
-        ReverseSearch rs = new ReverseSearch(test.divisions, test.finalGoals, pairGenFactory, config);
-        rs.search();
-
-        double min = Double.MAX_VALUE;
-        int imin = 0;
-        for (int i = 0; i < rs.getPlans().size(); i ++){
-            Plan pl = rs.getPlans().get(i);
-            if(pl.cost() < min){
-                imin = i;
-                min = pl.cost();
+            System.out.println("Best:");
+            if(imin < rs.getPlans().size()) {
+                Plan p = rs.getPlans().get(imin);
+                System.out.println("length: " + p.depth() + " Cost: " + p.cost());
+                System.out.println(p);
+                System.out.println("CircuitDepths:" + Arrays.toString(p.circuitDepths()));
+                //System.out.println(p.toGoalsString());
+                RegisterAllocator.Mapping mapping = setup.ra.solve(p);
+                //System.out.println(mapping);
+                System.out.println(p.produceCode(mapping));
+                System.out.println(p.getAll().get(0).toGoalsString(Collections.emptyList()));
+                test.results.put(setup, p);
+            } else {
+                System.out.println("None found!");
             }
         }
-        rs.printStats();
-
-        System.out.println("Best:");
-        Plan p = rs.getPlans().get(imin);
-        System.out.println("length: " + p.depth() + " Cost: "+p.cost());
-        System.out.println(p);
-        System.out.println("CircuitDepths:" + Arrays.toString(p.circuitDepths()));
-        //System.out.println(p.toGoalsString());
-        RegisterAllocator.Mapping mapping = ra.solve(p);
-        //System.out.println(mapping);
-        System.out.println(p.produceCode(mapping));
-        System.out.println(p.getAll().get(0).toGoalsString(Collections.emptyList()));
-        test.result = p;
 
     }
 
-    private static String makeLatexTable(List<Test> demos){
+    private static String makeLatexTable(List<Test> demos, List<TestSetup> setups){
         StringBuilder sb = new StringBuilder();
-        sb.append("\\begin{longtable}{| c c | c c |}\n");
+        sb.append("\\begin{longtable}{| m{2.5cm} m{4.5cm} | c |");
+        setups.forEach(t-> sb.append(" c"));
+        sb.append(" | m{2cm} |}\n");
         sb.append("\\caption{Kernels Tested in AUKE and CPACGen}\n");
-        sb.append("\\label{table:kernels}\n");
-        sb.append("\\centering\n");
+        sb.append("\\label{table:kernelResults}\n");
+        sb.append("\\endfirsthead\n");
+        sb.append("\\endhead\n");
         sb.append("\\hline\n");
-        sb.append("\\multirow{2}{*}{Name} & \\multirow{2}{*}{Approximated Kernel} & \\multicolumn{2}{|c|}{Instruction Count} \\\\\n");
+        sb.append("Name & Approximated Kernel & AUKE & \\multicolumn{").append(setups.size()).append("}{|c|}{CPACGen} & \\\\\n");
+        sb.append("\\hline\n");
+        sb.append("\\hline\n");
+        // time
+        sb.append("& & \\small{60");
+        setups.forEach(t-> sb.append("}& \\small{").append(t.seconds));
+        sb.append("} & \\small{Seconds} \\\\ \n");
+        // cores
+        sb.append("& & \\small{1");
+        setups.forEach(t-> sb.append("}& \\small{").append(t.cores));
+        sb.append("} & \\small{Threads} \\\\ \n");
+        // Traversel algo
+        sb.append("& & \\small{DFS");
+        setups.forEach(t-> sb.append("}& \\small{").append(t.traversalAlgorithm));
+        sb.append("} & \\small{Traversal} \\\\ \n");
+        // registers
+        sb.append("& & \\small{6");
+        setups.forEach(t-> sb.append("}& \\small{").append(t.registerCount));
+        sb.append("} & \\small{Register}s \\\\ \n");
+        // All Ops
+        sb.append("& & \\small{Basic");
+        setups.forEach(t-> sb.append("}& \\small{").append(t.allOps?"All":"Basic"));
+        sb.append("} & \\small{Instructions} \\\\ \n");
+        // threshold
+        sb.append("& & \\small{-");
+        setups.forEach(t-> sb.append("}& \\small{").append(t.threshold));
+        sb.append("} & \\small{Threshold} \\\\ \n");
+
         //sb.append("\\hline\n");
-        sb.append("& & AUKE & CPACGen\\\\ \n");
+//        sb.append("& &");
+//        for (TestSetup setup : setups) {
+//            sb.append(" & \\rot{").append(setup.name).append("}");
+//        }
+//        sb.append(" \\\\ \n");
+        sb.append("\\hline\n");
         for (Test demo : demos) {
             sb.append("\\hline\n");
             sb.append(demo.name.replace("%", "\\%").replace("&", "\\&")).append(" & ");
@@ -248,11 +349,19 @@ public class DemoSuite {
             } else {
                 sb.append("Unknown");
             }
-            sb.append("&");
-            if(demo.result != null) {
-                sb.append(demo.result.depth());
+            for (TestSetup setup : setups) {
+                sb.append("&");
+                if(demo.results.get(setup) != null) {
+                    sb.append(demo.results.get(setup).depth());
+                } else {
+                    sb.append("-");
+                }
+            }
+            sb.append("& ");
+            if(1 < demo.finalGoals.stream().mapToInt(g -> Bounds.BoundsFromGoal(g).largestMagnitute()).max().getAsInt()){
+                sb.append("& \\vspace{2.5em}");
             } else {
-                sb.append("Unknown");
+                sb.append("& \\vspace{1.1em}");
             }
             sb.append("\\\\ \n");
         }
@@ -274,7 +383,7 @@ public class DemoSuite {
         List<String> out = new ArrayList<>(goals.size());
         for (Goal goal : goals) {
             String[][] table = goal.getCharTable(b, width, height, false, false, false, false);
-            StringBuilder sb = new StringBuilder("$\\begin{bmatrix} ");
+            StringBuilder sb = new StringBuilder("$\\begin{bsmallmatrix} ");
 
             for (int j = height; j > 0; j--) {
                 for (int i = 1; i < table[j].length-1; i++) {
@@ -282,9 +391,11 @@ public class DemoSuite {
                     sb.append(i == table[j].length-2?" \\\\ ":" & ");
                 }
             }
-            sb.append("\\end{bmatrix}$");
+            sb.append("\\end{bsmallmatrix}$");
             out.add(sb.toString());
         }
         return out;
     }
+
+
 }

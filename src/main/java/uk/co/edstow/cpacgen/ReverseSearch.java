@@ -393,7 +393,7 @@ public class ReverseSearch {
         int workerMaxDepth = 0;
         Worker next;
 
-        BlockingDeque<WorkState> localWorkQueue;
+        LinkedBlockingDeque<WorkState> localWorkQueue;
         int plansFound = 0;
         int cacheChecks = 0;
         int cacheHits = 0;
@@ -482,13 +482,13 @@ public class ReverseSearch {
                 if (goals.size() == 1) {
                     Goal g = goals.iterator().next();
                     if (g.equals(initialGoal)) {
-                        if (addPlan(currentPlan.copy(), id, depth)) {
+                        if (addPlan(currentPlan, id, depth)) {
                             return;
                         }
                     }
                     List<Goal.Pair> pairs = isTransformable(g, depth);
                     if (pairs != null && !pairs.isEmpty()) {
-                        Plan p = currentPlan.copy();
+                        Plan p = currentPlan;
                         for (int i = 0; i < pairs.size(); i++) {
                             Goal.Pair pair = pairs.get(i);
                             boolean e = goals.removeEquivalent(pair.getUpper());
@@ -506,7 +506,7 @@ public class ReverseSearch {
                             goals.addAll(pair.getLowers());
                             Goal[] translation = new Goal[1];
                             translation[0] = pair.getLowers().get(0);
-                            p.push(pair, new Goal.Bag(goals), translation, "final step " + i);
+                            p = p.newAdd(pair, new Goal.Bag(goals), translation, "final step " + i);
                         }
                         if (addPlan(p, id, depth)) {
                             return;
@@ -568,10 +568,10 @@ public class ReverseSearch {
             boolean tryChildren = newGoals.size() +(goalPair.getTransformation().inputRegisterOutputInterferes()?1:0) <= availableRegisters;
             switch (traversalAlgorithm){
                 case DFS:
-                    localWorkQueue.addFirst(new WorkState(depth, goals, currentPlan.copy(), goalPairs));
+                    localWorkQueue.addFirst(new WorkState(depth, goals, currentPlan, goalPairs));
                     if(tryChildren){
-                        currentPlan.push(goalPair, newGoals, translation, "r_step");
-                        localWorkQueue.addFirst(new WorkState(depth + 1, newGoals, currentPlan, null));
+                        Plan newPlan = currentPlan.newAdd(goalPair, newGoals, translation, "r_step");
+                        localWorkQueue.addFirst(new WorkState(depth + 1, newGoals, newPlan, null));
                     }
                     break;
                 case BFS:
@@ -581,10 +581,10 @@ public class ReverseSearch {
                     localWorkQueue.addFirst(new WorkState(depth, goals, currentPlan, goalPairs));
                     break;
                 case SOT:
-                    localWorkQueue.addLast(new WorkState(depth, goals, currentPlan.copy(), goalPairs));
+                    localWorkQueue.addLast(new WorkState(depth, goals, currentPlan, goalPairs));
                     if(tryChildren) {
-                        currentPlan.push(goalPair, newGoals, translation, "r_step");
-                        localWorkQueue.addFirst(new WorkState(depth + 1, newGoals, currentPlan, null));
+                        Plan newPlan = currentPlan.newAdd(goalPair, newGoals, translation, "r_step");
+                        localWorkQueue.addFirst(new WorkState(depth + 1, newGoals, newPlan, null));
                     }
 
             }
@@ -597,12 +597,13 @@ public class ReverseSearch {
                 System.out.println(this.id + " Plan Found but registers cannot be allocated");
                 return false;
             }
-
-
+            final int currentMaxDepth = maxDepth.updateAndGet(x->Math.min(p.depth()-forcedDepthReduction, x));
             Worker w = this;
             do {
                 w.workerMinDepth = depth;
                 w.workerMaxDepth = 0;
+                System.out.println(id + " remove deep states:"+w.localWorkQueue.stream().filter(s->s.depth>currentMaxDepth).count());
+                w.localWorkQueue.removeIf(s->s.depth>currentMaxDepth);
                 w = w.next;
             } while(w != this);
 
@@ -610,7 +611,7 @@ public class ReverseSearch {
 
             System.out.println("Found new Plan (id:"+id+"): Length: " + p.depth() + " ("+depth + ") | Cost: "+p.cost());
             System.out.println(p);
-            maxDepth.getAndUpdate(x->Math.min(depth+1-forcedDepthReduction, x));
+
             try {
                 planLock.lock();
                 plans.add(p);

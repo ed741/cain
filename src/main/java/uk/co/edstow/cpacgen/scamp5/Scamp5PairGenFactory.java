@@ -207,7 +207,7 @@ public class Scamp5PairGenFactory implements PairGenFactory {
                                     getNaryOpStream(upper),
                                     getUnaryOpStream(upper)
                             )
-                    ).map(pair -> new Tuple<>(pair, getCost(pair, goals, conf)))
+                    ).map(pair -> new Tuple<>(pair, getCost(pair, goals, conf))).filter(t -> t.getB()>=0)
                     .sorted(comparator).collect(Collectors.toList());
             this.it = list.stream().map(Tuple::getA).iterator();
         }
@@ -253,7 +253,7 @@ public class Scamp5PairGenFactory implements PairGenFactory {
 
         private Stream<Goal.Pair> getNaryOpStream(Goal upper) {
             ArrayList<Goal.Pair> pairs = new ArrayList<>();
-            List<Goal> splits = upper.allSplitsRecursive();
+            List<Goal> splits = upper.allSplits();
             int normal = splits.size();
             if(conf.subPowerOf2){
                 Goal.Factory sub1 = new Goal.Factory();
@@ -344,7 +344,7 @@ public class Scamp5PairGenFactory implements PairGenFactory {
                 if (conf.useAdd3) {
                     Set<Goal> subSeen = new HashSet<>();
 
-                    Collection<Goal> subSplits = a.allSplitsRecursive();
+                    Collection<Goal> subSplits = a.allSplits();
                     for (Goal aa : subSplits) {
                         boolean skipAdd_3 = false;
                         if (subSeen.contains(aa)) {
@@ -512,6 +512,7 @@ public class Scamp5PairGenFactory implements PairGenFactory {
                 addPairs(a, diaganal, inList, outList);
             }
             outList.parallelStream().forEach(item -> item.cost = getCost(item.pair, goals, conf));
+            outList.removeIf(item -> item.cost < 0);
             outList.sort(Comparator.comparingDouble((AtomDistanceListItem item) -> item.cost).reversed());
             currentList = outList.stream().map(item -> item.pair).collect(Collectors.toList());
         }
@@ -529,6 +530,9 @@ public class Scamp5PairGenFactory implements PairGenFactory {
             toAdd.add(goal);
         }
         proposedGoals.addAll(toAdd);
+        if(proposedGoals.size() +(pair.getTransformation().inputRegisterOutputInterferes()?1:0) > config.availableRegisters){
+            return -1; // exit early if too many registers are used.
+        }
         double cost = 0;
 //        cost += Math.pow(proposedGoals.size(), (5-Math.min(5, config.availableRegisters-proposedGoals.size())));
         for (Goal g : proposedGoals) {
@@ -552,10 +556,9 @@ public class Scamp5PairGenFactory implements PairGenFactory {
         int max = 0;
 
         List<Goal> goalList = new ArrayList<>(proposedGoals);
-        Bounds bounds = new Bounds(proposedGoals);
         for (int i = 0; i < goalList.size(); i++) {
             Goal goal = goalList.get(i);
-            List<Goal> toRemove = patternRepeated(bounds, goalList, goal);
+            List<Goal> toRemove = patternRepeated(goalList, goal);
             goalList.removeAll(toRemove);
             if(i > goalList.size()){
                 System.out.println("I " + i);
@@ -563,7 +566,6 @@ public class Scamp5PairGenFactory implements PairGenFactory {
                 System.out.println("Goal List " + goalList);
                 System.out.println("toRemove " + toRemove);
                 System.out.println("GoalSet " + proposedGoals);
-                System.out.println("Bounds" + bounds);
                 System.exit(-1);
             }
             goalList.add(i, goal);
@@ -584,18 +586,30 @@ public class Scamp5PairGenFactory implements PairGenFactory {
         return cost;
     }
 
-    private List<Goal> patternRepeated(Bounds bounds, Collection<Goal> goals, Goal pattern){
+    private List<Goal> patternRepeated(Collection<Goal> goals, Goal pattern){
         List<Goal> matches = new ArrayList<>();
-        int bx = bounds.xMax-bounds.xMin;
-        int by = bounds.yMax-bounds.yMin;
-        for (int i = -bx; i <= bx; i++) {
-            for (int j = -by; j <= by; j++) {
-                Goal tmp = pattern.translated(i, j, 0);
-                if (goals.contains(tmp)){
-                    matches.add(tmp);
+        for (Goal goal : goals) {
+            if (pattern.equivalent(goal)) {
+                matches.add(goal);
+            } else if (goal.atomCount() == pattern.atomCount()){
+                if(pattern.atomCount() == 0){
+                    matches.add(goal);
+                } else {
+                    if (pattern.get(0).positive == goal.get(0).positive) {
+                        Distance d = new Distance(pattern.get(0), goal.get(0));
+                        int i = 0;
+                        for (; i < pattern.size(); i++) {
+                            if (pattern.get(i).positive != goal.get(i).positive || !d.same(pattern.get(i), goal.get(i))) {
+                                break;
+                            }
+                        }
+                        if (i == pattern.size()) {
+                            matches.add(goal);
+                        }
+                    }
                 }
-
             }
+
         }
         return matches;
     }

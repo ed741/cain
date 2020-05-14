@@ -60,4 +60,9 @@ public class Tuple<A, B> implements Iterable<Object> {
         return (o instanceof Tuple) && a.equals(((Tuple) o).getA()) && b.equals(((Tuple) o).getB());
 
     }
+
+    @Override
+    public String toString() {
+        return "(" + a +", "+ b + ")";
+    }
 }

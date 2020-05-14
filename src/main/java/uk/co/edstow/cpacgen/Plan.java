@@ -14,8 +14,10 @@ public class Plan {
     private static ReentrantLock linkLock = new ReentrantLock();
     private static Plan linked = null;
 
-    private final List<Step> all = new ArrayList<>();
+    private final Step step;
+    private final Plan previous;
     private final Goal initialGoal;
+    private final int depth;
 
     public Plan(List<Goal> finalGoals, Goal initialGoal, String comment){
         Goal.Pair p = new Goal.Pair(null, finalGoals, new Transformation.Null(finalGoals.size()));
@@ -25,42 +27,50 @@ public class Plan {
         }
         Step s = new Step(p, new Goal.Bag(finalGoals), translation, comment);
 
-        all.add(s);
+        this.step = s;
+        this.previous = null;
+        //all.add(s);
         this.initialGoal = initialGoal;
+        this.depth = 0;
     }
 
-    private Plan(List<Step> init, Goal initialGoal){
-        all.addAll(init);
+    private Plan(Plan previous, Goal initialGoal, Step step){
+        this.previous = previous;
         this.initialGoal = initialGoal;
+        this.step = step;
+        this.depth = previous.depth + 1;
     }
 
-    public void push(Goal.Pair newPair, Goal.Bag currentGoals, Goal[] translation, String comment) {
-        Step newStep = new Step(newPair, currentGoals, translation, comment);
-        all.add(newStep);
-    }
-
-    public void pop(){
-        all.remove(all.size()-1);
-    }
-
-    public Plan copy(){
-        Plan out = new Plan(all, this.initialGoal);
-        return out;
-    }
+//    public void push(Goal.Pair newPair, Goal.Bag currentGoals, Goal[] translation, String comment) {
+//        Step newStep = new Step(newPair, currentGoals, translation, comment);
+//        all.add(newStep);
+//    }
+//
+//    public void pop(){
+//        all.remove(all.size()-1);
+//    }
 
     public Plan newAdd(Goal.Pair newPair, Goal.Bag currentGoals, Goal[] translation, String comment) {
-        Plan out = new Plan(all, this.initialGoal);
         Step newStep = new Step(newPair, currentGoals, translation, comment);
-        out.all.add(newStep);
+        Plan out = new Plan(this, this.initialGoal, newStep);
+        //out.all.add(newStep);
         return out;
     }
 
     public List<Step> getAll() {
-        return Collections.unmodifiableList(all);
+        List<Step> steps = new ArrayList<>();
+        Plan c = this;
+        while (c != null){
+            steps.add(c.step);
+            c = c.previous;
+        }
+        Collections.reverse(steps);
+        return Collections.unmodifiableList(steps);
     }
 
     public String produceCode(RegisterAllocator.Mapping registerMap) {
-        StringBuilder sb = new StringBuilder("Kernel Code!\n");
+        List<Step> all = getAll();
+        StringBuilder sb = new StringBuilder("//Kernel Code!\n");
         for (int i = all.size()-1; i >= 0; i--) {
             Step step = all.get(i);
             RegisterAllocator.Register upper = step.getUpper()!=null?registerMap.get(step.getUpper()):null;
@@ -156,22 +166,18 @@ public class Plan {
         }
     }
 
-    public Double cost(){
-        return all.stream().mapToDouble(x -> x.goalPair.getTransformation().cost()).sum();
+    public double cost(){
+        double cost = 0;
+        Plan c = this;
+        while (c != null){
+            cost += c.step.getTransformation().cost();
+            c = c.previous;
+        }
+        return cost;
     }
 
     public int depth(){
-        return all.size()-1;
-    }
-
-    public void unlink(){
-        try{
-            linkLock.lock();
-            assert linked == this;
-            linked = null;
-        } finally {
-            linkLock.unlock();
-        }
+        return depth;
     }
 
     public <T> T link(Supplier<T> action){
@@ -191,6 +197,7 @@ public class Plan {
         if(linked == this){
             return;
         }
+        List<Step> all = getAll();
         for (int i = 0; i < all.size(); i++) {
             Step s = all.get(i);
             s.backwardsLinks = new ArrayList<>();
@@ -216,6 +223,7 @@ public class Plan {
     }
 
     public int[] circuitDepths(){
+        List<Step> all = getAll();
         return link(()->{
             int[] depths = new int[all.get(0).getLowers().size()];
             for (int i = 0; i < depths.length; i++) {
@@ -244,6 +252,7 @@ public class Plan {
 
     @Override
     public String toString() {
+        List<Step> all = getAll();
         StringBuilder sb = new StringBuilder("plan:\n");
         for (int i = 0; i<all.size(); i++) {
             sb.append(i);
@@ -255,6 +264,7 @@ public class Plan {
     }
 
     public String toGoalsString(){
+        List<Step> all = getAll();
         StringBuilder sb = new StringBuilder("plan:\n");
         for (int i = 0; i<all.size(); i++) {
             sb.append(i);

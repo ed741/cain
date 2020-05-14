@@ -62,7 +62,7 @@ public abstract class Scamp5Transformation extends Transformation {
         @Override
         public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("res(%s)", upper);
+            return String.format("res(%s);", upper);
         }
 
         @Override
@@ -127,7 +127,7 @@ public abstract class Scamp5Transformation extends Transformation {
         @Override
         public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("mov(%s, %s)", upper, lowers.get(0));
+            return String.format("mov(%s, %s);", upper, lowers.get(0));
         }
 
         @Override
@@ -189,7 +189,7 @@ public abstract class Scamp5Transformation extends Transformation {
         @Override
         public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("add(%s, %s, %s)", upper, lowers.get(0), lowers.get(1));
+            return String.format("add(%s, %s, %s);", upper, lowers.get(0), lowers.get(1));
         }
 
         @Override
@@ -253,7 +253,7 @@ public abstract class Scamp5Transformation extends Transformation {
         @Override
         public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("add(%s, %s, %s, %s)", upper, lowers.get(0), lowers.get(1), lowers.get(2));
+            return String.format("add(%s, %s, %s, %s);", upper, lowers.get(0), lowers.get(1), lowers.get(2));
         }
 
         @Override
@@ -314,7 +314,7 @@ public abstract class Scamp5Transformation extends Transformation {
          @Override
          public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
              assert lowers.size() == inputCount();
-             return String.format("sub(%s, %s, %s)", upper, lowers.get(0), lowers.get(1));
+             return String.format("sub(%s, %s, %s);", upper, lowers.get(0), lowers.get(1));
          }
 
          @Override
@@ -384,7 +384,7 @@ public abstract class Scamp5Transformation extends Transformation {
         @Override
         public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("neg(%s, %s)", upper, lowers.get(0));
+            return String.format("neg(%s, %s);", upper, lowers.get(0));
         }
 
         @Override
@@ -465,7 +465,7 @@ public abstract class Scamp5Transformation extends Transformation {
         @Override
         public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("divq(%s, %s)", upper, lowers.get(0));
+            return String.format("divq(%s, %s);", upper, lowers.get(0));
         }
 
         @Override
@@ -512,7 +512,7 @@ public abstract class Scamp5Transformation extends Transformation {
             return String.format("Div(%s)", this.a);
         }
 
-        private static boolean[] inputRegisterOutputInterference = new boolean[1];
+        private static boolean[] inputRegisterOutputInterference = new boolean[]{true};
         private static int[] inputRegisterIntraInterference = {0};
 
         @Override
@@ -522,7 +522,7 @@ public abstract class Scamp5Transformation extends Transformation {
 
         @Override
         public boolean inputRegisterOutputInterferes() {
-            return false;
+            return true;
         }
 
         @Override
@@ -551,7 +551,7 @@ public abstract class Scamp5Transformation extends Transformation {
         @Override
         public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("movx(%s, %s, %s)", upper, lowers.get(0), dir.toCode());
+            return String.format("movx(%s, %s, %s);", upper, lowers.get(0), dir.toCode());
         }
 
         @Override
@@ -591,7 +591,7 @@ public abstract class Scamp5Transformation extends Transformation {
         @Override
         public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("mov2x(%s, %s, %s, %s)", upper, lowers.get(0), dir1.toCode(), dir2.toCode());
+            return String.format("mov2x(%s, %s, %s, %s);", upper, lowers.get(0), dir1.toCode(), dir2.toCode());
         }
 
         @Override
@@ -623,7 +623,7 @@ public abstract class Scamp5Transformation extends Transformation {
         @Override
         public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("addx(%s, %s, %s, %s)", upper, lowers.get(0), lowers.get(1), dir.toCode());
+            return String.format("addx(%s, %s, %s, %s);", upper, lowers.get(0), lowers.get(1), dir.toCode());
         }
 
         @Override
@@ -660,7 +660,7 @@ public abstract class Scamp5Transformation extends Transformation {
         @Override
         public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("add2x(%s, %s, %s, %s, %s)", upper, lowers.get(0), lowers.get(1), dir1.toCode(), dir2.toCode());
+            return String.format("add2x(%s, %s, %s, %s, %s);", upper, lowers.get(0), lowers.get(1), dir1.toCode(), dir2.toCode());
         }
 
         @Override
@@ -694,7 +694,7 @@ public abstract class Scamp5Transformation extends Transformation {
         @Override
         public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("subx(%s, %s, %s, %s)", upper, lowers.get(0), dir.toCode(), lowers.get(1));
+            return String.format("subx(%s, %s, %s, %s);", upper, lowers.get(0), dir.toCode(), lowers.get(1));
         }
 
         @Override
@@ -730,7 +730,7 @@ public abstract class Scamp5Transformation extends Transformation {
         @Override
         public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("sub2x(%s, %s, %s, %s, %s)", upper, lowers.get(0), dir1.toCode(), dir2.toCode(), lowers.get(1));
+            return String.format("sub2x(%s, %s, %s, %s, %s);", upper, lowers.get(0), dir1.toCode(), dir2.toCode(), lowers.get(1));
         }
 
         @Override
