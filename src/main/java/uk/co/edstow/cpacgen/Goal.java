@@ -578,6 +578,7 @@ public class Goal implements List<Atom>, Comparable<Goal>{
         }
 
         public boolean removeEquivalent(Goal g){
+            assert !immutable;
             for (int i = 0; i < this.size(); i++) {
                 Goal goalI = this.get(i);
                 if(goalI.equivalent(g)){

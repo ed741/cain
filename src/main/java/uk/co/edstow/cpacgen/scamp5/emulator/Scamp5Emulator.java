@@ -380,6 +380,17 @@ public class Scamp5Emulator {
         }
     }
 
+    public void runCode(String code){
+        code = code.replaceAll("//.*(\n|$)", "");
+        String[] split = code.split(";");
+        for (String s : split) {
+            s = s.trim();
+            if(s.length()>0){
+                run(s);
+            }
+        }
+    }
+
     public void flushInstructionBuffer() {
         int i = 0;
         Instruction instruction = instructionBuffer.poll();

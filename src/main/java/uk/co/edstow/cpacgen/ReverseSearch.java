@@ -295,6 +295,7 @@ public class ReverseSearch {
     public void search(){
         startTime = System.currentTimeMillis();
         Goal.Bag goals = new Goal.Bag(finalGoals);
+        goals.setImmutable();
         List<Worker> workersThreads = new ArrayList<>();
 
         for (int i = 0; i < this.workers; i++) {
@@ -475,15 +476,17 @@ public class ReverseSearch {
                     List<Goal.Pair> pairs = isTransformable(g, depth);
                     if (pairs != null && !pairs.isEmpty()) {
                         Plan p = currentPlan;
+                        Goal.Bag currentGoals = new Goal.Bag(goals);
+
                         for (int i = 0; i < pairs.size(); i++) {
                             Goal.Pair pair = pairs.get(i);
-                            boolean e = goals.removeEquivalent(pair.getUpper());
+                            boolean e = currentGoals.removeEquivalent(pair.getUpper());
                             assert e;
                             assert pair.getLowers().size() == 1;
-                            goals.addAll(pair.getLowers());
+                            currentGoals.addAll(pair.getLowers());
                             Goal[] translation = new Goal[1];
                             translation[0] = pair.getLowers().get(0);
-                            p = p.newAdd(pair, new Goal.Bag(goals), translation, "final step " + i);
+                            p = p.newAdd(pair, currentGoals, translation, "final step " + i);
                         }
                         if (addPlan(p, id, depth)) {
                             return;
@@ -539,6 +542,7 @@ public class ReverseSearch {
                 }
             }
             newGoals.addAll(toAdd);
+            newGoals.setImmutable();
 
             boolean tryChildren = newGoals.size() +(goalPair.getTransformation().inputRegisterOutputInterferes()?1:0) <= availableRegisters;
             switch (traversalAlgorithm){

@@ -164,7 +164,7 @@ public abstract class Transformation {
         @Override
         public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("divq %d (%s, %s)", divisions, upper, lowers.get(0));
+            return String.format("div %d (%s, %s)", divisions, upper, lowers.get(0));
         }
 
         @Override
@@ -229,7 +229,7 @@ public abstract class Transformation {
         @Override
         public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("movx(%s, %s, %d, %s)", upper, lowers.get(0), steps, dir);
+            return String.format("move(%s, %s, %d, %s)", upper, lowers.get(0), steps, dir);
         }
 
         @Override
