@@ -8,13 +8,14 @@ import uk.co.edstow.cpacgen.util.Tuple;
 import java.util.*;
 
 import static uk.co.edstow.cpacgen.RegisterAllocator.Register.*;
-import static uk.co.edstow.cpacgen.scamp5.Scamp5PairGenFactory.Config.SearchStrategy.Exhuastive;
+import static uk.co.edstow.cpacgen.scamp5.Scamp5PairGenFactory.Config.SearchStrategy.Exhaustive;
 import static uk.co.edstow.cpacgen.scamp5.Scamp5PairGenFactory.Config.SearchStrategy.SortedAtomDistance;
 
-public class Main {
+@SuppressWarnings("unused")
+class Main {
     public static void main(String[] args) {
         List<Goal> final_goals = new ArrayList<>();
-        int divisions = 0;
+        int divisions;
 
 
 
@@ -148,14 +149,14 @@ public class Main {
 
 
         Scamp5PairGenFactory pairGenFactory = new Scamp5PairGenFactory(
-                (goals, depth, rs1, initalGoal) -> {
+                (goals, depth, rs1, initialGoal) -> {
 //                    Scamp5PairGenFactory.Config conf = new Scamp5PairGenFactory.Config(SortedAtomDistance, availableRegisters.length, depth);
                     int max = Integer.MIN_VALUE;
                     for (Goal goal : goals) {
                         max = Math.max(max, goal.atomCount());
                     }
                     int threshold = 10;
-                    Scamp5PairGenFactory.Config conf = new Scamp5PairGenFactory.Config(max>threshold? SortedAtomDistance: Exhuastive, availableRegisters.length, depth);
+                    Scamp5PairGenFactory.Config conf = new Scamp5PairGenFactory.Config(max>threshold? SortedAtomDistance: Exhaustive, availableRegisters.length, depth);
                     conf.useAll();
                     conf.useSubPowerOf2();
                     //conf.useBasicOps();
@@ -172,19 +173,19 @@ public class Main {
 
         System.out.println("print plans");
         double min = Double.MAX_VALUE;
-        int imin = 0;
+        int iMin = 0;
         for (int i = 0; i < rs.getPlans().size(); i ++){
             Plan pl = rs.getPlans().get(i);
             System.out.println(pl);
             if(pl.cost() < min){
-                imin = i;
+                iMin = i;
                 min = pl.cost();
             }
         }
         rs.printStats();
 
         System.out.println("Best");
-        Plan p = rs.getPlans().get(imin);
+        Plan p = rs.getPlans().get(iMin);
         System.out.println("length: " + p.depth() + " Cost: "+p.cost());
         System.out.println("CircuitDepths:" + Arrays.toString(p.circuitDepths()));
         System.out.println(p);
@@ -194,8 +195,8 @@ public class Main {
         String code = p.produceCode(mapping);
         System.out.println(code);
 
-        System.out.println(new Bounds(final_goals).largestMagnitute());
-        Scamp5Emulator emulator = new Scamp5Emulator(new Bounds(final_goals).largestMagnitute()*2);
+        System.out.println(new Bounds(final_goals).largestMagnitude());
+        Scamp5Emulator emulator = new Scamp5Emulator(new Bounds(final_goals).largestMagnitude()*2);
         emulator.run(String.format("input(%s,%d)", registerAllocator.getInitRegister(), (1<<divisions)*128));
         emulator.pushCode(code);
         emulator.flushInstructionBuffer();

@@ -5,8 +5,8 @@ import uk.co.edstow.cpacgen.Atom;
 
 import java.util.Collection;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
+@SuppressWarnings("WeakerAccess")
 public class Bounds {
     public final int xMax;
     public final int xMin;
@@ -87,7 +87,13 @@ public class Bounds {
                 zMin <= a.z && a.z <= zMax;
     }
 
-    public int largestMagnitute(){
+    public boolean excludes(Atom a){
+        return xMin > a.x || a.x > xMax ||
+                yMin > a.y || a.y > yMax ||
+                zMin > a.z || a.z > zMax;
+    }
+
+    public int largestMagnitude(){
         return IntStream.of(xMin, xMax, yMin, yMax, zMin, zMax).map(Math::abs).max().getAsInt();
     }
 

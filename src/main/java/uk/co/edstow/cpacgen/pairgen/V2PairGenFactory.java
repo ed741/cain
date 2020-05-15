@@ -10,7 +10,7 @@ import java.util.*;
 
 public class V2PairGenFactory implements PairGenFactory{
 
-    static Comparator<Tuple<Distance, Goal>> entryComparator = Comparator.comparingInt((Tuple<Distance, Goal> t) -> t.getB().size()).thenComparingInt(t -> -t.getA().manhattan());
+    private static final Comparator<Tuple<Distance, Goal>> entryComparator = Comparator.comparingInt((Tuple<Distance, Goal> t) -> t.getB().size()).thenComparingInt(t -> -t.getA().manhattan());
 
 
     @Override
@@ -32,27 +32,27 @@ public class V2PairGenFactory implements PairGenFactory{
         int ii;
         int jj;
         int dia = -1;
-        List<Goal.Pair> currentList = new ArrayList<>();
+        final List<Goal.Pair> currentList = new ArrayList<>();
 
-        public V2PairGen(Goal.Bag goals) {
+        V2PairGen(Goal.Bag goals) {
             this.goals = goals;
             ii = 0;
             jj = 0;
         }
 
-        int geti(){
+        int getI(){
             if (dia >=0){
                 return dia;
             }
             return ii;
         }
-        int getj(){
+        int getJ(){
             if (dia >=0){
                 return dia;
             }
             return jj - ii;
         }
-        protected void updateIJ(){
+        void updateIJ(){
             if (dia < 0) {
                 do{
                     if (ii < Math.min(jj, goals.size() - 1)) {
@@ -81,21 +81,17 @@ public class V2PairGenFactory implements PairGenFactory{
         public Goal.Pair next() {
             while(currentList.isEmpty()) {
                 updateIJ();
-                if (getj() >= goals.size() || geti() >= goals.size()) {
+                if (getJ() >= goals.size() || getI() >= goals.size()) {
                     return null;
                 }
-                //System.out.println("ii: " + ii + " jj: " + jj + " i: " + geti() + " j: " + getj());
 
+                Goal a = goals.get(getI());
+                Goal b = goals.get(getJ());
+                boolean diagonal = getI()== getJ();
 
-
-                Goal a = goals.get(geti());
-                Goal b = goals.get(getj());
-                boolean diaganal = geti()==getj();
-                //System.out.println("ii: " + ii + " jj: " + jj + " i: " + geti() + " j: " + getj());
-
-                List<Tuple<Distance, Goal>> list = getAtomDistanceList(a, b, diaganal);
+                List<Tuple<Distance, Goal>> list = getAtomDistanceList(a, b, diagonal);
                 list.sort(entryComparator);
-                if (!diaganal) {
+                if (!diagonal) {
                     for (Tuple<Distance, Goal> tuple : list) {
                         Goal tmp = tuple.getA().inverse().translate(tuple.getB());
                         if (tmp.equals(a)) {
@@ -157,31 +153,6 @@ public class V2PairGenFactory implements PairGenFactory{
             list.removeIf(t -> !(b.equals(t.getB())));
         }
         return list;
-    }
-
-
-    public static void main(String[] args) {
-        PairGenFactory g = new V2PairGenFactory();
-        Goal.Bag goals = new Goal.Bag();
-        for (int i = 0; i < 4; i++) {
-            goals.add(new Goal.Factory(new Atom(i,0,0, true)).get());
-        }
-        //goals.add(new Goal.Factory(new Atom(-1,1,0), new Atom(-1,0,0), new Atom(-1,-1,0), new Atom(-1,-2,0)).get());//, new Atom(-1,0,0), new Atom(1,1,0), new Atom(1,0,0), new Atom(1,0,0), new Atom(1,-1,0)).get());
-        int[][] multi = new int[][]{
-                { 0, 1, 2, 1, 0},
-                { 1, 4, 6, 4, 1},
-                { 2, 6, 10, 6, 2},
-                { 1, 4, 6, 4, 1},
-                { 0, 1, 2, 1, 0}
-        };
-        //goals.add(new Goal.Factory(multi).get());
-        //goals.add(new Goal.Factory(new Atom(0,0,0), new Atom(0,0,0)).get());
-
-        PairGen pg = g.generatePairs(goals, 0);
-        Goal.Pair p = pg.next();
-        while(p != null){
-            p = pg.next();
-        }
     }
 
 }

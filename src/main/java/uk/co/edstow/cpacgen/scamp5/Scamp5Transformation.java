@@ -41,6 +41,7 @@ public abstract class Scamp5Transformation extends Transformation {
             return Dir.values()[(idx+3)%4];
         }
 
+        @SuppressWarnings("WeakerAccess")
         public String toCode() {
             return code;
         }
@@ -85,8 +86,8 @@ public abstract class Scamp5Transformation extends Transformation {
             return "Res/1";
         }
 
-        private static boolean[] inputRegisterOutputInterference = new boolean[0];
-        private static int[] inputRegisterIntraInterference = new int[0];
+        private static final boolean[] inputRegisterOutputInterference = new boolean[0];
+        private static final int[] inputRegisterIntraInterference = new int[0];
 
         @Override
         public boolean[] inputRegisterOutputInterference() {
@@ -111,10 +112,12 @@ public abstract class Scamp5Transformation extends Transformation {
         final Goal a;
         Goal moved = null;
 
+        @SuppressWarnings("WeakerAccess")
         public Mov(Goal a) {
             this.a = a;
         }
 
+        @SuppressWarnings("WeakerAccess")
         public Mov(Goal in, boolean upper) {
             if (upper) {
                 this.a = new Goal(in);
@@ -153,8 +156,8 @@ public abstract class Scamp5Transformation extends Transformation {
             return String.format("Mov (%s)", this.a);
         }
 
-        private static boolean[] inputRegisterOutputInterference = new boolean[1];
-        private static int[] inputRegisterIntraInterference = new int[1];
+        private static final boolean[] inputRegisterOutputInterference = new boolean[1];
+        private static final int[] inputRegisterIntraInterference = new int[1];
 
         @Override
         public boolean[] inputRegisterOutputInterference() {
@@ -215,8 +218,8 @@ public abstract class Scamp5Transformation extends Transformation {
             return String.format("Add2(%s, %s)", a, b);
         }
 
-        private static boolean[] inputRegisterOutputInterference = {false, false};
-        private static int[] inputRegisterIntraInterference = {0,1};
+        private static final boolean[] inputRegisterOutputInterference = {false, false};
+        private static final int[] inputRegisterIntraInterference = {0,1};
 
         @Override
         public boolean[] inputRegisterOutputInterference() {
@@ -279,8 +282,8 @@ public abstract class Scamp5Transformation extends Transformation {
             return String.format("Add3(%s, %s, %s)", a, b, c);
         }
 
-        private static boolean[] inputRegisterOutputInterference = new boolean[3];
-        private static int[] inputRegisterIntraInterference = {0,1,2};
+        private static final boolean[] inputRegisterOutputInterference = new boolean[3];
+        private static final int[] inputRegisterIntraInterference = {0,1,2};
 
         @Override
         public boolean[] inputRegisterOutputInterference() {
@@ -340,8 +343,8 @@ public abstract class Scamp5Transformation extends Transformation {
              return String.format("Sub(%s, %s)", a, b);
          }
 
-        private static boolean[] inputRegisterOutputInterference = {false, true};
-        private static int[] inputRegisterIntraInterference = {0,0};
+        private static final boolean[] inputRegisterOutputInterference = {false, true};
+        private static final int[] inputRegisterIntraInterference = {0,0};
 
         @Override
         public boolean[] inputRegisterOutputInterference() {
@@ -410,8 +413,8 @@ public abstract class Scamp5Transformation extends Transformation {
             return String.format("Neg(%s)", a);
         }
 
-        private static boolean[] inputRegisterOutputInterference = {true};
-        private static int[] inputRegisterIntraInterference = {0};
+        private static final boolean[] inputRegisterOutputInterference = {true};
+        private static final int[] inputRegisterIntraInterference = {0};
 
         @Override
         public boolean[] inputRegisterOutputInterference() {
@@ -450,7 +453,7 @@ public abstract class Scamp5Transformation extends Transformation {
             }
         }
 
-        public boolean isPossbile(){
+        public boolean isPossible(){
             Iterator<Tuple<Atom, Integer>> it = a.uniqueCountIterator();
             while(it.hasNext()){
                 Tuple<Atom, Integer> t = it.next();
@@ -473,6 +476,7 @@ public abstract class Scamp5Transformation extends Transformation {
             return 1;
         }
 
+        @SuppressWarnings("ConstantConditions")
         @Override
         public Goal applyForwards() throws TransformationApplicationException {
             if(this.div == null){
@@ -512,8 +516,8 @@ public abstract class Scamp5Transformation extends Transformation {
             return String.format("Div(%s)", this.a);
         }
 
-        private static boolean[] inputRegisterOutputInterference = new boolean[]{true};
-        private static int[] inputRegisterIntraInterference = {0};
+        private static final boolean[] inputRegisterOutputInterference = new boolean[]{true};
+        private static final int[] inputRegisterIntraInterference = {0};
 
         @Override
         public boolean[] inputRegisterOutputInterference() {

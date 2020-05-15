@@ -53,14 +53,15 @@ public class SimplePairGenFactory implements PairGenFactory {
     public PairGen generatePairs(Goal.Bag goals, int depth) {
         return generatePairs(goals);
     }
+    @SuppressWarnings("WeakerAccess")
     public PairGen generatePairs(Goal.Bag goals) {
         return new SimplePairGen(goals);
     }
 
     public class SimplePairGen implements PairGen {
 
-        private Goal.Bag goalList;
-        private List<Goal.Pair> currentList;
+        private final Goal.Bag goalList;
+        private final List<Goal.Pair> currentList;
 
 
         public SimplePairGen(Goal.Bag goals) {
@@ -93,7 +94,7 @@ public class SimplePairGenFactory implements PairGenFactory {
         boolean check(Goal.Pair p){
             for (Goal l: p.getLowers()) {
                 for (Atom a : l) {
-                    if (!bounds.includes(a)) {
+                    if (bounds.excludes(a)) {
                         return false;
                     }
                 }
@@ -104,8 +105,7 @@ public class SimplePairGenFactory implements PairGenFactory {
 
         private Goal.Pair get_next() {
             if (!currentList.isEmpty()){
-                Goal.Pair p = currentList.remove(0);
-                return p;
+                return currentList.remove(0);
 
             } else if (!goalList.isEmpty()){
                 Goal upper = goalList.remove(0);

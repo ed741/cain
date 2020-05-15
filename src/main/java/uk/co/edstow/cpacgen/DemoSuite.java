@@ -8,20 +8,20 @@ import uk.co.edstow.cpacgen.util.Tuple;
 import java.util.*;
 
 import static uk.co.edstow.cpacgen.RegisterAllocator.Register.*;
-import static uk.co.edstow.cpacgen.ReverseSearch.TraversalAlgorithm.DFS;
-import static uk.co.edstow.cpacgen.ReverseSearch.TraversalAlgorithm.SOT;
-import static uk.co.edstow.cpacgen.scamp5.Scamp5PairGenFactory.Config.SearchStrategy.Exhuastive;
+import static uk.co.edstow.cpacgen.ReverseSearch.TraversalAlgorithm.*;
+import static uk.co.edstow.cpacgen.scamp5.Scamp5PairGenFactory.Config.SearchStrategy.Exhaustive;
 import static uk.co.edstow.cpacgen.scamp5.Scamp5PairGenFactory.Config.SearchStrategy.SortedAtomDistance;
 
-public class DemoSuite {
+@SuppressWarnings("SameParameterValue")
+class DemoSuite {
 
-    final static boolean SOBEL = false;
-    final static boolean BOX = false;
-    final static boolean GUASS = false;
-    final static boolean CNN_ON_FPSP_ANALOG_NET_2 = false;
-    final static boolean CNN_ON_FPSP_MAX_POOLED = true;
-    final static boolean RANDOM_DENSE = false;
-    final static boolean RANDOM_SPARSE = false;
+    private final static boolean SOBEL = true;
+    private final static boolean BOX = true;
+    private final static boolean GUASS = true;
+    private final static boolean CNN_ON_FPSP_ANALOG_NET_2 = true;
+    private final static boolean CNN_ON_FPSP_MAX_POOLED = true;
+    private final static boolean RANDOM_DENSE = true;
+    private final static boolean RANDOM_SPARSE = true;
 
 
 
@@ -44,12 +44,12 @@ public class DemoSuite {
             final RegisterAllocator.Register[] availableRegisters = Arrays.copyOfRange(allRegisters, 0, registerCount);
             RegisterAllocator ra = new RegisterAllocator(A, availableRegisters);
             Scamp5PairGenFactory pairGenFactory = new Scamp5PairGenFactory(
-                    (goals, depth, rs1, initalGoal) -> {
+                    (goals, depth, rs1, initialGoal) -> {
                         int max = Integer.MIN_VALUE;
                         for (Goal goal : goals) {
                             max = Math.max(max, goal.atomCount());
                         }
-                        Scamp5PairGenFactory.Config conf = new Scamp5PairGenFactory.Config(max>threshold? SortedAtomDistance: Exhuastive, availableRegisters.length, depth);
+                        Scamp5PairGenFactory.Config conf = new Scamp5PairGenFactory.Config(max>threshold? SortedAtomDistance: Exhaustive, availableRegisters.length, depth);
                         if(allOps) {
                             conf.useAll();
                             conf.useSubPowerOf2();
@@ -84,11 +84,11 @@ public class DemoSuite {
     private static List<TestSetup> initialiseTestSetups() {
         List<TestSetup> setups = new ArrayList<>();
         setups.add(new TestSetup(4, SOT, 6, 10, true, 60));
-//        setups.add(new TestSetup(1, SOT, 6, 10, true, 60));
-//        setups.add(new TestSetup(1, SOT, 6, 10, false, 60));
-//        setups.add(new TestSetup(4, DFS, 6, 10, true, 60));
-//        setups.add(new TestSetup(4, SOT, 6, 0, true, 60));
-//        setups.add(new TestSetup(4, SOT, 6, 10, true, 5));
+        setups.add(new TestSetup(1, SOT, 6, 10, true, 60));
+        setups.add(new TestSetup(1, SOT, 6, 10, false, 60));
+        setups.add(new TestSetup(4, DFS, 6, 10, true, 60));
+        setups.add(new TestSetup(4, SOT, 6, 0, true, 60));
+        setups.add(new TestSetup(4, SOT, 6, 10, true, 5));
 
         return setups;
     }
@@ -100,15 +100,7 @@ public class DemoSuite {
         final Map<TestSetup, Plan> results;
         final String aukeScore;
 
-        private Test(String name, List<Goal> finalGoals, int divisions) {
-            this.name = name;
-            this.finalGoals = finalGoals;
-            this.divisions = divisions;
-            this.aukeScore = "";
-            this.results = new HashMap<>();
-        }
-
-        public Test(String name, List<Goal> finalGoals, int divisions, String aukeScore) {
+        Test(String name, List<Goal> finalGoals, int divisions, String aukeScore) {
             this.name = name;
             this.finalGoals = finalGoals;
             this.divisions = divisions;
@@ -335,19 +327,19 @@ public class DemoSuite {
             rs.search();
 
             double min = Double.MAX_VALUE;
-            int imin = 0;
+            int iMin = 0;
             for (int i = 0; i < rs.getPlans().size(); i++) {
                 Plan pl = rs.getPlans().get(i);
                 if (pl.cost() < min) {
-                    imin = i;
+                    iMin = i;
                     min = pl.cost();
                 }
             }
             rs.printStats();
 
-            System.out.println("Best: "+ imin);
-            if(imin < rs.getPlans().size()) {
-                Plan p = rs.getPlans().get(imin);
+            System.out.println("Best: "+ iMin);
+            if(iMin < rs.getPlans().size()) {
+                Plan p = rs.getPlans().get(iMin);
                 System.out.println("length: " + p.depth() + " Cost: " + p.cost());
                 System.out.println(p);
                 System.out.println("CircuitDepths:" + Arrays.toString(p.circuitDepths()));
@@ -378,6 +370,7 @@ public class DemoSuite {
 
     }
 
+    @SuppressWarnings("ConstantConditions")
     private static String makeLatexTable(List<Test> demos, List<TestSetup> setups){
         StringBuilder sb = new StringBuilder();
         sb.append("\\begin{longtable}{| m{2.5cm} m{4.5cm} | c |");
@@ -448,7 +441,7 @@ public class DemoSuite {
                 }
             }
             sb.append("& ");
-            if(1 < demo.finalGoals.stream().mapToInt(g -> Bounds.BoundsFromGoal(g).largestMagnitute()).max().getAsInt()){
+            if(1 < demo.finalGoals.stream().mapToInt(g -> Bounds.BoundsFromGoal(g).largestMagnitude()).max().getAsInt()){
                 sb.append("& \\vspace{2.5em}");
             } else {
                 sb.append("& \\vspace{1.1em}");
@@ -488,7 +481,7 @@ public class DemoSuite {
     }
 
     private static boolean checkPlan(Test test, TestSetup setup, String code){
-        Scamp5Emulator emulator = new Scamp5Emulator(new Bounds(test.finalGoals).largestMagnitute()*3);
+        Scamp5Emulator emulator = new Scamp5Emulator(new Bounds(test.finalGoals).largestMagnitude()*3);
         emulator.run(String.format("input(%s,%d)", setup.registerAllocator.getInitRegister(), (1<<test.divisions)*128));
         emulator.pushCode(code);
         emulator.flushInstructionBuffer();

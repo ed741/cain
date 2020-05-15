@@ -4,8 +4,8 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 public class Tuple<A, B> implements Iterable<Object> {
-    final A a;
-    final B b;
+    private final A a;
+    private final B b;
 
     public Tuple(A a, B b) {
         this.a = a;

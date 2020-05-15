@@ -80,5 +80,5 @@ public class Atom implements Comparable<Atom> {
 
         }
     }
-    public static AtomComparator comparator;
+    public static AtomComparator comparator = new AtomComparator();
 }

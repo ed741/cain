@@ -8,9 +8,9 @@ import java.util.*;
 
 public class Goal implements List<Atom>, Comparable<Goal>{
 
-    private static long idx = 1;
     private final List<Atom> list;
 
+    @SuppressWarnings("WeakerAccess")
     public Goal(List<Atom> list) {
         ArrayList<Atom> l = new ArrayList<>(list);
         l.sort(Atom.comparator);
@@ -28,6 +28,7 @@ public class Goal implements List<Atom>, Comparable<Goal>{
         this.list = Collections.unmodifiableList(simplifySorted(l));
     }
 
+    @SuppressWarnings("SameParameterValue")
     private Goal(ArrayList<Atom> list, boolean check){
         if(check){
             ArrayList<Atom> l = new ArrayList<>(list);
@@ -114,15 +115,15 @@ public class Goal implements List<Atom>, Comparable<Goal>{
 
 
     /**
-     * @return all possible sub Goals (subsets) of this goal, excluding the emptpy Goal.
+     * @return all possible sub Goals (subsets) of this goal, excluding the empty Goal.
      */
     public List<Goal> allSplitsRecursive(){
-        List<Goal> out = rallSplits();
+        List<Goal> out = r_AllSplits();
         out.remove(0);
         return out;
     }
 
-    private List<Goal> rallSplits(){
+    private List<Goal> r_AllSplits(){
         if (isEmpty()){
             List<Goal> out = new ArrayList<>();
             out.add(new Goal());
@@ -130,7 +131,7 @@ public class Goal implements List<Atom>, Comparable<Goal>{
         }
         ArrayList<Atom> sub = new ArrayList<>(this);
         Atom a = sub.remove(0);
-        Collection<Goal> subSplits = new Goal(sub).rallSplits();
+        Collection<Goal> subSplits = new Goal(sub).r_AllSplits();
         List<Goal> out = new ArrayList<>();
         for (Goal g: subSplits){
             if (out.stream().noneMatch(g::same)){
@@ -287,6 +288,7 @@ public class Goal implements List<Atom>, Comparable<Goal>{
     public static class AveragePosition {
         public final double x, y, z;
 
+        @SuppressWarnings("WeakerAccess")
         public AveragePosition(double x, double y, double z) {
             this.x = x;
             this.y = y;
@@ -364,19 +366,7 @@ public class Goal implements List<Atom>, Comparable<Goal>{
 
     @Override
     public int compareTo(Goal goal) {
-        if(this.size() < goal.size()){
-            return 1;
-        }
-        if(this.size() > goal.size()){
-            return -1;
-        }
-//        for (int i = 0; i < size(); i++) {
-//            int c = get(i).compareTo(goal.get(i));
-//            if(c != 0){
-//                return c;
-//            }
-//        }
-        return 0;
+        return Integer.compare(goal.size(), this.size());
     }
 
     public int atomCount() {
@@ -417,10 +407,6 @@ public class Goal implements List<Atom>, Comparable<Goal>{
             return transformation;
         }
 
-        private static String TransformationString(Transformation t){
-            return t!=null? t.toStringN() : "null";
-        }
-
         public Pair(Goal u, Goal l, Transformation t) {
             upper = u;
             ArrayList<Goal> list = new ArrayList<>();
@@ -434,19 +420,6 @@ public class Goal implements List<Atom>, Comparable<Goal>{
             ArrayList<Goal> list = new ArrayList<>(ls);
             lowers = Collections.unmodifiableList(list);
             transformation = t;
-        }
-
-
-        public boolean contains(Atom a) {
-            if (upper.contains(a)) {
-                return true;
-            }
-            for(Goal l: lowers){
-                if(l.contains(a)){
-                    return true;
-                }
-            }
-            return false;
         }
 
         @Override
@@ -471,7 +444,7 @@ public class Goal implements List<Atom>, Comparable<Goal>{
     public static class Bag extends ArrayList<Goal>{
         private boolean immutable = false;
         private int atomCount = -1;
-        private static Comparator<Goal> fullComp = (a, b) -> {
+        private static final Comparator<Goal> fullComp = (a, b) -> {
             if(a==b){
                 return 0;
             }
@@ -489,7 +462,7 @@ public class Goal implements List<Atom>, Comparable<Goal>{
             }
             return 0;
         };
-        private static Comparator<Goal> halfComp = (a, b) -> {
+        private static final Comparator<Goal> halfComp = (a, b) -> {
             if(a==b){
                 return 0;
             }
@@ -524,6 +497,8 @@ public class Goal implements List<Atom>, Comparable<Goal>{
         public void setImmutable(){
             immutable = true;
         }
+
+        @SuppressWarnings("WeakerAccess")
         public boolean isImmutable(){
             return immutable;
         }
@@ -561,7 +536,7 @@ public class Goal implements List<Atom>, Comparable<Goal>{
             for (Goal g:collection) {
                 add(g);
                 c = true;
-            };
+            }
             return c;
         }
 
@@ -590,12 +565,12 @@ public class Goal implements List<Atom>, Comparable<Goal>{
             }
             Goal goal = (Goal) g;
             for (int i = 0; i < this.size(); i++) {
-                Goal goali = this.get(i);
-                if(goali.same(goal)){
+                Goal goalI = this.get(i);
+                if(goalI.same(goal)){
                     super.remove(i);
                     return true;
                 }
-                if(halfComp.compare(goali,goal) > 0){
+                if(halfComp.compare(goalI,goal) > 0){
                     return false;
                 }
             }
@@ -604,12 +579,12 @@ public class Goal implements List<Atom>, Comparable<Goal>{
 
         public boolean removeEquivalent(Goal g){
             for (int i = 0; i < this.size(); i++) {
-                Goal goali = this.get(i);
-                if(goali.equivalent(g)){
+                Goal goalI = this.get(i);
+                if(goalI.equivalent(g)){
                     super.remove(i);
                     return true;
                 }
-                if(halfComp.compare(goali,g) > 0){
+                if(halfComp.compare(goalI,g) > 0){
                     return false;
                 }
             }
@@ -631,6 +606,7 @@ public class Goal implements List<Atom>, Comparable<Goal>{
             throw new UnsupportedOperationException("Cannot add Goals at index");
         }
 
+        @SuppressWarnings("ForLoopReplaceableByForEach")
         public static String toGoalsString(List<Goal> goals) {
 
             Bounds b = new Bounds(new Bounds(goals), new Atom(0,0,0, true));
@@ -639,8 +615,8 @@ public class Goal implements List<Atom>, Comparable<Goal>{
             List<String[][]> arrays = new ArrayList<>();
             List<int[]> widthArrays = new ArrayList<>();
 
-            for (int i = 0; i < goals.size(); i++) {
-                String[][] tableArray = goals.get(i).getCharTable(b, width, height, false, false, true, true);
+            for (Goal goal : goals) {
+                String[][] tableArray = goal.getCharTable(b, width, height, false, false, true, true);
                 arrays.add(tableArray);
             }
             for (String[][] array : arrays) {
@@ -852,6 +828,7 @@ public class Goal implements List<Atom>, Comparable<Goal>{
         return list.toArray();
     }
 
+    @SuppressWarnings("SuspiciousToArrayCall")
     @Override
     public <T> T[] toArray(T[] ts) {
         return list.toArray(ts);

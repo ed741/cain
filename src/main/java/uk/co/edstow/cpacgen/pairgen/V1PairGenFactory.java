@@ -128,6 +128,7 @@ public class V1PairGenFactory implements PairGenFactory{
         return matches;
     }
 
+    @SuppressWarnings("SameParameterValue")
     private static Goal moveGoal(Goal goal, int x, int y, int z){
         Goal.Factory factory = new Goal.Factory();
         for (Atom a: goal){
@@ -139,7 +140,7 @@ public class V1PairGenFactory implements PairGenFactory{
     private boolean check(Goal.Pair p){
         for (Goal l: p.getLowers()) {
             for (Atom a : l) {
-                if (!bounds.includes(a)) {
+                if (bounds.excludes(a)) {
                     return false;
                 }
             }
@@ -152,7 +153,7 @@ public class V1PairGenFactory implements PairGenFactory{
         final List<Goal.Pair> pairs;
         int i;
 
-        public V1PairGen(List<Goal.Pair> pairs) {
+        V1PairGen(List<Goal.Pair> pairs) {
             this.pairs = pairs;
             i = 0;
         }

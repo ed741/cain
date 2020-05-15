@@ -5,7 +5,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 
 public class GoalsCache {
-    private ConcurrentHashMap<Goal.Bag, Double> costMap;
+    private final ConcurrentHashMap<Goal.Bag, Double> costMap;
 
 
     public GoalsCache() {

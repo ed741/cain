@@ -5,13 +5,12 @@ import uk.co.edstow.cpacgen.util.Bounds;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class Plan {
-    private static ReentrantLock linkLock = new ReentrantLock();
+    private static final ReentrantLock linkLock = new ReentrantLock();
     private static Plan linked = null;
 
     private final Step step;
@@ -25,11 +24,9 @@ public class Plan {
         for (int i = 0; i < translation.length; i++) {
             translation[i] = finalGoals.get(i);
         }
-        Step s = new Step(p, new Goal.Bag(finalGoals), translation, comment);
 
-        this.step = s;
+        this.step = new Step(p, new Goal.Bag(finalGoals), translation, comment);
         this.previous = null;
-        //all.add(s);
         this.initialGoal = initialGoal;
         this.depth = 0;
     }
@@ -41,21 +38,9 @@ public class Plan {
         this.depth = previous.depth + 1;
     }
 
-
-//    public void push(Goal.Pair newPair, Goal.Bag currentGoals, Goal[] translation, String comment) {
-//        Step newStep = new Step(newPair, currentGoals, translation, comment);
-//        all.add(newStep);
-//    }
-//
-//    public void pop(){
-//        all.remove(all.size()-1);
-//    }
-
     public Plan newAdd(Goal.Pair newPair, Goal.Bag currentGoals, Goal[] translation, String comment) {
         Step newStep = new Step(newPair, currentGoals, translation, comment);
-        Plan out = new Plan(this, this.initialGoal, newStep);
-        //out.all.add(newStep);
-        return out;
+        return new Plan(this, this.initialGoal, newStep);
     }
 
     public List<Step> getAll() {
@@ -102,6 +87,7 @@ public class Plan {
             this.translation = translation;
         }
 
+        @SuppressWarnings("unused")
         public Goal.Bag liveGoals(){
             return currentGoals;
         }
@@ -118,30 +104,30 @@ public class Plan {
 
         @Override
         public String toString() {
-            List<String> foward = forwardsLinks==null?new ArrayList<>():forwardsLinks.stream().map(s->String.valueOf(s.idx)).collect(Collectors.toList());
+            List<String> forward = forwardsLinks==null?new ArrayList<>():forwardsLinks.stream().map(s->String.valueOf(s.idx)).collect(Collectors.toList());
             List<String> backward = backwardsLinks==null?new ArrayList<>():backwardsLinks.stream().map(s->String.valueOf(s.idx)).collect(Collectors.toList());
-            return "Step("+ idx +")"+foward+""+backward+"{" +
+            return "Step("+ idx +")"+forward+""+backward+"{" +
                     "goalPair=" + goalPair.toString() +
                     ", " + comment +
                     '}';
         }
 
-        public String toStringN() {
+        private String toStringN() {
             return idx +" " + goalPair.toStringN() +
                     "\n" + comment;
         }
 
-        public String toGoalsString(List<Goal> input) {
+        private String toGoalsString(List<Goal> input) {
 
             Bounds b = new Bounds(new Bounds(currentGoals), new Atom(0,0,0, true));
             int height = 1 + b.yMax - b.yMin;
             int width = 1 + b.xMax - b.xMin;
             List<String[][]> arrays = new ArrayList<>();
 
-            for (int i = 0; i < currentGoals.size(); i++) {
-                boolean in = input.contains(currentGoals.get(i));
-                boolean out = this.goalPair.getLowers().contains(currentGoals.get(i));
-                String[][] tableArray = currentGoals.get(i).getCharTable(b, width, height, out, in, true, true);
+            for (Goal currentGoal : currentGoals) {
+                boolean in = input.contains(currentGoal);
+                boolean out = this.goalPair.getLowers().contains(currentGoal);
+                String[][] tableArray = currentGoal.getCharTable(b, width, height, out, in, true, true);
                 arrays.add(tableArray);
             }
 
@@ -158,6 +144,7 @@ public class Plan {
             return sb.toString();
         }
 
+        @SuppressWarnings("WeakerAccess")
         public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             return goalPair.getTransformation().code(upper, lowers);
         }
@@ -181,6 +168,7 @@ public class Plan {
         return depth;
     }
 
+    @SuppressWarnings("WeakerAccess")
     public <T> T link(Supplier<T> action){
         try {
             linkLock.lock();

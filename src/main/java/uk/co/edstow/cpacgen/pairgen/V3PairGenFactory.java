@@ -41,25 +41,20 @@ public class V3PairGenFactory extends V2PairGenFactory{
             if(!currentList.isEmpty()){
                 return currentList.remove(0);
             }
-            if(getj() >= goals.size() || geti() >= goals.size()){
+            if(getJ() >= goals.size() || getI() >= goals.size()){
                 return null;
             }
 
             List<Tuple<Goal.Pair, Tuple<Double, Integer>>> rankList = new ArrayList<>();
             updateIJ();
-            while(getj() < goals.size() && geti() < goals.size()) {
+            while(getJ() < goals.size() && getI() < goals.size()) {
 
-                //System.out.println("ii: " + ii + " jj: " + jj + " i: " + geti() + " j: " + getj());
+                Goal a = goals.get(getI());
+                Goal b = goals.get(getJ());
+                boolean diagonal = getI()== getJ();
+                List<Tuple<Distance, Goal>> list = getAtomDistanceList(a, b, diagonal);
 
-
-
-                Goal a = goals.get(geti());
-                Goal b = goals.get(getj());
-                boolean diaganal = geti()==getj();
-                //System.out.println("ii: " + ii + " jj: " + jj + " i: " + geti() + " j: " +
-                List<Tuple<Distance, Goal>> list = getAtomDistanceList(a, b, diaganal);
-
-                if (!diaganal) {
+                if (!diagonal) {
                     for (Tuple<Distance, Goal> tuple : list) {
                         Goal tmp = tuple.getA().inverse().translate(tuple.getB());
                         if (tmp.equals(a)) {
@@ -73,8 +68,7 @@ public class V3PairGenFactory extends V2PairGenFactory{
                             if (div > 1 && (((div - 1) & div) == 0)) {
                                 Goal lower = new Goal.Factory(b).addAll(b).get();
                                 Transformation.Div divide = new Transformation.Div(1, lower);
-                                Goal.Pair pair = null;
-                                pair = new Goal.Pair(b, lower, divide);
+                                Goal.Pair pair = new Goal.Pair(b, lower, divide);
                                 double v = V1PairGenFactory.getValue(goals, pair, bounds);
                                 rankList.add(Tuple.triple(pair, v, tuple.getB().size()));
                             } else {

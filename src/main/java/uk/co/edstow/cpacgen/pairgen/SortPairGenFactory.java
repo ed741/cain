@@ -15,8 +15,8 @@ public class SortPairGenFactory extends SimplePairGenFactory {
     }
 
     private class AddSortPairGen extends SimplePairGen {
-        private HashSet<Goal> goals;
-        public AddSortPairGen(Goal.Bag goals) {
+        private final HashSet<Goal> goals;
+        AddSortPairGen(Goal.Bag goals) {
             super(goals);
             this.goals = new HashSet<>(goals);
         }

@@ -7,6 +7,7 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@SuppressWarnings({"CollectionAddedToSelf", "EqualsWithItself", "MismatchedQueryAndUpdateOfCollection"})
 class GoalTest {
 
     @Test
@@ -263,7 +264,7 @@ class GoalTest {
     }
 
     @Test
-    void testallSplits() {
+    void testAllSplits() {
         Goal g1 = new Goal(
                 new Atom(1,1,0, true),
                 new Atom(2,1,0, true),

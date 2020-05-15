@@ -14,7 +14,8 @@ public abstract class Transformation {
             super(s);
         }
 
-    };
+    }
+    @SuppressWarnings("WeakerAccess")
     public abstract int inputCount();
 
     public boolean[] inputRegisterOutputInterference(){
@@ -37,7 +38,7 @@ public abstract class Transformation {
             out[i]=i;
         }
         return out;
-    };
+    }
     public abstract Goal applyForwards() throws TransformationApplicationException;
     //public abstract List<Goal> applyBackwards()throws TransformationApplicationException;
     public abstract double cost();
@@ -110,8 +111,8 @@ public abstract class Transformation {
 
 
     public static class Div extends Transformation{
-        final int divisions;
-        final Goal in;
+        private final int divisions;
+        private final Goal in;
 
         private static Goal getForwardsApplication(int divisions, Goal goal) throws TransformationApplicationException {
             Goal.Factory factory = new Goal.Factory();
@@ -184,9 +185,9 @@ public abstract class Transformation {
     }
 
     public static class Move extends Transformation{
-        final int steps;
-        final Direction dir;
-        final Goal in;
+        private final int steps;
+        private final Direction dir;
+        private final Goal in;
 
         private static Goal getForwardsApplication(int steps, Direction dir, Goal goal){
             Goal.Factory factory = new Goal.Factory();
@@ -270,8 +271,8 @@ public abstract class Transformation {
 
 
     public static class Add extends Transformation{
-        Goal a;
-        Goal b;
+        private final Goal a;
+        private final Goal b;
 
         private static Goal getForwardsApplication(Goal a, Goal b){
             Goal.Factory factory = new Goal.Factory(a);
@@ -300,9 +301,9 @@ public abstract class Transformation {
             StringBuilder sb = new StringBuilder();
             sb.append("add(");
             sb.append(upper);
-            for (int i = 0; i < lowers.size(); i++) {
+            for (RegisterAllocator.Register lower : lowers) {
                 sb.append(", ");
-                sb.append(lowers.get(i));
+                sb.append(lower);
             }
             sb.append(")");
             return sb.toString();

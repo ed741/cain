@@ -4,8 +4,9 @@ import uk.co.edstow.cpacgen.Atom;
 import uk.co.edstow.cpacgen.Goal;
 import uk.co.edstow.cpacgen.Transformation;
 
+@SuppressWarnings("WeakerAccess")
 public class Distance {
-    final int x, y, z;
+    public final int x, y, z;
 
     public Distance(int x, int y, int z) {
         this.x = x;
@@ -91,15 +92,6 @@ public class Distance {
     }
 
     public boolean same(Atom a, Atom b) {
-        if(this.x != b.x-a.x){
-            return false;
-        }
-        if(this.y != b.y-a.y){
-            return false;
-        }
-        if(this.z != b.z-a.z){
-            return false;
-        }
-        return true;
+        return this.x == b.x - a.x && this.y == b.y - a.y && this.z == b.z - a.z;
     }
 }

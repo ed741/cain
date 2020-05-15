@@ -11,7 +11,7 @@ import static uk.co.edstow.cpacgen.scamp5.emulator.Scamp5Emulator.*;
 class ProcessingElement {
 
     private static class UndefinedBusBehaviour extends RuntimeException{
-        public UndefinedBusBehaviour(String s) {
+        UndefinedBusBehaviour(String s) {
             super(s);
         }
     }
@@ -244,7 +244,7 @@ class ProcessingElement {
                     '}';
         }
 
-        public String getContained(){
+        String getContained(){
             StringBuilder sb = new StringBuilder("{");
             Iterator<Map.Entry<Pos,Double>> it = contains.entrySet().iterator();
             while(it.hasNext()) {
@@ -261,11 +261,11 @@ class ProcessingElement {
             return sb.toString();
         }
 
-        public String getNoises() {
+        String getNoises() {
             return "(Read Noise: " + readNoise + ", Write Noise: " + writeNoise + ")";
         }
 
-        public Map<Tuple<Integer, Integer>, Double> getRawContains() {
+        Map<Tuple<Integer, Integer>, Double> getRawContains() {
             Map<Tuple<Integer, Integer>, Double> out = new HashMap<>();
             contains.forEach((pos, value) -> out.put(new Tuple<>(pos.x, pos.y), value));
             return out;

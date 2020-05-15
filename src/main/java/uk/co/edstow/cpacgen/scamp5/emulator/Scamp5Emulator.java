@@ -7,13 +7,13 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Scamp5Emulator {
-    static int verbose = 0;
+    @SuppressWarnings("WeakerAccess")
+    public static int verbose = 0;
 
     private final int xMin;
     private final int xMax;
@@ -25,7 +25,6 @@ public class Scamp5Emulator {
     private final Pattern dirPattern;
     private final Pattern regPattern;
     private final Map<InstructionSignature, Consumer<String[]>> instructionSet;
-    private final NoiseConfig noiseConfig;
     private final Queue<Instruction> instructionBuffer;
 
 
@@ -37,6 +36,7 @@ public class Scamp5Emulator {
 
     private interface Instruction {
         void run(ProcessingElement pe);
+        @SuppressWarnings("SameReturnValue")
         default boolean enabled(Pos p){
             return true;
         }
@@ -47,7 +47,7 @@ public class Scamp5Emulator {
         public final double writeNoiseFactor = 0.02;
         public final double readNoiseConstant = 0.002;
         public final double readNoiseFactor = 0.002;
-        private Random r = new Random(2001);
+        private final Random r = new Random(2001);
         double getValue(double noise){
             return r.nextGaussian() * noise;
         }
@@ -58,15 +58,15 @@ public class Scamp5Emulator {
         A(0, 0),B(0, 0),C(0, 0),D(0, 0),E(0, 0),F(0, 0),News(0, 0),
         XNorth(0, 1),XEast(1, 0),XSouth(0, -1),XWest(-1, 0);
 
-        private int realX;
-        private int realY;
+        private final int realX;
+        private final int realY;
 
         Reg(int realX, int realY) {
             this.realX = realX;
             this.realY = realY;
         }
 
-        public boolean real() {
+        private boolean real() {
             return realX == 0 && realY == 0;
         }
     }
@@ -88,6 +88,7 @@ public class Scamp5Emulator {
         }
 
     }
+    @SuppressWarnings("WeakerAccess")
     public Scamp5Emulator(int width, int height) {
         this(0, width, 0, height);
     }
@@ -95,12 +96,13 @@ public class Scamp5Emulator {
         this(-rad, rad+1, -rad, rad+1);
     }
 
+    @SuppressWarnings("WeakerAccess")
     public Scamp5Emulator(int xMin, int xMax, int yMin, int yMax) {
         this.xMin = xMin;
         this.xMax = xMax;
         this.yMin = yMin;
         this.yMax = yMax;
-        noiseConfig = new NoiseConfig();
+        NoiseConfig noiseConfig = new NoiseConfig();
 
         this.tiles = new HashMap<>((xMax-xMin)*(yMax-yMin));
         Reg[] realRegs = Arrays.stream(Reg.values()).filter(Reg::real).toArray(Reg[]::new);
@@ -129,7 +131,7 @@ public class Scamp5Emulator {
             }
         }
 
-        this.instructionPatten = Pattern.compile("([a-z0-9]*)\\(([^\\)]*)\\)\\s*");
+        this.instructionPatten = Pattern.compile("([a-z0-9]*)\\(([^)]*)\\)\\s*");
         this.argPattern = Pattern.compile("([^\\s,]+)\\s*(?:,|$)");
         this.dirPattern = Pattern.compile("north|east|south|west");
         this.regPattern = Pattern.compile("[A-F]");
@@ -138,9 +140,9 @@ public class Scamp5Emulator {
         instructionSet = new HashMap<>();
         instructionBuffer = new ArrayDeque<>();
 
-        instructionSet.put(new InstructionSignature("input", new int[]{0,2}), args -> {
-            instructionBuffer.add(pe -> pe.input(Reg.valueOf(args[0]), Integer.parseInt(args[1])));
-        });
+        instructionSet.put(new InstructionSignature("input", new int[]{0,2}), args ->
+                instructionBuffer.add(pe -> pe.input(Reg.valueOf(args[0]), Integer.parseInt(args[1])))
+        );
 
         instructionSet.put(new InstructionSignature("res", new int[]{0}), args -> {
             checkRegsReal(args, 0);
@@ -358,6 +360,7 @@ public class Scamp5Emulator {
 
     }
 
+    @SuppressWarnings("WeakerAccess")
     public void pushInstruction(String instruction){
         Tuple<InstructionSignature, String[]> t = parseInput(instruction);
         InstructionSignature instructionSignature = t.getA();
@@ -437,7 +440,7 @@ public class Scamp5Emulator {
         }
         InstructionSignature in = new InstructionSignature(name, argType);
         if(!this.instructionSet.containsKey(in)){
-            throw new IllegalArgumentException(String.format("Cannot parse Instruction \"%s\", No instruction signiture matching %s found", instruction, in.toString()));
+            throw new IllegalArgumentException(String.format("Cannot parse Instruction \"%s\", No instruction signature matching %s found", instruction, in.toString()));
         }
         return new Tuple<>(in, args);
     }
@@ -507,34 +510,35 @@ public class Scamp5Emulator {
 
         @Override
         public String toString() {
-            StringBuilder signiture = new StringBuilder(identifier).append("\\").append(inputs.length).append(":[");
+            StringBuilder signature = new StringBuilder(identifier).append("\\").append(inputs.length).append(":[");
             for (int i = 0; i < inputs.length; i++) {
                 switch (inputs[i]) {
                     case 0:
-                        signiture.append("Register(0)");
+                        signature.append("Register(0)");
                         break;
                     case 1:
-                        signiture.append("Direction(1)");
+                        signature.append("Direction(1)");
                         break;
                     case 2:
-                        signiture.append("Integer(2)");
+                        signature.append("Integer(2)");
                         break;
                     default:
-                        signiture.append("UNKNOWN");
+                        signature.append("UNKNOWN");
 
                 }
-                signiture.append(i==inputs.length-1?"]":",");
+                signature.append(i==inputs.length-1?"]":",");
             }
-            return signiture.toString();
+            return signature.toString();
         }
     }
 
 
+    @SuppressWarnings("UnusedAssignment")
     public static void main(String[] args) {
-        File imgfile = new File("src/main/resources/test.png");
+        File imgFile = new File("src/main/resources/test.png");
         BufferedImage img = null;
         try {
-            img = ImageIO.read(imgfile);
+            img = ImageIO.read(imgFile);
 //            Scamp5Emulator e = new Scamp5Emulator(img, Reg.A);
             Scamp5Emulator e = new Scamp5Emulator(5);
 

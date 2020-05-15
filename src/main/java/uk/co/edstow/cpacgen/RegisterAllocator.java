@@ -3,7 +3,7 @@ package uk.co.edstow.cpacgen;
 import java.util.*;
 
 public class RegisterAllocator {
-    private Register[] registers;
+    private final Register[] registers;
     private final Register init;
 
     public RegisterAllocator(Register init, Register... r) {
@@ -111,7 +111,7 @@ public class RegisterAllocator {
                     map.put(all_r.get(j).getUpper(), r);
                     lineMap.put(j, r);
                 }else{
-                    // Inital case
+                    // Initial case
                     map.put(all_r.get(all_r.size()-1).getLowerTrueGoal(0), r);
                     lineMap.put(j, r);
 
@@ -125,15 +125,15 @@ public class RegisterAllocator {
 
 
     public enum Register{
-        A,B,C,D,E,F;
+        A,B,C,D,E,F
     }
 
     public class Mapping {
-        public Mapping() {
+        Mapping() {
             this.map = new HashMap<>();
         }
 
-        public void put(Goal goal, Register register){
+        private void put(Goal goal, Register register){
             Register r = this.map.put(new Wrapper(goal), register);
             assert r == null;
         }
