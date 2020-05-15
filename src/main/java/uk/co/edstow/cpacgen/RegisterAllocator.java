@@ -65,7 +65,7 @@ public class RegisterAllocator {
         int initLastUsed = Collections.min(requiresInit);
 
 
-        for (int i = 1; i < liveness.length; i++) {
+        for (int i = 0; i < liveness.length; i++) {
             if(live.contains(i)){
                 live.remove(i);
                 availableRegisters.add(0, lineMap.get(i));
@@ -73,10 +73,12 @@ public class RegisterAllocator {
             List<Integer> needAllocating = new ArrayList<>();
             for (int j = liveness.length-1; j > i; j--) {
                 if(liveness[j] == i){
-                    if(i < all_r.size() && j < all_r.size() && all_r.get(i).getLowers().contains(all_r.get(j).getUpper())){
-                        needAllocating.add(0, j);
-                    } else {
-                        needAllocating.add(j);
+                    if(!lineMap.containsKey(j)) {
+                        if (i < all_r.size() && j < all_r.size() && all_r.get(i).getLowers().contains(all_r.get(j).getUpper())) {
+                            needAllocating.add(0, j);
+                        } else {
+                            needAllocating.add(j);
+                        }
                     }
                 }
             }
