@@ -645,13 +645,14 @@ public class Scamp5PairGenFactory implements PairGenFactory {
             if (item.negate) {
                 tmp = tmpMov.negative();
             }
+            tmp = tmp.without(item.to);
             Goal split1 = aWithoutTo.without(tmp);
-            if(!split1.isEmpty()) {
+            if(!split1.isEmpty() && !tmp.isEmpty()) {
                 Goal split2 = tmp;
                 Goal split3 = item.to;
                 AtomDistanceListItem newItem = new AtomDistanceListItem(item);
-			newItem.pair = new Goal.Pair(item.a, Arrays.asList(split1, split2, split3), new Add_3(split1, split2, split3));
-			outList.add(newItem);
+                newItem.pair = new Goal.Pair(item.a, Arrays.asList(split1, split2, split3), new Add_3(split1, split2, split3));
+                outList.add(newItem);
             }
         }
         //addx
