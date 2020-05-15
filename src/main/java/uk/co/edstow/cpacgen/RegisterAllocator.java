@@ -25,6 +25,13 @@ public class RegisterAllocator {
         List<Plan.Step> all_r = plan.getAll();
         Set<Integer> requiresInit = new HashSet<>();
         int[] liveness = new int[all_r.size()+1];
+
+
+        List<Register> availableRegisters = new ArrayList<>(Arrays.asList(registers));
+        Set<Integer> live = new HashSet<>();
+        Mapping map = new Mapping();
+        Map<Integer, Register> lineMap = new HashMap<>();
+
         for (int i = 0; i < liveness.length; i++) {
             liveness[i] = i;
         }
@@ -47,15 +54,18 @@ public class RegisterAllocator {
                     requiresInit.add(liveUntil);
                 }
                 liveness[j] = Math.min(liveness[j], liveUntil);
+                if(i==0){
+                    live.add(j);
+                    availableRegisters.remove(registers[lowerIdx]);
+                    lineMap.put(j, registers[lowerIdx]);
+                    map.put(trueGoal, registers[lowerIdx]);
+                }
             }
         }
         int initLastUsed = Collections.min(requiresInit);
 
-        List<Register> availableRegisters = new ArrayList<>(Arrays.asList(registers));
-        Set<Integer> live = new HashSet<>();
-        Mapping map = new Mapping();
-        Map<Integer, Register> lineMap = new HashMap<>();
-        for (int i = 0; i < liveness.length; i++) {
+
+        for (int i = 1; i < liveness.length; i++) {
             if(live.contains(i)){
                 live.remove(i);
                 availableRegisters.add(0, lineMap.get(i));

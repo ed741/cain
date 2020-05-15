@@ -1,7 +1,9 @@
 package uk.co.edstow.cpacgen;
 
 import uk.co.edstow.cpacgen.scamp5.Scamp5PairGenFactory;
+import uk.co.edstow.cpacgen.scamp5.emulator.Scamp5Emulator;
 import uk.co.edstow.cpacgen.util.Bounds;
+import uk.co.edstow.cpacgen.util.Tuple;
 
 import java.util.*;
 
@@ -13,13 +15,19 @@ import static uk.co.edstow.cpacgen.scamp5.Scamp5PairGenFactory.Config.SearchStra
 
 public class DemoSuite {
 
+    final static boolean SOBEL = false;
+    final static boolean BOX = false;
+    final static boolean GUASS = false;
+    final static boolean CNN_ON_FPSP_ANALOG_NET_2 = false;
+    final static boolean CNN_ON_FPSP_MAX_POOLED = true;
+    final static boolean RANDOM_DENSE = false;
+    final static boolean RANDOM_SPARSE = false;
 
 
 
     private static class TestSetup {
         final String name;
         final RegisterAllocator.Register[] availableRegisters;
-        final RegisterAllocator ra;
         final Scamp5PairGenFactory pairGenFactory;
         final ReverseSearch.RunConfig runConfig;
 
@@ -33,7 +41,7 @@ public class DemoSuite {
         private TestSetup(int cores, ReverseSearch.TraversalAlgorithm traversalAlgorithm, int registerCount, int threshold, boolean allOps, int seconds){
             RegisterAllocator.Register[] allRegisters = new RegisterAllocator.Register[]{A, B, C, D, E, F};
             final RegisterAllocator.Register[] availableRegisters = Arrays.copyOfRange(allRegisters, 0, registerCount);
-            this.ra = new RegisterAllocator(A, availableRegisters);
+            RegisterAllocator ra = new RegisterAllocator(A, availableRegisters);
             Scamp5PairGenFactory pairGenFactory = new Scamp5PairGenFactory(
                     (goals, depth, rs1, initalGoal) -> {
                         int max = Integer.MIN_VALUE;
@@ -74,11 +82,11 @@ public class DemoSuite {
     private static List<TestSetup> initialiseTestSetups() {
         List<TestSetup> setups = new ArrayList<>();
         setups.add(new TestSetup(4, SOT, 6, 10, true, 60));
-        setups.add(new TestSetup(1, SOT, 6, 10, true, 60));
-        setups.add(new TestSetup(1, SOT, 6, 10, false, 60));
-        setups.add(new TestSetup(4, DFS, 6, 10, true, 60));
-        setups.add(new TestSetup(4, SOT, 6, 0, true, 60));
-        setups.add(new TestSetup(4, SOT, 6, 10, true, 5));
+//        setups.add(new TestSetup(1, SOT, 6, 10, true, 60));
+//        setups.add(new TestSetup(1, SOT, 6, 10, false, 60));
+//        setups.add(new TestSetup(4, DFS, 6, 10, true, 60));
+//        setups.add(new TestSetup(4, SOT, 6, 0, true, 60));
+//        setups.add(new TestSetup(4, SOT, 6, 10, true, 5));
 
         return setups;
     }
@@ -122,8 +130,9 @@ public class DemoSuite {
     }
 
     private static List<Test> initialiseDemosList(){
+
         List<Test> demos = new ArrayList<>();
-        {
+        if (SOBEL) {
             final int[][] SobelV = new int[][]{
                     {0, 0, 0, 0, 0},
                     {0, 1, 0, -1, 0},
@@ -143,7 +152,7 @@ public class DemoSuite {
             demos.add(new Test("Vertical Sobel", Collections.singletonList(new Goal.Factory(SobelV).get()), 0, "7"));
             demos.add(new Test("Vertical and Horizontal Sobel", Arrays.asList(new Goal.Factory(SobelV).get(), new Goal.Factory(SobelH).get()), 0, "(7+7)"));
         }
-        {
+        if (BOX) {
             final int[][] Box2x2 = new int[][]{
                     {0, 0, 0, 0, 0},
                     {0, 0, 1, 1, 0},
@@ -174,7 +183,7 @@ public class DemoSuite {
             demos.add(new Test("5x5 Box", Collections.singletonList(new Goal.Factory(Box5x5).get()), 0, "15"));
             demos.add(new Test("5x5 and 3x3 Box", Arrays.asList(new Goal.Factory(Box3x3).get(), new Goal.Factory(Box5x5).get()), 0, "(8+15)"));
         }
-        {
+        if (GUASS) {
             int[][] Guass3x3 = new int[][]{
                     {0, 0, 0, 0, 0},
                     {0, 1, 2, 1, 0},
@@ -194,9 +203,72 @@ public class DemoSuite {
             demos.add(new Test("5x5 Guass", Collections.singletonList(new Goal.Factory(Guass5x5).get()), 6, "50 (44?)"));
             demos.add(new Test("5x5 and 3x3 Guass", Arrays.asList(new Goal.Factory(Guass5x5).get(), new Goal.Factory(Guass3x3, 4).get()), 6, "(50+12)"));
         }
+        if (CNN_ON_FPSP_ANALOG_NET_2) {// AnalogNet2, https://github.com/brouwa/CNNs-on-FPSPs/tree/master/1%20-%20AnalogNet2
+             final int[][] kernel1 = new int[][]{
+                    {0, 0, 0, 0, 0},
+                    {0, 0, 0, 0, 0},
+                    {0, -3, 1, 0, 0},
+                    {0, -3, 0, 2, 0},
+                    {0, 0, 0, 0, 0}
+            };
+
+            final int[][] kernel2 = new int[][]{
+                    {0, 0, 0, 0, 0},
+                    {0, -4, -1, 1, 0},
+                    {0, -1, 2, 0, 0},
+                    {0, 1, 1, 0, 0},
+                    {0, 0, 0, 0, 0}
+            };
+
+            final int[][] kernel3 = new int[][]{
+                    {0, 0, 0, 0, 0},
+                    {0, -1, 2, 0, 0},
+                    {0, -1, 1, -3, 0},
+                    {0, 0, -3, 0, 0},
+                    {0, 0, 0, 0, 0}
+            };
+
+            demos.add(new Test("AnalogNet2", Arrays.asList(new Goal.Factory(kernel1).get(), new Goal.Factory(kernel2).get(), new Goal.Factory(kernel3).get()), 2, "UNKNOWN"));
+        }
+        if (CNN_ON_FPSP_MAX_POOLED) {//https://github.com/brouwa/CNNs-on-FPSPs/
+            final int[][] kernel1 = new int[][]{
+                    {0, 0, 0, 0, 0},
+                    {0, 1, 1, 0, 0},
+                    {0, 0, 0, 0, 0},
+                    {0, 1, 0, 0, 0},
+                    {0, 0, 0, 0, 0}
+            };
+
+            final int[][] kernel2 = new int[][]{
+                    {0, 0, 0, 0, 0},
+                    {0, 1, 0, -2, 0},
+                    {0, 0, -2, 0, 0},
+                    {0, -1, -2, 1, 0},
+                    {0, 0, 0, 0, 0}
+            };
+
+            final int[][] kernel3 = new int[][]{
+                    {0, 0, 0, 0, 0},
+                    {0, 0, 1, 1, 0},
+                    {0, -2, -2, -1, 0},
+                    {0, 0, 0, 0, 0},
+                    {0, 0, 0, 0, 0}
+            };
+
+            final int[][] kernel4 = new int[][]{
+                    {0, 0, 0, 0, 0},
+                    {0, 0, -1, -1, 0},
+                    {0, 0, 0, 0, 0},
+                    {0, 1, 0, 1, 0},
+                    {0, 0, 0, 0, 0}
+            };
+
+            demos.add(new Test("MaxPooled", Arrays.asList(new Goal.Factory(kernel1).get(), new Goal.Factory(kernel2).get(), new Goal.Factory(kernel3).get(), new Goal.Factory(kernel4).get()), 2, "UNKNOWN"));
+        }
         {
-            Random rand = new Random(2001);
-            {
+
+            if (RANDOM_DENSE) {
+                Random rand = new Random(2001);
                 Goal[] r = new Goal[4];
                 for (int i = 0; i < r.length; i++) {
                     r[i] = new Goal.Factory(makeRandom(rand, 3, 0, 8, 0)).get();
@@ -210,7 +282,8 @@ public class DemoSuite {
                 demos.add(new Test("Random0&1 3x3 [0-8] 0%", Arrays.asList(r[0], r[1]), 3, "(28+35)"));
                 demos.add(new Test("Random2&3 3x3 [0-8] 0%", Arrays.asList(r[2], r[3]), 3, "(37+35)"));
             }
-            {
+            if (RANDOM_SPARSE) {
+                Random rand = new Random(2002);
                 Goal[] r = new Goal[4];
                 for (int i = 0; i < r.length; i++) {
                     r[i] = new Goal.Factory(makeRandom(rand, 3, 1, 8, 0.5)).get();
@@ -276,11 +349,23 @@ public class DemoSuite {
                 System.out.println(p);
                 System.out.println("CircuitDepths:" + Arrays.toString(p.circuitDepths()));
                 //System.out.println(p.toGoalsString());
-                RegisterAllocator.Mapping mapping = setup.ra.solve(p);
+                RegisterAllocator.Mapping mapping = setup.runConfig.registerAllocator.solve(p);
                 //System.out.println(mapping);
-                System.out.println(p.produceCode(mapping));
+                String code = p.produceCode(mapping);
+                System.out.println(code);
                 System.out.println(p.getAll().get(0).toGoalsString(Collections.emptyList()));
+
+
+                if(!checkPlan(test, setup, code)){
+                    System.exit(-1);
+                }
+
+
                 test.results.put(setup, p);
+
+
+
+
             } else {
                 System.out.println("None found!");
             }
@@ -395,6 +480,58 @@ public class DemoSuite {
             out.add(sb.toString());
         }
         return out;
+    }
+
+    private static boolean checkPlan(Test test, TestSetup setup, String code){
+        System.out.println(new Bounds(test.finalGoals).largestMagnitute());
+        Scamp5Emulator emulator = new Scamp5Emulator(new Bounds(test.finalGoals).largestMagnitute()*2);
+        emulator.run(String.format("input(%s,%d)", setup.runConfig.registerAllocator.getInitRegister(), (1<<test.divisions)*128));
+        emulator.pushCode(code);
+        emulator.flushInstructionBuffer();
+        for (int i = 0; i < test.finalGoals.size(); i++) {
+            System.out.println("Goal: " + i + "In: " + setup.availableRegisters[i].toString());
+            System.out.println(test.finalGoals.get(i));
+            Map<Tuple<Integer, Integer>, Double> testMap = emulator.getRawProcessingElementContains(0, 0, setup.availableRegisters[i].toString());
+            System.out.println(testMap);
+
+
+
+            Goal.Factory factory = new Goal.Factory();
+            testMap.forEach((tuple, d) -> {
+                if(d!=0) {
+                    factory.add(new Atom(tuple.getA(), tuple.getB(), 0, d >= 0), Math.abs(d.intValue()));
+                }
+            });
+
+            Goal testOut = factory.get();
+            System.out.println("true out:");
+            System.out.println(testOut.getCharTableString(true, true, true, true));
+            System.out.println("target out:");
+            System.out.println(test.finalGoals.get(i).getCharTableString(false, false, true, true));
+
+            Iterator<Tuple<Atom, Integer>> iterator = test.finalGoals.get(i).uniqueCountIterator();
+            while (iterator.hasNext()){
+                Tuple<Atom, Integer> t = iterator.next();
+                Tuple<Integer, Integer> coordinate = new Tuple<>(t.getA().x, t.getA().y);
+                Double d = testMap.get(coordinate);
+                int expected = t.getA().positive? t.getB(): -t.getB();
+                if(d == null || Double.compare(expected, d) != 0){
+                    System.out.println("INTEGRITY CHECK ERROR");
+                    System.out.println(coordinate);
+                    System.out.println(d);
+                    System.out.println(expected);
+                    return false;
+                }
+                testMap.remove(coordinate);
+            }
+            if(!testMap.isEmpty()){
+                System.out.println("INTEGRITY CHECK ERROR!");
+                System.out.println(testMap);
+                return false;
+            }
+
+        }
+        return true;
     }
 
 

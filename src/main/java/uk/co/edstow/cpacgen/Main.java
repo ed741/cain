@@ -1,10 +1,11 @@
 package uk.co.edstow.cpacgen;
 
 import uk.co.edstow.cpacgen.scamp5.Scamp5PairGenFactory;
+import uk.co.edstow.cpacgen.scamp5.emulator.Scamp5Emulator;
+import uk.co.edstow.cpacgen.util.Bounds;
+import uk.co.edstow.cpacgen.util.Tuple;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 import static uk.co.edstow.cpacgen.RegisterAllocator.Register.*;
 import static uk.co.edstow.cpacgen.scamp5.Scamp5PairGenFactory.Config.SearchStrategy.Exhuastive;
@@ -13,6 +14,7 @@ import static uk.co.edstow.cpacgen.scamp5.Scamp5PairGenFactory.Config.SearchStra
 public class Main {
     public static void main(String[] args) {
         List<Goal> final_goals = new ArrayList<>();
+        int divisions = 0;
 
 
 
@@ -80,6 +82,17 @@ public class Main {
         };
         //final_goals.add(new Goal.Factory(multiBox5x5).get());
 
+        int[][] multiBox7x7 = new int[][]{
+                { 1, 1, 1, 1, 1, 1, 1},
+                { 1, 1, 1, 1, 1, 1, 1},
+                { 1, 1, 1, 1, 1, 1, 1},
+                { 1, 1, 1, 1, 1, 1, 1},
+                { 1, 1, 1, 1, 1, 1, 1},
+                { 1, 1, 1, 1, 1, 1, 1},
+                { 1, 1, 1, 1, 1, 1, 1}
+        };
+        //final_goals.add(new Goal.Factory(multiBox7x7).get());
+
         int[][] multiGuass3x3 = new int[][]{
                 { 0, 0, 0, 0, 0},
                 { 0, 1, 2, 1, 0},
@@ -87,7 +100,10 @@ public class Main {
                 { 0, 1, 2, 1, 0},
                 { 0, 0, 0, 0, 0}
         };
-        final_goals.add(new Goal.Factory(multiGuass3x3, 4).get());
+//        final_goals.add(new Goal.Factory(multiGuass3x3, 4).get());
+//        divisions = 6;
+//        final_goals.add(new Goal.Factory(multiGuass3x3).get());
+//        divisions = 4;
 
         int[][] multiGuass5x5 = new int[][]{
                 { 0, 1, 2, 1, 0},
@@ -96,7 +112,8 @@ public class Main {
                 { 1, 4, 6, 4, 1},
                 { 0, 1, 2, 1, 0}
         };
-        //final_goals.add(new Goal.Factory(multiGuass5x5).get());
+        final_goals.add(new Goal.Factory(multiGuass5x5).get());
+        divisions = 6;
 
         int[][] multi1 = new int[][]{
                 { 0, 0, 0, 0, 0},
@@ -129,6 +146,7 @@ public class Main {
         RegisterAllocator.Register[] availableRegisters = new RegisterAllocator.Register[]{A, B, C, D, E, F};
         RegisterAllocator registerAllocator = new RegisterAllocator(A, availableRegisters);
 
+
         Scamp5PairGenFactory pairGenFactory = new Scamp5PairGenFactory(
                 (goals, depth, rs1, initalGoal) -> {
 //                    Scamp5PairGenFactory.Config conf = new Scamp5PairGenFactory.Config(SortedAtomDistance, availableRegisters.length, depth);
@@ -136,7 +154,7 @@ public class Main {
                     for (Goal goal : goals) {
                         max = Math.max(max, goal.atomCount());
                     }
-                    int threshold = 0;
+                    int threshold = 10;
                     Scamp5PairGenFactory.Config conf = new Scamp5PairGenFactory.Config(max>threshold? SortedAtomDistance: Exhuastive, availableRegisters.length, depth);
                     conf.useAll();
                     conf.useSubPowerOf2();
@@ -147,9 +165,9 @@ public class Main {
         ReverseSearch.RunConfig config = new ReverseSearch.RunConfig();
         config.setWorkers(1)
                 .setRegisterAllocator(registerAllocator)
-                .setTimeOut(false).setLiveCounter(true).setSearchTime(60000)
+                .setTimeOut(true).setLiveCounter(true).setSearchTime(10000)
                 .setTraversalAlgorithm(ReverseSearch.TraversalAlgorithm.SOT);
-        ReverseSearch rs = new ReverseSearch(6, final_goals, pairGenFactory, config);
+        ReverseSearch rs = new ReverseSearch(divisions, final_goals, pairGenFactory, config);
         rs.search();
 
         System.out.println("print plans");
@@ -173,8 +191,53 @@ public class Main {
         System.out.println(p.toGoalsString());
         RegisterAllocator.Mapping mapping = registerAllocator.solve(p);
         System.out.println(mapping);
-        System.out.println(p.produceCode(mapping));
+        String code = p.produceCode(mapping);
+        System.out.println(code);
 
+        System.out.println(new Bounds(final_goals).largestMagnitute());
+        Scamp5Emulator emulator = new Scamp5Emulator(new Bounds(final_goals).largestMagnitute()*2);
+        emulator.run(String.format("input(%s,%d)", registerAllocator.getInitRegister(), (1<<divisions)*128));
+        emulator.pushCode(code);
+        emulator.flushInstructionBuffer();
+        for (int i = 0; i < final_goals.size(); i++) {
+            System.out.println("Goal: " + i + "In: " + availableRegisters[i].toString());
+            System.out.println(final_goals.get(i));
+            Map<Tuple<Integer, Integer>, Double> testMap = emulator.getRawProcessingElementContains(0, 0, availableRegisters[i].toString());
+            System.out.println(testMap);
+            Iterator<Tuple<Atom, Integer>> iterator = final_goals.get(i).uniqueCountIterator();
+
+            Goal.Factory factory = new Goal.Factory();
+            testMap.forEach((tuple, d) -> {
+                if(d!=0) {
+                    factory.add(new Atom(tuple.getA(), tuple.getB(), 0, d >= 0), Math.abs(d.intValue()));
+                }
+            });
+
+            Goal testOut = factory.get();
+            System.out.println("true out:");
+            System.out.println(testOut.getCharTableString(true, true, true, true));
+            System.out.println("target out:");
+            System.out.println(final_goals.get(i).getCharTableString(false, false, true, true));
+
+
+            while (iterator.hasNext()){
+                Tuple<Atom, Integer> t = iterator.next();
+                Tuple<Integer, Integer> coordinate = new Tuple<>(t.getA().x, t.getA().y);
+                Double d = testMap.get(coordinate);
+                if(d == null || Double.compare(t.getB(), d) != 0){
+                    System.out.println("INTEGRITY CHECK ERROR");
+                    System.out.println(coordinate);
+                    System.out.println(d);
+                    System.out.println(t.getB());
+                }
+                testMap.remove(coordinate);
+            }
+            if(!testMap.isEmpty()){
+                System.out.println("INTEGRITY CHECK ERROR!");
+                System.out.println(testMap);
+            }
+
+        }
 
 
     }

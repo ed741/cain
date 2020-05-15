@@ -631,23 +631,44 @@ public class Goal implements List<Atom>, Comparable<Goal>{
             throw new UnsupportedOperationException("Cannot add Goals at index");
         }
 
-        public String toGoalsString() {
+        public static String toGoalsString(List<Goal> goals) {
 
-            Bounds b = new Bounds(new Bounds(this), new Atom(0,0,0, true));
+            Bounds b = new Bounds(new Bounds(goals), new Atom(0,0,0, true));
             int height = 1 + b.yMax - b.yMin;
             int width = 1 + b.xMax - b.xMin;
             List<String[][]> arrays = new ArrayList<>();
+            List<int[]> widthArrays = new ArrayList<>();
 
-            for (int i = 0; i < size(); i++) {
-                String[][] tableArray = get(i).getCharTable(b, width, height, false, false, true, true);
+            for (int i = 0; i < goals.size(); i++) {
+                String[][] tableArray = goals.get(i).getCharTable(b, width, height, false, false, true, true);
                 arrays.add(tableArray);
             }
+            for (String[][] array : arrays) {
+                int[] widths = new int[array[0].length];
+                for (int j = 0; j < array.length; j++) {
+                    for (int i = 0; i < array[j].length; i++) {
+                        int len = array[j][i].replaceAll("\u001B\\[[0-9]+m", "").length();
+                        if(len > widths[i]){
+                            widths[i] = len;
+                        }
+                    }
+                }
+                widthArrays.add(widths);
+
+            }
+
 
             StringBuilder sb = new StringBuilder();
             for (int j = height+1; j >= 0; j--) {
-                for (String[][] array : arrays) {
+                for (int i1 = 0; i1 < arrays.size(); i1++) {
+                    String[][] array = arrays.get(i1);
+                    int[] widths = widthArrays.get(i1);
                     for (int i = 0; i < array[j].length; i++) {
+                        int len = array[j][i].replaceAll("\u001B\\[[0-9]+m", "").length();
                         sb.append(array[j][i]);
+                        for(int l = len; l < widths[i]; l++){
+                            sb.append("_");
+                        }
                     }
                     sb.append(' ');
                 }
