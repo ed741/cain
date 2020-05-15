@@ -1,5 +1,6 @@
 package uk.co.edstow.cpacgen;
 
+import org.jfree.data.time.Millisecond;
 import uk.co.edstow.cpacgen.pairgen.PairGenFactory;
 import uk.co.edstow.cpacgen.util.Tuple;
 
@@ -12,34 +13,37 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class ReverseSearch {
 
+
     public enum TraversalAlgorithm {
         DFS, BFS, SOT
     }
     public static class RunConfig {
         //interface
-        public boolean liveCounter;
+        private boolean liveCounter;
+        private int livePrintPlans;
 
         // Search capabilities
-        public int workers;
+        private int workers;
 
         // Search limits
-        public int searchTime;
-        public boolean timeOut;
+        private int searchTime;
+        private boolean timeOut;
 
         // Search Rules
-        public TraversalAlgorithm traversalAlgorithm;
-        public int initialMaxDepth;
-        public int forcedDepthReduction; // once a plan is found at depth 10, cull searches at "depth - forcedDepthReduction".
-        public RegisterAllocator registerAllocator; // The register allocator to ensure plans are allocatable
+        private TraversalAlgorithm traversalAlgorithm;
+        private int initialMaxDepth;
+        private int forcedDepthReduction; // once a plan is found at depth 10, cull searches at "depth - forcedDepthReduction".
+        private RegisterAllocator registerAllocator; // The register allocator to ensure plans are allocatable
 
         // Search Heuristics
-        public int allowableAtomsCoefficent; // cull plans that use more atoms than: "finalGoal * allowableAtomsCoefficent + initalGoal".
-        public int goalReductionsPerStep; // cull plans that have more active goals than steps before max depth to reduce the number to one.
-        public int goalReductionsTolorance; // add a tolerance to allow for a "less conservative" (lower) goalReductionsPerStep if larger reductions are unlikely.
-        public int maxChildrenInDFS; // Number of goal pairs to search at each point before returning (pairs not searched are saved into the work queue for later).
+        private int allowableAtomsCoefficent; // cull plans that use more atoms than: "finalGoal * allowableAtomsCoefficent + initalGoal".
+        private int goalReductionsPerStep; // cull plans that have more active goals than steps before max depth to reduce the number to one.
+        private int goalReductionsTolorance; // add a tolerance to allow for a "less conservative" (lower) goalReductionsPerStep if larger reductions are unlikely.
+        private int maxChildrenInDFS; // Number of goal pairs to search at each point before returning (pairs not searched are saved into the work queue for later).
 
-        public RunConfig(boolean liveCounter, int workers, int searchTime, boolean timeOut, TraversalAlgorithm traversalAlgorithm, int initialMaxDepth, int forcedDepthReduction, RegisterAllocator registerAllocator, int allowableAtomsCoefficent, int goalReductionsPerStep, int goalReductionsTolorance, int maxChildrenInDFS) {
+        public RunConfig(boolean liveCounter, int livePrintPlans, int workers, int searchTime, boolean timeOut, TraversalAlgorithm traversalAlgorithm, int initialMaxDepth, int forcedDepthReduction, RegisterAllocator registerAllocator, int allowableAtomsCoefficent, int goalReductionsPerStep, int goalReductionsTolorance, int maxChildrenInDFS) {
             this.liveCounter = liveCounter;
+            this.livePrintPlans = livePrintPlans;
             this.workers = workers;
             this.searchTime = searchTime;
             this.timeOut = timeOut;
@@ -55,6 +59,7 @@ public class ReverseSearch {
 
         public RunConfig() {
             this.liveCounter = true;
+            this.livePrintPlans = 2;
             this.workers = 1;
             this.searchTime = 60000;
             this.timeOut = false;
@@ -71,7 +76,10 @@ public class ReverseSearch {
             this.liveCounter = liveCounter;
             return this;
         }
-
+        public RunConfig setLivePrintPlans(int printPlans){
+            this.livePrintPlans = printPlans;
+            return this;
+        }
         public RunConfig setWorkers(int workers) {
             if(workers < 1){
                 throw new IllegalArgumentException("workers must be greater than 0");
@@ -161,6 +169,7 @@ public class ReverseSearch {
     private final int finalGoalAtoms;
 
     private final List<Plan> plans;
+    private final List<Long> planTimes;
     private final ReentrantLock planLock;
     private final GoalsCache cache;
 
@@ -173,6 +182,7 @@ public class ReverseSearch {
 
     private long startTime;
     private final boolean liveCounter;
+    private final int livePrintPlans;
 
     private final boolean timeout;
     private final long maxTime;
@@ -189,6 +199,7 @@ public class ReverseSearch {
 
     public ReverseSearch(int divisions, List<Goal> finalGoals, PairGenFactory pairGenFactory, RunConfig runConfig) {
         this.liveCounter = runConfig.liveCounter;
+        this.livePrintPlans = runConfig.livePrintPlans;
 
         // Set up final and initial Goals
         this.finalGoals = Collections.unmodifiableList(new ArrayList<>(finalGoals));
@@ -198,6 +209,7 @@ public class ReverseSearch {
 
         // Init Internal components
         this.plans = new ArrayList<>();
+        this.planTimes = new ArrayList<>();
         this.planLock = new ReentrantLock();
         this.cache = new GoalsCache();
 
@@ -492,16 +504,15 @@ public class ReverseSearch {
                         for (int i = 0; i < pairs.size(); i++) {
                             Goal.Pair pair = pairs.get(i);
                             boolean e = goals.removeEquivalent(pair.getUpper());
-                            if (!e) {
-
-                                System.out.println(currentPlan.toGoalsString());
-
-                                System.out.println("ERROR" + id + " \n" + pair.getUpper().getCharTableString(true, true, true, true) + "--");
-                                System.out.println("ERROR" + id + " \n" + pair.getTransformation().toString() + "--");
-                                System.out.println("ERROR" + id + " \n" + pair.getTransformation().toStringN() + "--");
-                                System.exit(-1);
-
-                            }
+                            assert e;
+//                            if (!e) {
+////                                System.out.println(currentPlan.toGoalsString());
+////
+////                                System.out.println("ERROR" + id + " \n" + pair.getUpper().getCharTableString(true, true, true, true) + "--");
+////                                System.out.println("ERROR" + id + " \n" + pair.getTransformation().toString() + "--");
+////                                System.out.println("ERROR" + id + " \n" + pair.getTransformation().toStringN() + "--");
+//                                System.exit(-1);
+//                            }
                             assert pair.getLowers().size() == 1;
                             goals.addAll(pair.getLowers());
                             Goal[] translation = new Goal[1];
@@ -594,27 +605,27 @@ public class ReverseSearch {
         private boolean addPlan(Plan p, int id, int depth){
             RegisterAllocator.Mapping mapping = registerAllocator.solve(p);
             if (mapping == null){
-                System.out.println(this.id + " Plan Found but registers cannot be allocated");
+                if (livePrintPlans>0) System.out.println(this.id + " Plan Found but registers cannot be allocated");
                 return false;
             }
-            final int currentMaxDepth = maxDepth.updateAndGet(x->Math.min(p.depth()-forcedDepthReduction, x));
+            maxDepth.updateAndGet(x->Math.min(p.depth()-forcedDepthReduction, x));
             Worker w = this;
             do {
                 w.workerMinDepth = depth;
                 w.workerMaxDepth = 0;
-                System.out.println(id + " remove deep states:"+w.localWorkQueue.stream().filter(s->s.depth>currentMaxDepth).count());
-                w.localWorkQueue.removeIf(s->s.depth>currentMaxDepth);
                 w = w.next;
             } while(w != this);
 
             this.plansFound++;
 
-            System.out.println("Found new Plan (id:"+id+"): Length: " + p.depth() + " ("+depth + ") | Cost: "+p.cost());
-            System.out.println(p);
+            if (livePrintPlans>0) System.out.println("Found new Plan (id:" + id + "): Length: " + p.depth() + " (" + depth + ") | Cost: " + p.cost());
+            if (livePrintPlans>1) System.out.println(p);
+
 
             try {
                 planLock.lock();
                 plans.add(p);
+                planTimes.add(System.currentTimeMillis()-startTime);
 
                 if (plans.size() > 1) {
                     Plan lastPlan = plans.get(plans.size() - 2);
@@ -623,7 +634,7 @@ public class ReverseSearch {
                             lastPlan.getAll().get(i) == p.getAll().get(i)) {
                         i++;
                     }
-                    System.out.println("Diverges from last plan at step: " + i);
+                    if (livePrintPlans>1) System.out.println("Diverges from last plan at step: " + i);
                 }
             } finally {
                 planLock.unlock();
@@ -656,8 +667,16 @@ public class ReverseSearch {
 
     public void printStats(){
         System.out.println(cache);
-        System.out.println("Number of Plans:" + plans.size());
+        System.out.println("Number of Plans: " + plans.size());
         System.out.println("Current Max Depth: " + maxDepth);
+        try{
+            planLock.lock();
+            for (int i = 0; i < planTimes.size(); i++) {
+                System.out.println("Plan: "+i+" (depth="+plans.get(i).depth()+") found at " + planTimes.get(i) + "ms");
+            }
+        } finally {
+            planLock.unlock();
+        }
     }
 
 

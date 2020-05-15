@@ -41,6 +41,7 @@ public class Plan {
         this.depth = previous.depth + 1;
     }
 
+
 //    public void push(Goal.Pair newPair, Goal.Bag currentGoals, Goal[] translation, String comment) {
 //        Step newStep = new Step(newPair, currentGoals, translation, comment);
 //        all.add(newStep);

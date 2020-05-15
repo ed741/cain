@@ -37,6 +37,7 @@ public class DemoSuite {
         final int threshold;
         final boolean allOps;
         final int seconds;
+        final RegisterAllocator registerAllocator;
 
         private TestSetup(int cores, ReverseSearch.TraversalAlgorithm traversalAlgorithm, int registerCount, int threshold, boolean allOps, int seconds){
             RegisterAllocator.Register[] allRegisters = new RegisterAllocator.Register[]{A, B, C, D, E, F};
@@ -61,10 +62,11 @@ public class DemoSuite {
 
             ReverseSearch.RunConfig config = new ReverseSearch.RunConfig();
             config.setSearchTime(seconds*1000).setWorkers(cores).setRegisterAllocator(ra).setTimeOut(true)
-                    .setTraversalAlgorithm(traversalAlgorithm);
+                    .setTraversalAlgorithm(traversalAlgorithm).setLivePrintPlans(1);
 
             this.name = String.format("%d Core, %s, %d registers, threshold %d, %s, %d seconds", cores, traversalAlgorithm, registerCount, threshold, allOps?"AllOps":"BasicOps", seconds);
             this.availableRegisters = availableRegisters;
+            this.registerAllocator = ra;
             this.pairGenFactory = pairGenFactory;
             this.runConfig = config;
             this.cores = cores;
@@ -315,7 +317,7 @@ public class DemoSuite {
                 System.out.println("\t" + entry.getKey().name + " -> " + entry.getValue().cost() + " ("+entry.getValue().depth()+ ")");
 
         }
-
+        System.out.println("\nLatex Table:\n");
         System.out.println(makeLatexTable(demos, setups));
 
 
@@ -326,6 +328,7 @@ public class DemoSuite {
 
     private static void runFilter(Test test, List<TestSetup> setups){
         System.out.println("Running: "+ test.name);
+        System.out.println(Goal.Bag.toGoalsString(test.finalGoals));
 
         for (TestSetup setup : setups) {
             ReverseSearch rs = new ReverseSearch(test.divisions, test.finalGoals, setup.pairGenFactory, setup.runConfig);
@@ -342,21 +345,23 @@ public class DemoSuite {
             }
             rs.printStats();
 
-            System.out.println("Best:");
+            System.out.println("Best: "+ imin);
             if(imin < rs.getPlans().size()) {
                 Plan p = rs.getPlans().get(imin);
                 System.out.println("length: " + p.depth() + " Cost: " + p.cost());
                 System.out.println(p);
                 System.out.println("CircuitDepths:" + Arrays.toString(p.circuitDepths()));
                 //System.out.println(p.toGoalsString());
-                RegisterAllocator.Mapping mapping = setup.runConfig.registerAllocator.solve(p);
+                RegisterAllocator.Mapping mapping = setup.registerAllocator.solve(p);
                 //System.out.println(mapping);
                 String code = p.produceCode(mapping);
                 System.out.println(code);
-                System.out.println(p.getAll().get(0).toGoalsString(Collections.emptyList()));
+                System.out.println(Goal.Bag.toGoalsString(test.finalGoals));
 
-
-                if(!checkPlan(test, setup, code)){
+                if(checkPlan(test, setup, code)) {
+                    System.out.println("Code validated on emulator");
+                }else{
+                    System.out.println("Code failed validation");
                     System.exit(-1);
                 }
 
@@ -483,31 +488,30 @@ public class DemoSuite {
     }
 
     private static boolean checkPlan(Test test, TestSetup setup, String code){
-        System.out.println(new Bounds(test.finalGoals).largestMagnitute());
-        Scamp5Emulator emulator = new Scamp5Emulator(new Bounds(test.finalGoals).largestMagnitute()*2);
-        emulator.run(String.format("input(%s,%d)", setup.runConfig.registerAllocator.getInitRegister(), (1<<test.divisions)*128));
+        Scamp5Emulator emulator = new Scamp5Emulator(new Bounds(test.finalGoals).largestMagnitute()*3);
+        emulator.run(String.format("input(%s,%d)", setup.registerAllocator.getInitRegister(), (1<<test.divisions)*128));
         emulator.pushCode(code);
         emulator.flushInstructionBuffer();
         for (int i = 0; i < test.finalGoals.size(); i++) {
-            System.out.println("Goal: " + i + "In: " + setup.availableRegisters[i].toString());
-            System.out.println(test.finalGoals.get(i));
+//            System.out.println("Goal: " + i + " In: " + setup.availableRegisters[i].toString());
+//            System.out.println(test.finalGoals.get(i));
             Map<Tuple<Integer, Integer>, Double> testMap = emulator.getRawProcessingElementContains(0, 0, setup.availableRegisters[i].toString());
-            System.out.println(testMap);
+//            System.out.println(testMap);
 
 
 
-            Goal.Factory factory = new Goal.Factory();
-            testMap.forEach((tuple, d) -> {
-                if(d!=0) {
-                    factory.add(new Atom(tuple.getA(), tuple.getB(), 0, d >= 0), Math.abs(d.intValue()));
-                }
-            });
+//            Goal.Factory factory = new Goal.Factory();
+//            testMap.forEach((tuple, d) -> {
+//                if(d!=0) {
+//                    factory.add(new Atom(tuple.getA(), tuple.getB(), 0, d >= 0), Math.abs(d.intValue()));
+//                }
+//            });
 
-            Goal testOut = factory.get();
-            System.out.println("true out:");
-            System.out.println(testOut.getCharTableString(true, true, true, true));
-            System.out.println("target out:");
-            System.out.println(test.finalGoals.get(i).getCharTableString(false, false, true, true));
+//            Goal testOut = factory.get();
+//            System.out.println("true out:");
+//            System.out.println(testOut.getCharTableString(true, true, true, true));
+//            System.out.println("target out:");
+//            System.out.println(test.finalGoals.get(i).getCharTableString(false, false, true, true));
 
             Iterator<Tuple<Atom, Integer>> iterator = test.finalGoals.get(i).uniqueCountIterator();
             while (iterator.hasNext()){
