@@ -8,14 +8,11 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 
 
 public class ReverseSearch {
 
-
-    public enum TraversalAlgorithm {
-        DFS, BFS, SOT
-    }
     @SuppressWarnings({"UnusedReturnValue", "unused"})
     public static class RunConfig {
         //interface
@@ -30,17 +27,17 @@ public class ReverseSearch {
         private boolean timeOut;
 
         // Search Rules
-        private TraversalAlgorithm traversalAlgorithm;
+        private Supplier<? extends TraversalSystem> traversalAlgorithm;
         private int initialMaxDepth;
         private int forcedDepthReduction; // once a plan is found at depth 10, cull searches at "depth - forcedDepthReduction".
         private RegisterAllocator registerAllocator; // The register allocator to ensure plans are allocatable
 
         // Search Heuristics
-        private int allowableAtomsCoefficient; // cull plans that use more atoms than: "finalGoal * allowableAtomsCoefficient + initialGoal".
+        private int allowableAtomsCoefficient; // cull plans that use more atoms than: "finalGoal * allowableAtomsCoefficient + initialGoals".
         private int goalReductionsPerStep; // cull plans that have more active goals than steps before max depth to reduce the number to one.
         private int goalReductionsTolerance; // add a tolerance to allow for a "less conservative" (lower) goalReductionsPerStep if larger reductions are unlikely.
 
-        public RunConfig(boolean liveCounter, int livePrintPlans, int workers, int searchTime, boolean timeOut, TraversalAlgorithm traversalAlgorithm, int initialMaxDepth, int forcedDepthReduction, RegisterAllocator registerAllocator, int allowableAtomsCoefficient, int goalReductionsPerStep, int goalReductionsTolerance) {
+        public RunConfig(boolean liveCounter, int livePrintPlans, int workers, int searchTime, boolean timeOut, Supplier<TraversalSystem> traversalAlgorithm, int initialMaxDepth, int forcedDepthReduction, RegisterAllocator registerAllocator, int allowableAtomsCoefficient, int goalReductionsPerStep, int goalReductionsTolerance) {
             this.liveCounter = liveCounter;
             this.livePrintPlans = livePrintPlans;
             this.workers = workers;
@@ -61,7 +58,7 @@ public class ReverseSearch {
             this.workers = 1;
             this.searchTime = 60000;
             this.timeOut = false;
-            this.traversalAlgorithm = TraversalAlgorithm.SOT;
+            this.traversalAlgorithm = TraversalSystem.SOTFactory();
             this.initialMaxDepth = 200;
             this.forcedDepthReduction = 1;
             this.allowableAtomsCoefficient = 2;
@@ -98,7 +95,7 @@ public class ReverseSearch {
             return this;
         }
 
-        public RunConfig setTraversalAlgorithm(TraversalAlgorithm traversalAlgorithm) {
+        public RunConfig setTraversalAlgorithm(Supplier<? extends TraversalSystem> traversalAlgorithm) {
             this.traversalAlgorithm = traversalAlgorithm;
             return this;
         }
@@ -152,8 +149,10 @@ public class ReverseSearch {
         }
     }
 
-    private final int divisions;
-    private final Goal initialGoal;
+    private final int[] divisions;
+    private final List<Goal> initialGoals;
+    private final int initialGoalsAtomCount;
+    private final int inputs;
     private final List<Goal> finalGoals;
     private final int finalGoalAtoms;
 
@@ -164,7 +163,6 @@ public class ReverseSearch {
 
     private final PairGenFactory pairGenFactory;
 
-//    private final BlockingQueue<WorkState> workQueue;
     private final int workers;
     private final AtomicBoolean end;
     private final Semaphore workersFinished;
@@ -178,7 +176,7 @@ public class ReverseSearch {
     private final AtomicInteger maxDepth;
     private final RegisterAllocator registerAllocator;
     private final int availableRegisters;
-    private final TraversalAlgorithm traversalAlgorithm;
+    private final Supplier<? extends TraversalSystem> traversalAlgorithm;
 
     private final int allowableAtomsCoefficent;
     private final int forcedDepthReduction;
@@ -186,7 +184,7 @@ public class ReverseSearch {
     private final int goalReductionsTolerance;
 
 
-    public ReverseSearch(int divisions, List<Goal> finalGoals, PairGenFactory pairGenFactory, RunConfig runConfig) {
+    public ReverseSearch(int[] divisions, List<Goal> finalGoals, PairGenFactory pairGenFactory, RunConfig runConfig) {
         this.liveCounter = runConfig.liveCounter;
         this.livePrintPlans = runConfig.livePrintPlans;
 
@@ -194,7 +192,14 @@ public class ReverseSearch {
         this.finalGoals = Collections.unmodifiableList(new ArrayList<>(finalGoals));
         this.finalGoalAtoms = new Goal.Bag(this.finalGoals).atomCount();
         this.divisions = divisions;
-        this.initialGoal = new Goal.Factory().add(new Atom(0,0,0, true), 1<<this.divisions).get();
+        this.inputs = divisions.length;
+        this.initialGoals = new ArrayList<>();
+        for (int i = 0; i < this.inputs; i++) {
+            int division = this.divisions[i];
+            initialGoals.add(new Goal.Factory().add(new Atom(0, 0, i, true), 1 << division).get());
+        }
+        initialGoalsAtomCount = initialGoals.stream().mapToInt(Goal::atomCount).sum();
+
 
         // Init Internal components
         this.plans = new ArrayList<>();
@@ -232,8 +237,8 @@ public class ReverseSearch {
 
     }
 
-    public Goal getInitialGoal() {
-        return initialGoal;
+    public List<Goal> getInitialGoals() {
+        return initialGoals;
     }
 
     public List<Goal> getFinalGoals() {
@@ -244,7 +249,7 @@ public class ReverseSearch {
         return plans;
     }
 
-    public int getInitialDivisions() {
+    public int[] getInitialDivisions() {
         return divisions;
     }
 
@@ -305,7 +310,7 @@ public class ReverseSearch {
                 worker.next = workersThreads.get(i-1);
             }
         }
-        workersThreads.get(0).localWorkQueue.add(new WorkState(0, goals, new Plan(finalGoals, initialGoal, "final goals")));
+        workersThreads.get(0).localTraversalSystem.add(new WorkState(0, goals, new Plan(finalGoals, initialGoals, "final goals")));
         workersThreads.get(0).next = workersThreads.get(workersThreads.size()-1);
         workersThreads.forEach(Thread::start);
         Thread mainThread = Thread.currentThread();
@@ -363,7 +368,7 @@ public class ReverseSearch {
 
     }
 
-    private static class WorkState {
+    static class WorkState {
         final int depth;
         final Goal.Bag goals;
         final Plan currentPlan;
@@ -392,7 +397,7 @@ public class ReverseSearch {
         int workerMaxDepth = 0;
         private Worker next;
 
-        final LinkedBlockingDeque<WorkState> localWorkQueue;
+        final TraversalSystem localTraversalSystem;
         int plansFound = 0;
         int cacheChecks = 0;
         int cacheHits = 0;
@@ -400,7 +405,7 @@ public class ReverseSearch {
 
         Worker(int id) {
             this.id = id;
-            this.localWorkQueue = new LinkedBlockingDeque<>();
+            this.localTraversalSystem = traversalAlgorithm.get();
 
         }
 
@@ -409,7 +414,7 @@ public class ReverseSearch {
             System.out.println("Worker " + id + " Starting");
             try {
                 while (running()) {
-                    WorkState s = localWorkQueue.pollFirst();
+                    WorkState s = localTraversalSystem.poll();
                     if (s == null) {
                         active = false;
                         s = stealWork();
@@ -429,7 +434,7 @@ public class ReverseSearch {
             Worker c = next;
             WorkState s = null;
             while (s==null){
-                s = c.localWorkQueue.pollLast(100, TimeUnit.MILLISECONDS);
+                s = localTraversalSystem.steal(c.localTraversalSystem);
                 c = c.next;
             }
             steals++;
@@ -456,7 +461,7 @@ public class ReverseSearch {
 
             if(goalPairs == null) {
 
-                if (goals.atomCount() >= ((allowableAtomsCoefficent * finalGoalAtoms) + initialGoal.atomCount())) {
+                if (goals.atomCount() >= ((allowableAtomsCoefficent * finalGoalAtoms) + initialGoalsAtomCount)) {
                     return;
                 }
 
@@ -466,14 +471,13 @@ public class ReverseSearch {
                     return;
                 }
 
-                if (goals.size() == 1) {
-                    Goal g = goals.iterator().next();
-                    if (g.equals(initialGoal)) {
+                if (goals.size() == inputs) {
+                    if (goals.containsAll(initialGoals)) {
                         if (addPlan(currentPlan, id, depth)) {
                             return;
                         }
                     }
-                    List<Goal.Pair> pairs = isTransformable(g, depth);
+                    List<Goal.Pair> pairs = isTransformable(goals, depth);
                     if (pairs != null && !pairs.isEmpty()) {
                         Plan p = currentPlan;
                         Goal.Bag currentGoals = new Goal.Bag(goals);
@@ -485,7 +489,7 @@ public class ReverseSearch {
                             assert pair.getLowers().size() == 1;
                             currentGoals.addAll(pair.getLowers());
                             Goal[] translation = new Goal[1];
-                            translation[0] = pair.getLowers().get(0);
+                            translation[0] = initialGoals.get(initialGoals.indexOf(pair.getLowers().get(0)));
                             p = p.newAdd(pair, currentGoals, translation, "final step " + i);
                         }
                         if (addPlan(p, id, depth)) {
@@ -544,34 +548,18 @@ public class ReverseSearch {
             newGoals.addAll(toAdd);
             newGoals.setImmutable();
 
+            WorkState child = null;
             boolean tryChildren = newGoals.size() +(goalPair.getTransformation().inputRegisterOutputInterferes()?1:0) <= availableRegisters;
-            switch (traversalAlgorithm){
-                case DFS:
-                    localWorkQueue.addFirst(new WorkState(depth, goals, currentPlan, goalPairs));
-                    if(tryChildren){
-                        Plan newPlan = currentPlan.newAdd(goalPair, newGoals, translation, "r_step");
-                        localWorkQueue.addFirst(new WorkState(depth + 1, newGoals, newPlan, null));
-                    }
-                    break;
-                case BFS:
-                    if(tryChildren){
-                        localWorkQueue.addLast(new WorkState(depth + 1, newGoals, currentPlan.newAdd(goalPair, newGoals, translation, "r_step"), null));
-                    }
-                    localWorkQueue.addFirst(new WorkState(depth, goals, currentPlan, goalPairs));
-                    break;
-                case SOT:
-                    localWorkQueue.addLast(new WorkState(depth, goals, currentPlan, goalPairs));
-                    if(tryChildren) {
-                        Plan newPlan = currentPlan.newAdd(goalPair, newGoals, translation, "r_step");
-                        localWorkQueue.addFirst(new WorkState(depth + 1, newGoals, newPlan, null));
-                    }
-
+            if(tryChildren) {
+                Plan newPlan = currentPlan.newAdd(goalPair, newGoals, translation, "r_step");
+                child = new WorkState(depth + 1, newGoals, newPlan, null);
             }
-
+            WorkState next = new WorkState(depth, goals, currentPlan, goalPairs);
+            localTraversalSystem.add(child, next);
 
         }
         private boolean addPlan(Plan p, int id, int depth){
-            RegisterAllocator.Mapping mapping = registerAllocator.solve(p);
+            RegisterAllocator.Mapping mapping = registerAllocator.solve(p, initialGoals);
             if (mapping == null){
                 if (livePrintPlans>0) System.out.println(this.id + " Plan Found but registers cannot be allocated");
                 return false;
@@ -612,24 +600,22 @@ public class ReverseSearch {
     }
 
 
-
-
-
-    /**
-     *
-     * @param goal a goal to find a trnsformation for.
-     * @return the Transformation initial_goal -> goal; iff the initial goal can be directly transformed into goal, else null
-     */
-    private List<Goal.Pair> isTransformable(Goal goal, int depth) {
-        assert !goal.isEmpty();
-        for(Tuple<List<Goal.Pair>, Goal> tuple : this.pairGenFactory.applyAllUnaryOpForwards(initialGoal, depth, goal)){
-            List<Goal.Pair> pairs = tuple.getA();
-            Goal g = tuple.getB();
-            if(goal.same(g)){
-                return pairs;
+    private List<Goal.Pair> isTransformable(Goal.Bag goals, int depth) {
+        List<Goal.Pair> allPairs = new ArrayList<>();
+        int found = 0;
+        for(Goal goal: goals) {
+            assert !goal.isEmpty();
+            for (Tuple<List<Goal.Pair>, Goal> tuple : this.pairGenFactory.applyAllUnaryOpForwards(initialGoals, depth, goal)) {
+                List<Goal.Pair> pairs = tuple.getA();
+                Goal g = tuple.getB();
+                if (initialGoals.contains(g)) {
+                    allPairs.addAll(pairs);
+                    found++;
+                    break;
+                }
             }
         }
-        return null;
+        return found!=goals.size()?null:allPairs;
     }
 
 

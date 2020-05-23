@@ -84,35 +84,41 @@ public class Scamp5PairGenFactory implements PairGenFactory {
     }
 
     public interface ConfigGetter {
-        Config getConfig(Goal.Bag goals, int depth, ReverseSearch rs, boolean initialGoal);
+        Config getConfig(List<Goal> goals, int depth, ReverseSearch rs, boolean initialGoal);
     }
 
     @Override
-    public Collection<Tuple<List<Goal.Pair>, Goal>> applyAllUnaryOpForwards(Goal initialGoal, int depth, Goal goal) {
-        Config conf = confGet.getConfig(new Goal.Bag(initialGoal), depth, rs, true);
+    public Collection<Tuple<List<Goal.Pair>, Goal>> applyAllUnaryOpForwards(List<Goal> initialGoals, int depth, Goal goal) {
+        Config conf = confGet.getConfig(initialGoals, depth, rs, true);
         ArrayList<Tuple<List<Goal.Pair>, Goal>> list = new ArrayList<>();
 
         //Negate
-        Neg neg = new Neg(initialGoal);
-        if(goal.same(neg.applyForwards())) {
-            list.add(new Tuple<>(Collections.singletonList(new Goal.Pair(goal, initialGoal, neg)), neg.applyForwards()));
+        Neg neg = new Neg(goal, true);
+        if(initialGoals.contains(neg.a)) {
+            list.add(new Tuple<>(Collections.singletonList(new Goal.Pair(neg.applyForwards(), neg.a, neg)), neg.a));
         }
         //Divide
         try{
-            List<Goal.Pair> pairs = new ArrayList<>();
-            Divq div = new Divq(initialGoal);
-            boolean d = false;
-            while(div.isPossible() && div.applyForwards().atomCount() >= goal.atomCount()){
-                Goal upper = div.applyForwards();
-                if(div.applyForwards().same(goal)) {
-                    upper = goal;
+            if(goal.countUnique()==1 && goal.get(0).x==0 && goal.get(0).y==0 && goal.get(0).positive) {
+                int z = goal.get(0).z;
+                Goal ic = null;
+                for (Goal i : initialGoals) {
+                    if(i.contains(goal.get(0))){
+                        ic = i;
+                    }
                 }
-                pairs.add(0, new Goal.Pair(upper, div.a, div));
-                div = new Divq(div.applyForwards());
-                d = true;
-            }
-            if(d) {
-                list.add(new Tuple<>(pairs, div.a));
+                if(ic != null) {
+                    List<Goal.Pair> pairs = new ArrayList<>();
+                    Divq div = new Divq(goal, true);
+                    pairs.add(new Goal.Pair(div.applyForwards(), Collections.singletonList(div.a), div));
+                    while (div.a.atomCount() < ic.atomCount()){
+                        div = new Divq(div.a, true);
+                        pairs.add(new Goal.Pair(div.applyForwards(), Collections.singletonList(div.a), div));
+                    }
+                    if(div.a.equals(ic)){
+                        list.add(new Tuple<>(pairs, ic));
+                    }
+                }
             }
 
         } catch (Transformation.TransformationApplicationException e) {
@@ -123,22 +129,22 @@ public class Scamp5PairGenFactory implements PairGenFactory {
 
         //Move x
         for (Dir dir: Dir.values()) {
-            Movx movx = new Movx(initialGoal, dir);
-            if(goal.same(movx.applyForwards())) {
-                list.add(new Tuple<>(Collections.singletonList(new Goal.Pair(goal, initialGoal, movx)), movx.applyForwards()));
+            Movx movx = new Movx(goal, dir, true);
+            if(initialGoals.contains(movx.a)) {
+                list.add(new Tuple<>(Collections.singletonList(new Goal.Pair(goal, movx.a, movx)), movx.a));
             }
         }
 
         //Move 2x
         if(conf.useMov2x) {
             for (Dir dir1 : Dir.values()) {
-                Mov2x mov2xa = new Mov2x(initialGoal, dir1, dir1);
-                if(goal.same(mov2xa.applyForwards())) {
-                    list.add(new Tuple<>(Collections.singletonList(new Goal.Pair(goal, initialGoal, mov2xa)), mov2xa.applyForwards()));
+                Mov2x mov2xa = new Mov2x(goal, dir1, dir1, true);
+                if(initialGoals.contains(mov2xa.a)) {
+                    list.add(new Tuple<>(Collections.singletonList(new Goal.Pair(goal, mov2xa.a, mov2xa)), mov2xa.a));
                 }
-                Mov2x mov2xb = new Mov2x(initialGoal, dir1, dir1.cw());
-                if(goal.same(mov2xb.applyForwards())) {
-                    list.add(new Tuple<>(Collections.singletonList(new Goal.Pair(goal, initialGoal, mov2xb)), mov2xb.applyForwards()));
+                Mov2x mov2xb = new Mov2x(goal, dir1, dir1.cw(), true);
+                if(initialGoals.contains(mov2xb.a)) {
+                    list.add(new Tuple<>(Collections.singletonList(new Goal.Pair(goal, mov2xb.a, mov2xb)), mov2xb.a));
                 }
             }
         }
@@ -149,19 +155,23 @@ public class Scamp5PairGenFactory implements PairGenFactory {
 
     private ReverseSearch rs;
     private final ConfigGetter confGet;
-    private Goal initialGoal;
+    private List<Goal> initialGoals;
 
 
 
     public Scamp5PairGenFactory(ConfigGetter confGet) {
         this.confGet = confGet;
     }
-    private int initialDivisions;
+    private int[] initialDivisions;
+    private int initialDivisionsMax;
+    private int initialDivisionsMin;
     @Override
     public void init(ReverseSearch rs) {
         this.initialDivisions = rs.getInitialDivisions();
+        this.initialDivisionsMax = Arrays.stream(this.initialDivisions).max().getAsInt();
+        this.initialDivisionsMin = Arrays.stream(this.initialDivisions).min().getAsInt();
         this.rs =rs;
-        this.initialGoal = rs.getInitialGoal();
+        this.initialGoals = rs.getInitialGoals();
     }
 
 
@@ -193,25 +203,25 @@ public class Scamp5PairGenFactory implements PairGenFactory {
             this.conf = conf;
             this.bounds = new Bounds(goals);
             Comparator<Tuple<Goal.Pair, Double>> comparator = Comparator.comparingDouble(Tuple::getB);
-//            this.it = goals.parallelStream()
-//                    .flatMap((Goal upper) ->
-//                            Stream.concat(
-//                                    getNaryOpStream(upper),
-//                                    getUnaryOpStream(upper)
-//                            )
-//                    ).map(pair -> new Tuple<>(pair, getCost(pair)))
-//                    .sorted(comparator)
-//                    .map(Tuple::getA)
-//                    .iterator();
-            List<Tuple<Goal.Pair, Double>> list = goals.parallelStream()
+            this.it = goals.parallelStream()
                     .flatMap((Goal upper) ->
                             Stream.concat(
                                     getNaryOpStream(upper),
                                     getUnaryOpStream(upper)
                             )
                     ).map(pair -> new Tuple<>(pair, getCost(pair, goals, conf))).filter(t -> t.getB()>=0)
-                    .sorted(comparator).collect(Collectors.toList());
-            this.it = list.stream().map(Tuple::getA).iterator();
+                    .sorted(comparator)
+                    .map(Tuple::getA)
+                    .iterator();
+//            List<Tuple<Goal.Pair, Double>> list = goals.parallelStream()
+//                    .flatMap((Goal upper) ->
+//                            Stream.concat(
+//                                    getNaryOpStream(upper),
+//                                    getUnaryOpStream(upper)
+//                            )
+//                    ).map(pair -> new Tuple<>(pair, getCost(pair, goals, conf))).filter(t -> t.getB()>=0)
+//                    .sorted(comparator).collect(Collectors.toList());
+//            this.it = list.stream().map(Tuple::getA).iterator();
         }
 
         @Override
@@ -446,13 +456,15 @@ public class Scamp5PairGenFactory implements PairGenFactory {
                 for (AtomDistanceListItem item : inList) {
                     addAtomDistanceDiagonalPairs(item, conf, outList);
                 }
-                if(initialGoal.hasSubGoal(a)){
-                    Goal l = new Goal.Factory(a).addAll(a).get();
-                    AtomDistanceListItem newItem = new AtomDistanceListItem();
-                    newItem.a = a;
-                    newItem.distance = new Distance(0,0,0);
-                    newItem.pair = new Goal.Pair(a, l, new Divq(l));
-                    outList.add(newItem);
+                for(Goal initialGoal: initialGoals) {
+                    if (initialGoal.hasSubGoal(a)) {
+                        Goal l = new Goal.Factory(a).addAll(a).get();
+                        AtomDistanceListItem newItem = new AtomDistanceListItem();
+                        newItem.a = a;
+                        newItem.distance = new Distance(0, 0, 0);
+                        newItem.pair = new Goal.Pair(a, l, new Divq(l));
+                        outList.add(newItem);
+                    }
                 }
             }
         }
@@ -585,8 +597,8 @@ public class Scamp5PairGenFactory implements PairGenFactory {
             max = Math.max(max, goal.maximumCount());
         }
 
-        cost += (1<<initialDivisions) / min;
-        cost += max / (1<<initialDivisions);
+        cost += (1<<initialDivisionsMax) / min;
+        cost += max / (1<<initialDivisionsMin);
 
         return cost;
     }

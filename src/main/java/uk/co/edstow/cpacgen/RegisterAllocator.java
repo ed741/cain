@@ -4,9 +4,9 @@ import java.util.*;
 
 public class RegisterAllocator {
     private final Register[] registers;
-    private final Register init;
+    private final Register[] init;
 
-    public RegisterAllocator(Register init, Register... r) {
+    public RegisterAllocator(Register[] init, Register... r) {
         this.init = init;
         registers = r;
 
@@ -16,15 +16,20 @@ public class RegisterAllocator {
         return registers.length;
     }
 
-    public Register getInitRegister() {
+    public Register[] getInitRegisters() {
         return init;
     }
 
-    public Mapping solve(Plan plan){
-
+    public Mapping solve(Plan plan, List<Goal> initialGoals){
+        System.out.println(plan);
         List<Plan.Step> all_r = plan.getAll();
-        Set<Integer> requiresInit = new HashSet<>();
-        int[] liveness = new int[all_r.size()+1];
+        List<Set<Integer>> requiresInit = new ArrayList<>(init.length);
+        for (Register i : init) {
+            requiresInit.add(new HashSet<>());
+        }
+
+
+        int[] liveness = new int[all_r.size()+initialGoals.size()];
 
 
         List<Register> availableRegisters = new ArrayList<>(Arrays.asList(registers));
@@ -49,9 +54,14 @@ public class RegisterAllocator {
                 if(step.getTransformation().inputRegisterOutputInterference()[lowerIdx]){
                     liveUntil--;
                 }
-                if (j == all_r.size()) {
-                    assert trueGoal.same(all_r.get(all_r.size() - 1).getLowers().get(0));
-                    requiresInit.add(liveUntil);
+                if (j >= all_r.size()) {
+                    if(!initialGoals.contains(trueGoal)){
+                        assert false;
+                        return null;
+                    }
+                    int offset = initialGoals.indexOf(trueGoal);
+                    requiresInit.get(offset).add(liveUntil);
+                    j += offset;
                 }
                 liveness[j] = Math.min(liveness[j], liveUntil);
                 if(i==0){
@@ -62,7 +72,10 @@ public class RegisterAllocator {
                 }
             }
         }
-        int initLastUsed = Collections.min(requiresInit);
+        int[] initLastUsed = new int[init.length];
+        for (int i = 0; i < init.length; i++) {
+            initLastUsed[i] = Collections.min(requiresInit.get(i));
+        }
 
 
         for (int i = 0; i < liveness.length; i++) {
@@ -86,18 +99,25 @@ public class RegisterAllocator {
                 live.add(j);
                 Register r = null;
                 if(availableRegisters.isEmpty()){
-                    System.out.println("CANNOT MAKE ALLOCATION "+plan.toGoalsString());
-                    System.out.println(String.format("i: %d,  j: %d,  \navailable reg: %s,  \nlive: %s,  \nlineMapping: %s,  \nmapping: %s", i, j, availableRegisters, live, lineMap, map));
-                    System.exit(-1);
                     return null;
                 }
-                if(j == liveness.length-1){
-                    boolean valid = availableRegisters.remove(init);
-                    assert valid;
-                    r = init;
-                } else if (j > initLastUsed) {
+                if(j >= all_r.size()){
+                    int initIdx = j-all_r.size();
+                    boolean valid = availableRegisters.remove(init[initIdx]);
+                    if(!valid){
+                        // Output is created and requires init Register while init is live!
+                        return null;
+                    }
+                    r = init[initIdx];
+                } else {
                     for (Register availableRegister : availableRegisters) {
-                        if (availableRegister!=init){
+                        boolean safe = true;
+                        for (int k = 0; k < initLastUsed.length; k++) {
+                            if(j > initLastUsed[k] && availableRegister == init[k]){
+                                safe = false;
+                            }
+                        }
+                        if(safe){
                             r = availableRegister;
                             break;
                         }
@@ -106,15 +126,16 @@ public class RegisterAllocator {
                         return null;
                     }
                     availableRegisters.remove(r);
-                } else {
-                    r = availableRegisters.remove(0);
                 }
                 if(j < all_r.size()) {
                     map.put(all_r.get(j).getUpper(), r);
                     lineMap.put(j, r);
                 }else{
-                    // Initial case
-                    map.put(all_r.get(all_r.size()-1).getLowerTrueGoal(0), r);
+                    // Initial cases
+                    int initIdx = j-all_r.size();
+                    List<Goal> lowers = all_r.get(i).getLowers();
+                    Goal trueGoal = all_r.get(i).getLowerTrueGoal(lowers.indexOf(initialGoals.get(initIdx)));
+                    map.put(trueGoal, r);
                     lineMap.put(j, r);
 
                 }

@@ -15,10 +15,10 @@ public class Plan {
 
     private final Step step;
     private final Plan previous;
-    private final Goal initialGoal;
+    private final List<Goal> initialGoals;
     private final int depth;
 
-    public Plan(List<Goal> finalGoals, Goal initialGoal, String comment){
+    public Plan(List<Goal> finalGoals, List<Goal> initialGoals, String comment){
         Goal.Pair p = new Goal.Pair(null, finalGoals, new Transformation.Null(finalGoals.size()));
         Goal[] translation  = new Goal[finalGoals.size()];
         for (int i = 0; i < translation.length; i++) {
@@ -27,20 +27,20 @@ public class Plan {
 
         this.step = new Step(p, new Goal.Bag(finalGoals), translation, comment);
         this.previous = null;
-        this.initialGoal = initialGoal;
+        this.initialGoals = initialGoals;
         this.depth = 0;
     }
 
-    private Plan(Plan previous, Goal initialGoal, Step step){
+    private Plan(Plan previous, List<Goal> initialGoals, Step step){
         this.previous = previous;
-        this.initialGoal = initialGoal;
+        this.initialGoals = initialGoals;
         this.step = step;
         this.depth = previous.depth + 1;
     }
 
     public Plan newAdd(Goal.Pair newPair, Goal.Bag currentGoals, Goal[] translation, String comment) {
         Step newStep = new Step(newPair, currentGoals, translation, comment);
-        return new Plan(this, this.initialGoal, newStep);
+        return new Plan(this, this.initialGoals, newStep);
     }
 
     public List<Step> getAll() {
@@ -204,7 +204,7 @@ public class Plan {
                         break;
                     }
                 }
-                assert j != all.size() || lower.same(initialGoal);
+                assert j != all.size() || initialGoals.contains(lower);
 
             }
         }

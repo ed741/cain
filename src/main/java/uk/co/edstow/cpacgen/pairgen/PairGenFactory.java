@@ -8,7 +8,7 @@ import java.util.Collection;
 import java.util.List;
 
 public interface PairGenFactory {
-    Collection<Tuple<List<Goal.Pair>, Goal>> applyAllUnaryOpForwards(Goal initialGoal, int depth, Goal goal);
+    Collection<Tuple<List<Goal.Pair>, Goal>> applyAllUnaryOpForwards(List<Goal> initialGoals, int depth, Goal goal);
 
     interface PairGen{
         Goal.Pair next();

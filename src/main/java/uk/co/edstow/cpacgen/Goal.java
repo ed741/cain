@@ -285,6 +285,8 @@ public class Goal implements List<Atom>, Comparable<Goal>{
         return new Goal.Factory(list).subAll(a).get();
     }
 
+
+
     public static class AveragePosition {
         public final double x, y, z;
 
@@ -371,6 +373,24 @@ public class Goal implements List<Atom>, Comparable<Goal>{
 
     public int atomCount() {
         return size();
+    }
+
+    public int countUnique() {
+        if(list.isEmpty()){
+            return 0;
+        }
+        int cursor = 0;
+        Atom a = list.get(cursor++);
+        int count = 1;
+        while(cursor < list.size()){
+            Atom b = list.get(cursor);
+            if(!a.equals(b)) {
+                count++;
+                a = b;
+            }
+            cursor++;
+        }
+        return count;
     }
 
     public boolean hasSubGoal(Goal goal) {

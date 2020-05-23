@@ -318,7 +318,7 @@ public class Scamp5Emulator {
     }
 
     public BufferedImage getImage(Reg reg, boolean read){
-        int width = xMax-xMin;
+        int width = xMax - xMin;
         int height = yMax - yMin;
         BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         for (int i = 0; i < img.getWidth(); i++) {
@@ -410,7 +410,7 @@ public class Scamp5Emulator {
         }
 
     }
-    public Map<Tuple<Integer, Integer>, Double> getRawProcessingElementContains(int x, int y, String reg) {
+    public Map<Tuple<Integer, Tuple<Integer, String>>, Double> getRawProcessingElementContains(int x, int y, String reg) {
         ProcessingElement pe = this.tiles.get(new Pos(x, y));
         if (pe == null) {
             return null;
@@ -493,6 +493,38 @@ public class Scamp5Emulator {
         }
     }
 
+    static class OriginPos extends Pos{
+        final Reg r;
+        OriginPos(int x, int y, Reg r) {
+            super(x, y);
+            this.r = r;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            OriginPos pos = (OriginPos) o;
+            return x == pos.x &&
+                    y == pos.y&&
+                    r == pos.r;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(x, y, r);
+        }
+
+        @Override
+        public String toString() {
+            return "OPos{" +
+                    "x=" + x +
+                    ", y=" + y +
+                    ", r=" + r +
+                    '}';
+        }
+    }
+
     private class InstructionSignature {
         private final String identifier;
         private final int[] inputs;
@@ -551,9 +583,9 @@ public class Scamp5Emulator {
         try {
             img = ImageIO.read(imgFile);
 //            Scamp5Emulator e = new Scamp5Emulator(img, Reg.A);
-            Scamp5Emulator e = new Scamp5Emulator(5);
+            Scamp5Emulator e = new Scamp5Emulator(1);
 
-            e.run("input(A,"+(4*128)+")");
+            e.run("input(A,"+(1*128)+")");
 //            e.run("input(A,"+(1*128)+")");
 
 //            BufferedImage out = e.getImage(Reg.F, false);
@@ -565,28 +597,17 @@ public class Scamp5Emulator {
 //            e.run("mov2x(E,A,south,west)");
 //            e.run("add(F,B,C)");
 //            e.run("movx(F,F,north)");
-
-            e.pushCode(
-                    "divq(B, A);\n" +
-                            "divq(C, B);\n" +
-                            "movx(B, C, north);\n" +
-                            "neg(D, C);\n" +
-                            "mov2x(A, C, west, west);\n" +
-                            "sub(F, D, C);\n" +
-                            "sub2x(E, D, west, north, B);\n" +
-                            "addx(B, A, C, south);\n" +
-                            "add2x(A, A, D, south, south);\n" +
-                            "sub2x(D, C, west, west, A);\n" +
-                            "sub2x(A, C, south, west, E);\n" +
-                            "addx(B, B, E, east);\n" +
-                            "add2x(E, C, E, east, east);\n" +
-                            "subx(C, F, east, E);\n" +
-                            "movx(E, F, south);\n" +
-                            "add2x(D, D, F, north, east);\n" +
-                            "addx(C, F, C, west);\n" +
-                            "add(D, E, F, D);\n");
+            verbose = 100;
+            e.runCode(
+                    "movx(B, A, south);\n" +
+                            "add(A, B, A);\n" +
+                            "movx(B, A, north);\n" +
+                            "add(B, A, B);\n" +
+                            "movx(A, B, west);\n" +
+                            "movx(B, B, east);\n" +
+                            "sub(A, A, B);");
             e.flushInstructionBuffer();
-            //System.out.println(e.tiles.get(new Pos(0,0)));
+            System.out.println(e.tiles.get(new Pos(0,0)));
             //
 //            e.run("movx(B,F,north)");
 //            e.run("add(F,F,B)");

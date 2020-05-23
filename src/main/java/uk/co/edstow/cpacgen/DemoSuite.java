@@ -6,18 +6,18 @@ import uk.co.edstow.cpacgen.util.Bounds;
 import uk.co.edstow.cpacgen.util.Tuple;
 
 import java.util.*;
+import java.util.function.Supplier;
 
 import static uk.co.edstow.cpacgen.RegisterAllocator.Register.*;
-import static uk.co.edstow.cpacgen.ReverseSearch.TraversalAlgorithm.*;
 import static uk.co.edstow.cpacgen.scamp5.Scamp5PairGenFactory.Config.SearchStrategy.Exhaustive;
 import static uk.co.edstow.cpacgen.scamp5.Scamp5PairGenFactory.Config.SearchStrategy.SortedAtomDistance;
 
 @SuppressWarnings("SameParameterValue")
 class DemoSuite {
 
-    private final static boolean SOBEL = true;
-    private final static boolean BOX = true;
-    private final static boolean GUASS = true;
+    private final static boolean SOBEL = false;
+    private final static boolean BOX = false;
+    private final static boolean GUASS = false;
     private final static boolean CNN_ON_FPSP_ANALOG_NET_2 = true;
     private final static boolean CNN_ON_FPSP_MAX_POOLED = true;
     private final static boolean RANDOM_DENSE = true;
@@ -32,17 +32,17 @@ class DemoSuite {
         final ReverseSearch.RunConfig runConfig;
 
         final int cores;
-        final ReverseSearch.TraversalAlgorithm traversalAlgorithm;
+        final Supplier<? extends TraversalSystem> traversalAlgorithm;
         final int registerCount;
         final int threshold;
         final boolean allOps;
         final int seconds;
         final RegisterAllocator registerAllocator;
 
-        private TestSetup(int cores, ReverseSearch.TraversalAlgorithm traversalAlgorithm, int registerCount, int threshold, boolean allOps, int seconds){
+        private TestSetup(int cores, Supplier<? extends TraversalSystem> traversalAlgorithm, int registerCount, int threshold, boolean allOps, int seconds){
             RegisterAllocator.Register[] allRegisters = new RegisterAllocator.Register[]{A, B, C, D, E, F};
             final RegisterAllocator.Register[] availableRegisters = Arrays.copyOfRange(allRegisters, 0, registerCount);
-            RegisterAllocator ra = new RegisterAllocator(A, availableRegisters);
+            RegisterAllocator ra = new RegisterAllocator(new RegisterAllocator.Register[]{A}, availableRegisters);
             Scamp5PairGenFactory pairGenFactory = new Scamp5PairGenFactory(
                     (goals, depth, rs1, initialGoal) -> {
                         int max = Integer.MIN_VALUE;
@@ -83,12 +83,13 @@ class DemoSuite {
 
     private static List<TestSetup> initialiseTestSetups() {
         List<TestSetup> setups = new ArrayList<>();
-        setups.add(new TestSetup(4, SOT, 6, 10, true, 60));
-        setups.add(new TestSetup(1, SOT, 6, 10, true, 60));
-        setups.add(new TestSetup(1, SOT, 6, 10, false, 60));
-        setups.add(new TestSetup(4, DFS, 6, 10, true, 60));
-        setups.add(new TestSetup(4, SOT, 6, 0, true, 60));
-        setups.add(new TestSetup(4, SOT, 6, 10, true, 5));
+//        setups.add(new TestSetup(4, TraversalSystem.SOTFactory(), 6, 10, true, 60));
+//        setups.add(new TestSetup(1, TraversalSystem.SOTFactory(), 6, 10, true, 60));
+//        setups.add(new TestSetup(1, TraversalSystem.SOTFactory(), 6, 10, false, 60));
+//        setups.add(new TestSetup(4, TraversalSystem.DFSFactory(), 6, 10, true, 60));
+//        setups.add(new TestSetup(4, TraversalSystem.SOTFactory(), 6, 0, true, 60));
+        setups.add(new TestSetup(4, TraversalSystem.SOTFactory(), 6, 10, true, 5));
+        setups.add(new TestSetup(4, TraversalSystem.SOSFactory(), 6, 10, true, 5));
 
         return setups;
     }
@@ -96,14 +97,14 @@ class DemoSuite {
     private static class Test{
         final String name;
         final List<Goal> finalGoals;
-        final int divisions;
+        final int[] divisions;
         final Map<TestSetup, Plan> results;
         final String aukeScore;
 
         Test(String name, List<Goal> finalGoals, int divisions, String aukeScore) {
             this.name = name;
             this.finalGoals = finalGoals;
-            this.divisions = divisions;
+            this.divisions = new int[]{divisions};
             this.aukeScore = aukeScore;
             this.results = new HashMap<>();
 
@@ -296,6 +297,11 @@ class DemoSuite {
     }
 
     public static void main(String[] args) {
+        runDemo();
+
+    }
+
+    public static void runDemo() {
         List<Test> demos = initialiseDemosList();
         List<TestSetup> setups = initialiseTestSetups();
 
@@ -311,11 +317,7 @@ class DemoSuite {
         }
         System.out.println("\nLatex Table:\n");
         System.out.println(makeLatexTable(demos, setups));
-
-
-
     }
-
 
 
     private static void runFilter(Test test, List<TestSetup> setups){
@@ -344,7 +346,7 @@ class DemoSuite {
                 System.out.println(p);
                 System.out.println("CircuitDepths:" + Arrays.toString(p.circuitDepths()));
                 //System.out.println(p.toGoalsString());
-                RegisterAllocator.Mapping mapping = setup.registerAllocator.solve(p);
+                RegisterAllocator.Mapping mapping = setup.registerAllocator.solve(p, rs.getInitialGoals());
                 //System.out.println(mapping);
                 String code = p.produceCode(mapping);
                 System.out.println(code);
@@ -394,7 +396,7 @@ class DemoSuite {
         sb.append("} & \\small{Threads} \\\\ \n");
         // Traversel algo
         sb.append("& & \\small{DFS");
-        setups.forEach(t-> sb.append("}& \\small{").append(t.traversalAlgorithm));
+        setups.forEach(t-> sb.append("}& \\small{").append(t.traversalAlgorithm.get().getClass().getSimpleName()));
         sb.append("} & \\small{Traversal} \\\\ \n");
         // registers
         sb.append("& & \\small{6");
@@ -421,7 +423,7 @@ class DemoSuite {
             sb.append(demo.name.replace("%", "\\%").replace("&", "\\&")).append(" & ");
             List<String> filters = goalsToLatex(demo.finalGoals);
             for (int i = 0; i < filters.size(); i++) {
-                if(demo.divisions>0) sb.append("$\\frac{1}{").append(1 << demo.divisions).append("}$");
+                if(demo.divisions[0]>0) sb.append("$\\frac{1}{").append(1 << demo.divisions[0]).append("}$");
                 sb.append(filters.get(i));
                 if(i != filters.size()-1) sb.append(",");
             }
@@ -442,9 +444,9 @@ class DemoSuite {
             }
             sb.append("& ");
             if(1 < demo.finalGoals.stream().mapToInt(g -> Bounds.BoundsFromGoal(g).largestMagnitude()).max().getAsInt()){
-                sb.append("& \\vspace{2.5em}");
+                sb.append("\\vspace{2.5em}");
             } else {
-                sb.append("& \\vspace{1.1em}");
+                sb.append("\\vspace{1.1em}");
             }
             sb.append("\\\\ \n");
         }
@@ -482,13 +484,14 @@ class DemoSuite {
 
     private static boolean checkPlan(Test test, TestSetup setup, String code){
         Scamp5Emulator emulator = new Scamp5Emulator(new Bounds(test.finalGoals).largestMagnitude()*3);
-        emulator.run(String.format("input(%s,%d)", setup.registerAllocator.getInitRegister(), (1<<test.divisions)*128));
+//        Scamp5Emulator.verbose = 100;
+        emulator.run(String.format("input(%s,%d)", setup.registerAllocator.getInitRegisters(), (1<<test.divisions[0])*128));
         emulator.pushCode(code);
         emulator.flushInstructionBuffer();
         for (int i = 0; i < test.finalGoals.size(); i++) {
 //            System.out.println("Goal: " + i + " In: " + setup.availableRegisters[i].toString());
 //            System.out.println(test.finalGoals.get(i));
-            Map<Tuple<Integer, Integer>, Double> testMap = emulator.getRawProcessingElementContains(0, 0, setup.availableRegisters[i].toString());
+            Map<Tuple<Integer, Tuple<Integer, String>>, Double> testMap = emulator.getRawProcessingElementContains(0, 0, setup.availableRegisters[i].toString());
 //            System.out.println(testMap);
 
 
@@ -499,7 +502,7 @@ class DemoSuite {
 //                    factory.add(new Atom(tuple.getA(), tuple.getB(), 0, d >= 0), Math.abs(d.intValue()));
 //                }
 //            });
-
+//
 //            Goal testOut = factory.get();
 //            System.out.println("true out:");
 //            System.out.println(testOut.getCharTableString(true, true, true, true));
@@ -509,7 +512,7 @@ class DemoSuite {
             Iterator<Tuple<Atom, Integer>> iterator = test.finalGoals.get(i).uniqueCountIterator();
             while (iterator.hasNext()){
                 Tuple<Atom, Integer> t = iterator.next();
-                Tuple<Integer, Integer> coordinate = new Tuple<>(t.getA().x, t.getA().y);
+                Tuple<Integer, Tuple<Integer, String>> coordinate = Tuple.triple(t.getA().x, t.getA().y, RegisterAllocator.Register.values()[t.getA().z].toString());
                 Double d = testMap.get(coordinate);
                 int expected = t.getA().positive? t.getB(): -t.getB();
                 if(d == null || Double.compare(expected, d) != 0){

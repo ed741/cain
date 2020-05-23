@@ -22,7 +22,7 @@ public class SimplePairGenFactory implements PairGenFactory {
                 try {
                     Goal go = t.applyForwards();
                     if(go.same(upper)) {
-                        list.add(new Tuple<>(Collections.singletonList(new Goal.Pair(upper, goal, t)), go));
+                        list.add(new Tuple<>(Collections.singletonList(new Goal.Pair(upper, goal, t)), goal));
                     }
                 } catch (Transformation.TransformationApplicationException ignored) {}
             }
@@ -32,7 +32,7 @@ public class SimplePairGenFactory implements PairGenFactory {
             try {
                 Goal go = t.applyForwards();
                 if(go.same(upper)) {
-                    list.add(new Tuple<>(Collections.singletonList(new Goal.Pair(upper, goal, t)), go));
+                    list.add(new Tuple<>(Collections.singletonList(new Goal.Pair(upper, goal, t)), goal));
                 }
             } catch (Transformation.TransformationApplicationException ignored) {}
         }
@@ -40,8 +40,8 @@ public class SimplePairGenFactory implements PairGenFactory {
     }
 
     @Override
-    public Collection<Tuple<List<Goal.Pair>, Goal>> applyAllUnaryOpForwards(Goal initialGoal, int depth, Goal goal) {
-        return applyAllUnaryOps(initialGoal, goal);
+    public Collection<Tuple<List<Goal.Pair>, Goal>> applyAllUnaryOpForwards(List<Goal> initialGoals, int depth, Goal goal) {
+        return applyAllUnaryOps(initialGoals.get(0), goal);
     }
 
     @Override

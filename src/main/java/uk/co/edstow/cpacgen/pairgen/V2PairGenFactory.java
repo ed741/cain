@@ -14,8 +14,8 @@ public class V2PairGenFactory implements PairGenFactory{
 
 
     @Override
-    public Collection<Tuple<List<Goal.Pair>, Goal>> applyAllUnaryOpForwards(Goal initialGoal, int depth, Goal goal) {
-        return SimplePairGenFactory.applyAllUnaryOps(initialGoal, goal);
+    public Collection<Tuple<List<Goal.Pair>, Goal>> applyAllUnaryOpForwards(List<Goal> initialGoals, int depth, Goal goal) {
+        return SimplePairGenFactory.applyAllUnaryOps(initialGoals.get(0), goal);
     }
 
     @Override

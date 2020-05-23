@@ -13,8 +13,8 @@ public class V3PairGenFactory extends V2PairGenFactory{
     private static Comparator<Tuple<Distance, Goal>> entryComparator = Comparator.comparingInt((Tuple<Distance, Goal> t) -> t.getB().size()).thenComparingInt(t -> -t.getA().manhattan());
 
     @Override
-    public Collection<Tuple<List<Goal.Pair>, Goal>> applyAllUnaryOpForwards(Goal initialGoal, int depth, Goal goal) {
-        return SimplePairGenFactory.applyAllUnaryOps(initialGoal, goal);
+    public Collection<Tuple<List<Goal.Pair>, Goal>> applyAllUnaryOpForwards(List<Goal> initialGoals, int depth, Goal goal) {
+        return SimplePairGenFactory.applyAllUnaryOps(initialGoals.get(0), goal);
     }
 
 

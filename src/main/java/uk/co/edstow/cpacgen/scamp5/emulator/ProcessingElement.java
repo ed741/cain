@@ -131,7 +131,7 @@ class ProcessingElement {
         RegisterState state = registers.get(r);
         state.writeOver();
         double value = ((double)i)/128d;
-        state.contains.put(position, value);
+        state.contains.put(new OriginPos(position.x, position.y, r), value);
         state.writeNoise += noiseConfig.writeNoiseConstant + (noiseConfig.writeNoiseFactor *Math.abs(value));
     }
 
@@ -156,7 +156,7 @@ class ProcessingElement {
                     Goal.Factory factory = new Goal.Factory();
                     e.getValue().getRawContains().forEach((tuple, d) -> {
                         if(d!=0) {
-                            factory.add(new Atom(tuple.getA(), tuple.getB(), 0, d >= 0), Math.abs(d.intValue()));
+                            factory.add(new Atom(tuple.getA(), tuple.getB().getA(), 0, d >= 0), Math.abs(d.intValue()));
                         }
                     });
                     goals.add(factory.get());
@@ -173,7 +173,7 @@ class ProcessingElement {
         return registers.get(reg).value();
     }
 
-    public Map<Tuple<Integer,Integer>,Double> getRawRegisterContains(Reg r) {
+    public Map<Tuple<Integer,Tuple<Integer,String>>,Double> getRawRegisterContains(Reg r) {
         RegisterState registerState = this.registers.get(r);
         if(registerState == null){
             return null;
@@ -183,7 +183,7 @@ class ProcessingElement {
 
 
     private class RegisterState {
-        private final Map<Pos, Double> contains;
+        private final Map<OriginPos, Double> contains;
         private double writeNoise;
         private double readNoise;
 
@@ -193,7 +193,7 @@ class ProcessingElement {
 
         double readValue(){
             double sum = 0;
-            for (Map.Entry<Pos, Double> posDoubleEntry : contains.entrySet()) {
+            for (Map.Entry<OriginPos, Double> posDoubleEntry : contains.entrySet()) {
                 sum += posDoubleEntry.getValue();
             }
             readNoise += noiseConfig.readNoiseConstant + (noiseConfig.readNoiseFactor * (sum + readNoise + writeNoise));
@@ -203,7 +203,7 @@ class ProcessingElement {
 
         double value(){
             double sum = 0;
-            for (Map.Entry<Pos, Double> posDoubleEntry : contains.entrySet()) {
+            for (Map.Entry<OriginPos, Double> posDoubleEntry : contains.entrySet()) {
                 sum += posDoubleEntry.getValue();
             }
             sum += noiseConfig.getValue(readNoise+writeNoise);
@@ -224,7 +224,7 @@ class ProcessingElement {
             double magnitude = 0;
             for (RegisterState state : states) {
                 double stateMagnitude = state.writeNoise + state.readNoise;
-                for (Map.Entry<Pos, Double> entry : state.contains.entrySet()) {
+                for (Map.Entry<OriginPos, Double> entry : state.contains.entrySet()) {
                     double c = contains.getOrDefault(entry.getKey(), 0d);
                     contains.put(entry.getKey(), c - (entry.getValue()*factor));
                     stateMagnitude += Math.abs(entry.getValue());
@@ -246,12 +246,12 @@ class ProcessingElement {
 
         String getContained(){
             StringBuilder sb = new StringBuilder("{");
-            Iterator<Map.Entry<Pos,Double>> it = contains.entrySet().iterator();
+            Iterator<Map.Entry<OriginPos,Double>> it = contains.entrySet().iterator();
             while(it.hasNext()) {
-                Map.Entry<Pos, Double> entry = it.next();
-                Pos k = entry.getKey();
+                Map.Entry<OriginPos, Double> entry = it.next();
+                OriginPos k = entry.getKey();
                 Double v = entry.getValue();
-                sb.append(String.format("(%d,%d)=%f", k.x, k.y, v));
+                sb.append(String.format("(%d,%d,%s)=%f", k.x, k.y, k.r.toString(), v));
                 if (it.hasNext()) {
                     sb.append(',');
                 }
@@ -265,9 +265,9 @@ class ProcessingElement {
             return "(Read Noise: " + readNoise + ", Write Noise: " + writeNoise + ")";
         }
 
-        Map<Tuple<Integer, Integer>, Double> getRawContains() {
-            Map<Tuple<Integer, Integer>, Double> out = new HashMap<>();
-            contains.forEach((pos, value) -> out.put(new Tuple<>(pos.x, pos.y), value));
+        Map<Tuple<Integer, Tuple<Integer, String>>, Double> getRawContains() {
+            Map<Tuple<Integer, Tuple<Integer, String>>, Double> out = new HashMap<>();
+            contains.forEach((pos, value) -> out.put(Tuple.triple(pos.x, pos.y, pos.r.toString()), value));
             return out;
         }
     }
