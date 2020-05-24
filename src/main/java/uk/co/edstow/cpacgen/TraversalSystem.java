@@ -102,7 +102,7 @@ public abstract class TraversalSystem {
     }
 
 
-    public static Supplier<HOS> SOSFactory(){return HOS::new;}
+    public static Supplier<HOS> HOSFactory(){return HOS::new;}
     private static class HOS extends TraversalSystem {
         private static class Entry implements Comparable<Entry> {
             final WorkState ws;

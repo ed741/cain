@@ -92,19 +92,16 @@ public class Distance {
     }
 
     public Transformation.Direction majorXYDirection() {
+        if (isZero()) return null;
+
         int absX = Math.abs(x);
         int absY = Math.abs(y);
 
-        if (isZero()){
-            return null;
-        }
         if(absX >= absY){
             return x>0? Transformation.Direction.E : Transformation.Direction.W;
-        }
-        if(absY >= absX){
+        } else {
             return y>0? Transformation.Direction.N : Transformation.Direction.S;
         }
-        return null;
     }
 
     public Distance then(Transformation.Direction direction) {

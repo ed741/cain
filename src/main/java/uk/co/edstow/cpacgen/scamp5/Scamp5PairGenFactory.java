@@ -641,7 +641,6 @@ public class Scamp5PairGenFactory implements PairGenFactory {
     private void addAtomDistanceDiagonalPairs(AtomDistanceListItem item,
                                               Config conf, List<AtomDistanceListItem> outList) {
         Distance centre = new Distance(item.a.getAveragePos());
-        Direction majorDirection = centre.majorXYDirection();
         Goal aWithoutTo = item.a.without(item.to);
         //add_2, sub
         if(!item.negate) {
@@ -674,33 +673,49 @@ public class Scamp5PairGenFactory implements PairGenFactory {
                 outList.add(newItem);
             }
         }
-        if(majorDirection != null) {
-            //addx
-            if (conf.useAddx) {
-                Dir dir1 = Dir.fromDirection(majorDirection);
-                Goal split1 = aWithoutTo.translated(-dir1.x, -dir1.y, 0);
-                Goal split2 = item.to.translated(-dir1.x, -dir1.y, 0);
-                Addx addx = new Addx(split1, split2, dir1);
-                AtomDistanceListItem newItem = new AtomDistanceListItem(item);
-                newItem.pair = new Goal.Pair(item.a, Arrays.asList(split1, split2), addx);
-                outList.add(newItem);
-            }
+        if(conf.useAddx && centre.manhattanXY()>0){
+            Dir dir1 = Dir.fromDirection(centre.majorXYDirection());
+            Goal split1 = aWithoutTo.translated(-dir1.x, -dir1.y, 0);
+            Goal split2 = item.to.translated(-dir1.x, -dir1.y, 0);
+            Addx addx = new Addx(split1, split2, dir1);
+            AtomDistanceListItem newItem = new AtomDistanceListItem(item);
+            newItem.pair = new Goal.Pair(item.a, Arrays.asList(split1, split2), addx);
+            outList.add(newItem);
+        }
 
-            //add2x
-            if (conf.useAddx) {
-                Transformation.Direction d1 = majorDirection;
-                Transformation.Direction d2 = centre.then(d1.opposite()).majorXYDirection();
-                if(d2 != null) {
-                    Dir dir1 = Dir.fromDirection(d1);
-                    Dir dir2 = Dir.fromDirection(d2);
-                    Goal split1 = aWithoutTo.translated(-dir1.x - dir2.x, -dir1.y - dir2.y, 0);
-                    Goal split2 = item.to.translated(-dir1.x - dir2.x, -dir1.y - dir2.y, 0);
-                    Add2x add2x = new Add2x(split1, split2, dir1, dir2);
-                    AtomDistanceListItem newItem = new AtomDistanceListItem(item);
-                    newItem.pair = new Goal.Pair(item.a, Arrays.asList(split1, split2), add2x);
-                    outList.add(newItem);
-                }
-            }
+        //add2x
+        if(conf.useAdd2x && centre.manhattanXY()>1){
+            Transformation.Direction d1 = centre.majorXYDirection();
+            Transformation.Direction d2 = centre.then(d1.opposite()).majorXYDirection();
+            Dir dir1 = Dir.fromDirection(d1);
+            Dir dir2 = Dir.fromDirection(d2);
+            Goal split1 = aWithoutTo.translated(-dir1.x -dir2.x, -dir1.y-dir2.y, 0);
+            Goal split2 = item.to.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0);
+            Add2x add2x = new Add2x(split1, split2, dir1, dir2);
+            AtomDistanceListItem newItem = new AtomDistanceListItem(item);
+            newItem.pair = new Goal.Pair(item.a, Arrays.asList(split1, split2), add2x);
+            outList.add(newItem);
+        }
+
+        if(conf.useSubx && item.distance.manhattanXY()>0){
+            Dir dir1 = Dir.fromDirection(item.distance.majorXYDirection()).opposite();
+            Goal split1 = aWithoutTo.translated(-dir1.x, -dir1.y, 0);
+            Goal split2 = item.to.negative();
+            AtomDistanceListItem newItem = new AtomDistanceListItem(item);
+            newItem.pair = new Goal.Pair(item.a, Arrays.asList(split1, split2), new Subx(split1, split2, dir1));
+            outList.add(newItem);
+        }
+
+        if(conf.useSub2x && item.distance.manhattanXY()>1){
+            Transformation.Direction d1 = item.distance.majorXYDirection();
+            Transformation.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
+            Dir dir1 = Dir.fromDirection(d1).opposite();
+            Dir dir2 = Dir.fromDirection(d2).opposite();
+            Goal split1 = aWithoutTo.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0);
+            Goal split2 = item.to.negative();
+            AtomDistanceListItem newItem = new AtomDistanceListItem(item);
+            newItem.pair = new Goal.Pair(item.a, Arrays.asList(split1, split2), new Sub2x(split1, split2, dir1, dir2));
+            outList.add(newItem);
         }
     }
 

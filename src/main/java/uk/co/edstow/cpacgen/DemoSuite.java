@@ -64,7 +64,7 @@ class DemoSuite {
             config.setSearchTime(seconds*1000).setWorkers(cores).setRegisterAllocator(ra).setTimeOut(true)
                     .setTraversalAlgorithm(traversalAlgorithm).setLivePrintPlans(1);
 
-            this.name = String.format("%d Core, %s, %d registers, threshold %d, %s, %d seconds", cores, traversalAlgorithm, registerCount, threshold, allOps?"AllOps":"BasicOps", seconds);
+            this.name = String.format("%d Core, %s, %d registers, threshold %d, %s, %d seconds", cores, traversalAlgorithm.get().getClass().getSimpleName(), registerCount, threshold, allOps?"AllOps":"BasicOps", seconds);
             this.availableRegisters = availableRegisters;
             this.registerAllocator = ra;
             this.pairGenFactory = pairGenFactory;
@@ -89,7 +89,7 @@ class DemoSuite {
 //        setups.add(new TestSetup(4, TraversalSystem.DFSFactory(), 6, 10, true, 60));
 //        setups.add(new TestSetup(4, TraversalSystem.SOTFactory(), 6, 0, true, 60));
         setups.add(new TestSetup(4, TraversalSystem.SOTFactory(), 6, 10, true, 5));
-        setups.add(new TestSetup(4, TraversalSystem.SOSFactory(), 6, 10, true, 5));
+        setups.add(new TestSetup(4, TraversalSystem.HOSFactory(), 6, 10, true, 5));
 
         return setups;
     }
@@ -483,29 +483,16 @@ class DemoSuite {
     private static boolean checkPlan(Test test, TestSetup setup, String code){
         Scamp5Emulator emulator = new Scamp5Emulator(new Bounds(test.finalGoals).largestMagnitude()*3);
 //        Scamp5Emulator.verbose = 100;
-        emulator.run(String.format("input(%s,%d)", setup.registerAllocator.getInitRegisters(), (1<<test.divisions[0])*128));
+        RegisterAllocator.Register[] initRegisters = setup.registerAllocator.getInitRegisters();
+        for (int i = 0; i < initRegisters.length; i++) {
+            RegisterAllocator.Register r = initRegisters[i];
+            emulator.run(String.format("input(%s,%d)", r, (1 << test.divisions[i]) * 128));
+        }
         emulator.pushCode(code);
         emulator.flushInstructionBuffer();
         for (int i = 0; i < test.finalGoals.size(); i++) {
-//            System.out.println("Goal: " + i + " In: " + setup.availableRegisters[i].toString());
-//            System.out.println(test.finalGoals.get(i));
+
             Map<Tuple<Integer, Tuple<Integer, String>>, Double> testMap = emulator.getRawProcessingElementContains(0, 0, setup.availableRegisters[i].toString());
-//            System.out.println(testMap);
-
-
-
-//            Goal.Factory factory = new Goal.Factory();
-//            testMap.forEach((tuple, d) -> {
-//                if(d!=0) {
-//                    factory.add(new Atom(tuple.getA(), tuple.getB(), 0, d >= 0), Math.abs(d.intValue()));
-//                }
-//            });
-//
-//            Goal testOut = factory.get();
-//            System.out.println("true out:");
-//            System.out.println(testOut.getCharTableString(true, true, true, true));
-//            System.out.println("target out:");
-//            System.out.println(test.finalGoals.get(i).getCharTableString(false, false, true, true));
 
             Iterator<Tuple<Atom, Integer>> iterator = test.finalGoals.get(i).uniqueCountIterator();
             while (iterator.hasNext()){

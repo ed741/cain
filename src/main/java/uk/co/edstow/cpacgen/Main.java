@@ -14,8 +14,8 @@ import static uk.co.edstow.cpacgen.scamp5.Scamp5PairGenFactory.Config.SearchStra
 @SuppressWarnings("unused")
 class Main {
     public static void main(String[] args) {
-//        DemoSuite.runDemo();
-        test();
+        DemoSuite.runDemo();
+//        test();
     }
     public static void test() {
         List<Goal> final_goals = new ArrayList<>();
@@ -42,7 +42,7 @@ class Main {
         final_goals.add(new Goal.Factory(multiSobelV).get());
         divisions[0] = 0;
         final_goals.add(new Goal.Factory(1, multiSobelV).add(0, multiSobelV, 1).get());
-        divisions[1] = 0;
+        divisions[1] = 2;
 
         int[][] multiSobelH = new int[][]{
                 { 0, 0, 0, 0, 0},
@@ -207,8 +207,10 @@ class Main {
 
         System.out.println(new Bounds(final_goals).largestMagnitude());
         Scamp5Emulator emulator = new Scamp5Emulator(new Bounds(final_goals).largestMagnitude()*2);
-        for(RegisterAllocator.Register r: registerAllocator.getInitRegisters()){
-            emulator.run(String.format("input(%s,%d)", r, (1<<divisions[0])*128));
+        RegisterAllocator.Register[] initRegisters = registerAllocator.getInitRegisters();
+        for (int i = 0; i < initRegisters.length; i++) {
+            RegisterAllocator.Register r = initRegisters[i];
+            emulator.run(String.format("input(%s,%d)", r, (1 << divisions[i]) * 128));
         }
         emulator.pushCode(code);
         emulator.flushInstructionBuffer();
@@ -221,7 +223,7 @@ class Main {
             Goal.Factory factory = new Goal.Factory();
             testMap.forEach((tuple, d) -> {
                 if(d!=0) {
-                    factory.add(new Atom(tuple.getA(), tuple.getB().getA(), 0, d >= 0), Math.abs(d.intValue()));
+                    factory.add(new Atom(tuple.getA(), tuple.getB().getA(), Arrays.binarySearch(RegisterAllocator.Register.values(), RegisterAllocator.Register.valueOf(tuple.getB().getB())), d >= 0), Math.abs(d.intValue()));
                 }
             });
 
