@@ -14,8 +14,8 @@ import static uk.co.edstow.cpacgen.scamp5.Scamp5PairGenFactory.Config.SearchStra
 @SuppressWarnings("unused")
 class Main {
     public static void main(String[] args) {
-        DemoSuite.runDemo();
-//        test();
+//        DemoSuite.runDemo();
+        test();
     }
     public static void test() {
         List<Goal> final_goals = new ArrayList<>();
@@ -176,7 +176,7 @@ class Main {
         ReverseSearch.RunConfig config = new ReverseSearch.RunConfig();
         config.setWorkers(1)
                 .setRegisterAllocator(registerAllocator)
-                .setTimeOut(true).setLiveCounter(true).setSearchTime(10000)
+                .setTimeOut(false).setLiveCounter(true).setSearchTime(10000)
                 .setTraversalAlgorithm(TraversalSystem.SOTFactory());
         ReverseSearch rs = new ReverseSearch(divisions, final_goals, pairGenFactory, config);
         rs.search();

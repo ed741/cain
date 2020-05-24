@@ -1,5 +1,6 @@
 package uk.co.edstow.cpacgen.scamp5;
 
+import com.sun.scenario.effect.impl.sw.sse.SSEBlend_SRC_OUTPeer;
 import uk.co.edstow.cpacgen.Atom;
 import uk.co.edstow.cpacgen.Goal;
 import uk.co.edstow.cpacgen.ReverseSearch;
@@ -91,6 +92,11 @@ public class Scamp5PairGenFactory implements PairGenFactory {
     public Collection<Tuple<List<Goal.Pair>, Goal>> applyAllUnaryOpForwards(List<Goal> initialGoals, int depth, Goal goal) {
         Config conf = confGet.getConfig(initialGoals, depth, rs, true);
         ArrayList<Tuple<List<Goal.Pair>, Goal>> list = new ArrayList<>();
+
+        if(initialGoals.contains(goal)){
+            list.add(new Tuple<>(Collections.emptyList(), goal));
+        }
+
 
         //Negate
         Neg neg = new Neg(goal, true);
@@ -213,6 +219,7 @@ public class Scamp5PairGenFactory implements PairGenFactory {
                     .sorted(comparator)
                     .map(Tuple::getA)
                     .iterator();
+
 //            List<Tuple<Goal.Pair, Double>> list = goals.parallelStream()
 //                    .flatMap((Goal upper) ->
 //                            Stream.concat(
@@ -606,6 +613,9 @@ public class Scamp5PairGenFactory implements PairGenFactory {
         cost += (1<<initialDivisionsMax) / min;
         cost += max / (1<<initialDivisionsMin);
 
+        if(pair.getLowers().size()==1&&pair.getUpper().same(pair.getLowers().get(0))){
+            cost *=2;
+        }
         return cost;
     }
 
