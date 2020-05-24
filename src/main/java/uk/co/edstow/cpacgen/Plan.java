@@ -119,29 +119,16 @@ public class Plan {
 
         private String toGoalsString(List<Goal> input) {
 
-            Bounds b = new Bounds(new Bounds(currentGoals), new Atom(0,0,0, true));
-            int height = 1 + b.yMax - b.yMin;
-            int width = 1 + b.xMax - b.xMin;
-            List<String[][]> arrays = new ArrayList<>();
-
-            for (Goal currentGoal : currentGoals) {
+            boolean[] tops = new boolean[currentGoals.size()];
+            boolean[] bottoms = new boolean[currentGoals.size()];
+            for (int i = 0; i < currentGoals.size(); i++) {
+                Goal currentGoal = currentGoals.get(i);
                 boolean in = input.contains(currentGoal);
                 boolean out = this.goalPair.getLowers().contains(currentGoal);
-                String[][] tableArray = currentGoal.getCharTable(b, width, height, out, in, true, true);
-                arrays.add(tableArray);
+                tops[i] = out;
+                bottoms[i] = in;
             }
-
-            StringBuilder sb = new StringBuilder();
-            for (int j = height+1; j >= 0; j--) {
-                for (String[][] array : arrays) {
-                    for (int i = 0; i < array[j].length; i++) {
-                        sb.append(array[j][i]);
-                    }
-                    sb.append(' ');
-                }
-                sb.append("\n");
-            }
-            return sb.toString();
+            return Goal.Bag.toGoalsString(currentGoals, tops, bottoms, true, true);
         }
 
         @SuppressWarnings("WeakerAccess")
@@ -195,10 +182,12 @@ public class Plan {
         }
         for (int i = 0; i < all.size(); i++) {
             Step step = all.get(i);
-            for (Goal lower : step.getLowers()) {
+            List<Goal> lowers = step.getLowers();
+            for (int l = 0; l < lowers.size(); l++) {
+                Goal lower = step.getLowerTrueGoal(l);
                 int j = i + 1;
                 for (; j < all.size(); j++) {
-                    if (all.get(j).getUpper().same(lower)) {
+                    if (all.get(j).getUpper().equivalent(lower)) {
                         step.backwardsLinks.add(all.get(j));
                         all.get(j).forwardsLinks.add(step);
                         break;
@@ -231,8 +220,13 @@ public class Plan {
                     }
                     depth[j] = max;
                 }
-                System.out.println("Depth of filter " + i + " is: " + depth[depth.length - 1]);
-                depths[i] = depth[depth.length-1];
+                for (int j = depth.length - 1; j >= 0; j--) {
+                    if(depth[j]>=0){
+                        depths[i] = depth[j];
+                        break;
+                    }
+                }
+                System.out.println("Depth of filter " + i + " is: " + depths[i]);
             }
             return depths;
         });

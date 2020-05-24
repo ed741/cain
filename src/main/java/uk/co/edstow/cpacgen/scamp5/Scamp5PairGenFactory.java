@@ -472,27 +472,33 @@ public class Scamp5PairGenFactory implements PairGenFactory {
         @SuppressWarnings("WeakerAccess")
         protected void addDirectMov(Goal a, List<AtomDistanceListItem> outList) {
             Distance centre = new Distance(a.getAveragePos());
-            if(centre.manhattan()>0){
-                Transformation.Direction d1 = centre.majorDirection();
-                Dir dir1 = Dir.fromDirection(d1);
-                Movx movx = new Movx(a, dir1, true);
-                AtomDistanceListItem newItem = new AtomDistanceListItem();
-                newItem.a = a;
-                newItem.distance = new Distance(d1, 1);
-                newItem.pair = new Goal.Pair(a, movx.a, movx);
-                outList.add(newItem);
+            if(centre.manhattanXY()>0){
+                Transformation.Direction d1 = centre.majorXYDirection();
+                if(d1!= null) {
+                    Dir dir1 = Dir.fromDirection(d1);
+                    Movx movx = new Movx(a, dir1, true);
+                    AtomDistanceListItem newItem = new AtomDistanceListItem();
+                    newItem.a = a;
+                    newItem.distance = new Distance(d1, 1);
+                    newItem.pair = new Goal.Pair(a, movx.a, movx);
+                    outList.add(newItem);
+                }
             }
-            if(conf.useMov2x && centre.manhattan()>1){
-                Transformation.Direction d1 = centre.majorDirection();
-                Transformation.Direction d2 = centre.then(d1.opposite()).majorDirection();
-                Dir dir1 = Dir.fromDirection(d1).opposite();
-                Dir dir2 = Dir.fromDirection(d2).opposite();
-                Mov2x mov2x = new Mov2x(a, dir1, dir2, true);
-                AtomDistanceListItem newItem = new AtomDistanceListItem();
-                newItem.a = a;
-                newItem.distance = new Distance(d1, 1).then(d2);
-                newItem.pair = new Goal.Pair(a, mov2x.a, mov2x);
-                outList.add(newItem);
+            if(conf.useMov2x && centre.manhattanXY()>1){
+                Transformation.Direction d1 = centre.majorXYDirection();
+                if(d1 != null) {
+                    Transformation.Direction d2 = centre.then(d1.opposite()).majorXYDirection();
+                    if (d2 != null) {
+                        Dir dir1 = Dir.fromDirection(d1).opposite();
+                        Dir dir2 = Dir.fromDirection(d2).opposite();
+                        Mov2x mov2x = new Mov2x(a, dir1, dir2, true);
+                        AtomDistanceListItem newItem = new AtomDistanceListItem();
+                        newItem.a = a;
+                        newItem.distance = new Distance(d1, 1).then(d2);
+                        newItem.pair = new Goal.Pair(a, mov2x.a, mov2x);
+                        outList.add(newItem);
+                    }
+                }
             }
         }
 
@@ -535,7 +541,7 @@ public class Scamp5PairGenFactory implements PairGenFactory {
         }
     }
 
-    private static final Comparator<AtomDistanceListItem> atomDistanceComparator = Comparator.comparingInt((AtomDistanceListItem i) -> i.to.size()).thenComparingInt(i -> -i.distance.manhattan());
+    private static final Comparator<AtomDistanceListItem> atomDistanceComparator = Comparator.comparingInt((AtomDistanceListItem i) -> i.to.size()).thenComparingInt(i -> -i.distance.manhattanXY());
 
     private double getCost(Goal.Pair pair, Goal.Bag goals, Config config) {
         Goal.Bag proposedGoals = new Goal.Bag(goals);
@@ -635,6 +641,7 @@ public class Scamp5PairGenFactory implements PairGenFactory {
     private void addAtomDistanceDiagonalPairs(AtomDistanceListItem item,
                                               Config conf, List<AtomDistanceListItem> outList) {
         Distance centre = new Distance(item.a.getAveragePos());
+        Direction majorDirection = centre.majorXYDirection();
         Goal aWithoutTo = item.a.without(item.to);
         //add_2, sub
         if(!item.negate) {
@@ -667,29 +674,33 @@ public class Scamp5PairGenFactory implements PairGenFactory {
                 outList.add(newItem);
             }
         }
-        //addx
-        if(conf.useAddx && centre.manhattan()>0){
-            Dir dir1 = Dir.fromDirection(centre.majorDirection());
-            Goal split1 = aWithoutTo.translated(-dir1.x, -dir1.y, 0);
-            Goal split2 = item.to.translated(-dir1.x, -dir1.y, 0);
-            Addx addx = new Addx(split1, split2, dir1);
-            AtomDistanceListItem newItem = new AtomDistanceListItem(item);
-			newItem.pair = new Goal.Pair(item.a, Arrays.asList(split1, split2), addx);
-			outList.add(newItem);
-        }
+        if(majorDirection != null) {
+            //addx
+            if (conf.useAddx) {
+                Dir dir1 = Dir.fromDirection(majorDirection);
+                Goal split1 = aWithoutTo.translated(-dir1.x, -dir1.y, 0);
+                Goal split2 = item.to.translated(-dir1.x, -dir1.y, 0);
+                Addx addx = new Addx(split1, split2, dir1);
+                AtomDistanceListItem newItem = new AtomDistanceListItem(item);
+                newItem.pair = new Goal.Pair(item.a, Arrays.asList(split1, split2), addx);
+                outList.add(newItem);
+            }
 
-        //add2x
-        if(conf.useAddx && centre.manhattan()>1){
-            Transformation.Direction d1 = centre.majorDirection();
-            Transformation.Direction d2 = centre.then(d1.opposite()).majorDirection();
-            Dir dir1 = Dir.fromDirection(d1);
-            Dir dir2 = Dir.fromDirection(d2);
-            Goal split1 = aWithoutTo.translated(-dir1.x -dir2.x, -dir1.y-dir2.y, 0);
-            Goal split2 = item.to.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0);
-            Add2x add2x = new Add2x(split1, split2, dir1, dir2);
-            AtomDistanceListItem newItem = new AtomDistanceListItem(item);
-			newItem.pair = new Goal.Pair(item.a, Arrays.asList(split1, split2), add2x);
-			outList.add(newItem);
+            //add2x
+            if (conf.useAddx) {
+                Transformation.Direction d1 = majorDirection;
+                Transformation.Direction d2 = centre.then(d1.opposite()).majorXYDirection();
+                if(d2 != null) {
+                    Dir dir1 = Dir.fromDirection(d1);
+                    Dir dir2 = Dir.fromDirection(d2);
+                    Goal split1 = aWithoutTo.translated(-dir1.x - dir2.x, -dir1.y - dir2.y, 0);
+                    Goal split2 = item.to.translated(-dir1.x - dir2.x, -dir1.y - dir2.y, 0);
+                    Add2x add2x = new Add2x(split1, split2, dir1, dir2);
+                    AtomDistanceListItem newItem = new AtomDistanceListItem(item);
+                    newItem.pair = new Goal.Pair(item.a, Arrays.asList(split1, split2), add2x);
+                    outList.add(newItem);
+                }
+            }
         }
     }
 
@@ -702,19 +713,19 @@ public class Scamp5PairGenFactory implements PairGenFactory {
             tmp = tmpMov.negative();
         }
         if(tmp.same(item.a)){
-            if(conf.useMov2x && item.distance.manhattan()>1){
+            if(conf.useMov2x && item.distance.manhattanXY()>1){
                 //mov2x
-                Transformation.Direction d1 = item.distance.majorDirection();
-                Transformation.Direction d2 = item.distance.then(d1.opposite()).majorDirection();
+                Transformation.Direction d1 = item.distance.majorXYDirection();
+                Transformation.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
                 Dir dir1 = Dir.fromDirection(d1).opposite();
                 Dir dir2 = Dir.fromDirection(d2).opposite();
                 Mov2x mov2x = new Mov2x(item.a, dir1, dir2, true);
                 AtomDistanceListItem newItem = new AtomDistanceListItem(item);
                 newItem.pair = new Goal.Pair(item.a, mov2x.a, mov2x);
                 outList.add(newItem);
-            } else if (item.distance.manhattan() > 0){
+            } else if (item.distance.manhattanXY() > 0){
                 //movx
-                Transformation.Direction d1 = item.distance.majorDirection();
+                Transformation.Direction d1 = item.distance.majorXYDirection();
                 Dir dir1 = Dir.fromDirection(d1).opposite();
                 Movx movx = new Movx(item.a, dir1, true);
                 AtomDistanceListItem newItem = new AtomDistanceListItem(item);
@@ -748,8 +759,8 @@ public class Scamp5PairGenFactory implements PairGenFactory {
             //TODO add_3 support?
 
             //addx
-            if(conf.useAddx && item.distance.manhattan()>0){
-                Dir dir1 = Dir.fromDirection(item.distance.majorDirection()).opposite();
+            if(conf.useAddx && item.distance.manhattanXY()>0){
+                Dir dir1 = Dir.fromDirection(item.distance.majorXYDirection()).opposite();
                 Goal split1 = aWithoutTmp.translated(-dir1.x, -dir1.y, 0);
                 Goal split2 = tmp.translated(-dir1.x, -dir1.y, 0);
                 Addx addx = new Addx(split1, split2, dir1);
@@ -759,9 +770,9 @@ public class Scamp5PairGenFactory implements PairGenFactory {
             }
 
             //add2x
-            if(conf.useAdd2x && item.distance.manhattan()>1){
-                Transformation.Direction d1 = item.distance.majorDirection();
-                Transformation.Direction d2 = item.distance.then(d1.opposite()).majorDirection();
+            if(conf.useAdd2x && item.distance.manhattanXY()>1){
+                Transformation.Direction d1 = item.distance.majorXYDirection();
+                Transformation.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
                 Dir dir1 = Dir.fromDirection(d1).opposite();
                 Dir dir2 = Dir.fromDirection(d2).opposite();
                 Goal split1 = aWithoutTmp.translated(-dir1.x -dir2.x, -dir1.y-dir2.y, 0);
@@ -773,8 +784,8 @@ public class Scamp5PairGenFactory implements PairGenFactory {
             }
 
             //Subx
-            if(conf.useSubx && item.distance.manhattan()>0){
-                Dir dir1 = Dir.fromDirection(item.distance.majorDirection()).opposite();
+            if(conf.useSubx && item.distance.manhattanXY()>0){
+                Dir dir1 = Dir.fromDirection(item.distance.majorXYDirection()).opposite();
                 Goal split1 = tmp.translated(-dir1.x, -dir1.y, 0);
                 Goal split2 = aWithoutTmp.negative();
                 Subx subx = new Subx(split1, split2, dir1);
@@ -784,9 +795,9 @@ public class Scamp5PairGenFactory implements PairGenFactory {
             }
 
             //Sub2x
-            if(conf.useSub2x && item.distance.manhattan()>1){
-                Transformation.Direction d1 = item.distance.majorDirection();
-                Transformation.Direction d2 = item.distance.then(d1.opposite()).majorDirection();
+            if(conf.useSub2x && item.distance.manhattanXY()>1){
+                Transformation.Direction d1 = item.distance.majorXYDirection();
+                Transformation.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
                 Dir dir1 = Dir.fromDirection(d1).opposite();
                 Dir dir2 = Dir.fromDirection(d2).opposite();
                 Goal split1 = tmp.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0);

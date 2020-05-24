@@ -10,7 +10,7 @@ import java.util.*;
 
 public class V2PairGenFactory implements PairGenFactory{
 
-    private static final Comparator<Tuple<Distance, Goal>> entryComparator = Comparator.comparingInt((Tuple<Distance, Goal> t) -> t.getB().size()).thenComparingInt(t -> -t.getA().manhattan());
+    private static final Comparator<Tuple<Distance, Goal>> entryComparator = Comparator.comparingInt((Tuple<Distance, Goal> t) -> t.getB().size()).thenComparingInt(t -> -t.getA().manhattanXY());
 
 
     @Override
@@ -95,7 +95,7 @@ public class V2PairGenFactory implements PairGenFactory{
                     for (Tuple<Distance, Goal> tuple : list) {
                         Goal tmp = tuple.getA().inverse().translate(tuple.getB());
                         if (tmp.equals(a)) {
-                            Transformation.Move mov = new Transformation.Move(1, tuple.getA().majorDirection().opposite(), a);
+                            Transformation.Move mov = new Transformation.Move(1, tuple.getA().majorXYDirection().opposite(), a);
                             currentList.add(new Goal.Pair(a, mov.applyForwards(), mov));
                         } else {
                             Goal split2 = a.without(tmp);

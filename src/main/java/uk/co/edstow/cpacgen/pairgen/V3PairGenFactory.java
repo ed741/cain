@@ -10,7 +10,7 @@ import java.util.*;
 
 public class V3PairGenFactory extends V2PairGenFactory{
 
-    private static Comparator<Tuple<Distance, Goal>> entryComparator = Comparator.comparingInt((Tuple<Distance, Goal> t) -> t.getB().size()).thenComparingInt(t -> -t.getA().manhattan());
+    private static Comparator<Tuple<Distance, Goal>> entryComparator = Comparator.comparingInt((Tuple<Distance, Goal> t) -> t.getB().size()).thenComparingInt(t -> -t.getA().manhattanXY());
 
     @Override
     public Collection<Tuple<List<Goal.Pair>, Goal>> applyAllUnaryOpForwards(List<Goal> initialGoals, int depth, Goal goal) {
@@ -58,8 +58,8 @@ public class V3PairGenFactory extends V2PairGenFactory{
                     for (Tuple<Distance, Goal> tuple : list) {
                         Goal tmp = tuple.getA().inverse().translate(tuple.getB());
                         if (tmp.equals(a)) {
-                            Goal lower = new Distance(tuple.getA().majorDirection(), 1).inverse().translate(tuple.getB());
-                            Transformation.Move mov = new Transformation.Move(1, tuple.getA().majorDirection(), lower);
+                            Goal lower = new Distance(tuple.getA().majorXYDirection(), 1).inverse().translate(tuple.getB());
+                            Transformation.Move mov = new Transformation.Move(1, tuple.getA().majorXYDirection(), lower);
                             Goal.Pair pair = new Goal.Pair(b, lower, mov);
                             double v = V1PairGenFactory.getValue(goals, pair, bounds);
                             rankList.add(Tuple.triple(pair, v, tuple.getB().size()));

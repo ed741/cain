@@ -19,7 +19,7 @@ class Main {
     }
     public static void test() {
         List<Goal> final_goals = new ArrayList<>();
-        int[] divisions;
+        int[] divisions = new int[2];
 
 
 
@@ -39,8 +39,10 @@ class Main {
                 { 0, 1, 0, -1, 0},
                 { 0, 0, 0, 0, 0}
         };
-//        final_goals.add(new Goal.Factory(multiSobelV).get());
-//        divisions = 0;
+        final_goals.add(new Goal.Factory(multiSobelV).get());
+        divisions[0] = 0;
+        final_goals.add(new Goal.Factory(1, multiSobelV).add(0, multiSobelV, 1).get());
+        divisions[1] = 0;
 
         int[][] multiSobelH = new int[][]{
                 { 0, 0, 0, 0, 0},
@@ -149,8 +151,8 @@ class Main {
 //        };
 //        final_goals.add(new Goal.Factory(multi4).get());
 
-        divisions = new int[]{0,0};
-        final_goals.add(new Goal.Factory(new Atom(0, 0,0,true), new Atom(0,0,1,true)).get());
+//        divisions = new int[]{0,0};
+//        final_goals.add(new Goal.Factory(new Atom(0, 0,0,true), new Atom(0, 0,0,true), new Atom(0,0,1,true)).get());
 
         RegisterAllocator.Register[] availableRegisters = new RegisterAllocator.Register[]{A, B, C, D, E, F};
         RegisterAllocator registerAllocator = new RegisterAllocator(new RegisterAllocator.Register[]{A,B}, availableRegisters);

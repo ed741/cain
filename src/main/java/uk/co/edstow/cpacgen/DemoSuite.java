@@ -463,14 +463,12 @@ class DemoSuite {
         int r = Math.max(xr, yr);
         b = new Bounds(b, new Atom(-r,-r,0, true));
         b = new Bounds(b, new Atom(r,r,0, true));
-        int height = 1 + b.yMax - b.yMin;
-        int width = 1 + b.xMax - b.xMin;
         List<String> out = new ArrayList<>(goals.size());
         for (Goal goal : goals) {
-            String[][] table = goal.getCharTable(b, width, height, false, false, false, false);
+            String[][] table = goal.getCharTable(b, false, false, false, false);
             StringBuilder sb = new StringBuilder("$\\begin{bsmallmatrix} ");
 
-            for (int j = height; j > 0; j--) {
+            for (int j = table.length-1; j > 0; j--) {
                 for (int i = 1; i < table[j].length-1; i++) {
                     sb.append(table[j][i]);
                     sb.append(i == table[j].length-2?" \\\\ ":" & ");

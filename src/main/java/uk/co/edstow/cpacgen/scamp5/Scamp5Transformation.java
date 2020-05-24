@@ -52,8 +52,8 @@ public abstract class Scamp5Transformation extends Transformation {
                 case E: return East;
                 case S: return South;
                 case W: return West;
+                default: return null;
             }
-            throw new IllegalArgumentException();
         }
     }
 

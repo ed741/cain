@@ -28,6 +28,23 @@ public class RegisterAllocator {
             requiresInit.add(new HashSet<>());
         }
 
+        Goal[] initialTrueGoals = new Goal[init.length];
+
+        for (int j = 0; j < init.length; j++) {
+            inits:
+            for (int i = all_r.size() - 1; i >= 0; i--) {
+                Plan.Step step = all_r.get(i);
+                for (int l = 0; l < step.getLowers().size(); l++) {
+                    Goal g = step.getLowerTrueGoal(l);
+                    if(g.same(initialGoals.get(j))){
+                        initialTrueGoals[j] = g;
+                        break inits;
+                    }
+                }
+            }
+        }
+
+
 
         int[] liveness = new int[all_r.size()+initialGoals.size()];
 
@@ -74,7 +91,11 @@ public class RegisterAllocator {
         }
         int[] initLastUsed = new int[init.length];
         for (int i = 0; i < init.length; i++) {
-            initLastUsed[i] = Collections.min(requiresInit.get(i));
+            if(requiresInit.get(i).isEmpty()) {
+            initLastUsed[i] = Integer.MAX_VALUE;
+            }else{
+                initLastUsed[i] = Collections.min(requiresInit.get(i));
+            }
         }
 
 
@@ -133,8 +154,7 @@ public class RegisterAllocator {
                 }else{
                     // Initial cases
                     int initIdx = j-all_r.size();
-                    List<Goal> lowers = all_r.get(i).getLowers();
-                    Goal trueGoal = all_r.get(i).getLowerTrueGoal(lowers.indexOf(initialGoals.get(initIdx)));
+                    Goal trueGoal = initialTrueGoals[initIdx];
                     map.put(trueGoal, r);
                     lineMap.put(j, r);
 

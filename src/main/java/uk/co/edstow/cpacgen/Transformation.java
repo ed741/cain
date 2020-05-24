@@ -250,12 +250,13 @@ public abstract class Transformation {
     }
 
     public enum Direction {
-        N(0,-1), E(-1,0), S(0,1), W(1,0);
+        N(0,-1,0), E(-1,0,0), S(0,1,0), W(1,0,0), U(1,0,-1), D(1,0,1);
 
-        public final int x, y;
-        Direction(int x, int y) {
+        public final int x, y, z;
+        Direction(int x, int y, int z) {
             this.x = x;
             this.y = y;
+            this.z = z;
         }
 
         public Direction opposite(){
@@ -264,6 +265,8 @@ public abstract class Transformation {
                 case E: return W;
                 case S: return N;
                 case W: return E;
+                case U: return D;
+                case D: return U;
                 default: return null;
             }
         }

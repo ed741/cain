@@ -489,7 +489,7 @@ public class ReverseSearch {
                             assert pair.getLowers().size() == 1;
                             currentGoals.addAll(pair.getLowers());
                             Goal[] translation = new Goal[1];
-                            translation[0] = initialGoals.get(initialGoals.indexOf(pair.getLowers().get(0)));
+                            translation[0] = pair.getLowers().get(0);
                             p = p.newAdd(pair, currentGoals, translation, "final step " + i);
                         }
                         if (addPlan(p, id, depth)) {

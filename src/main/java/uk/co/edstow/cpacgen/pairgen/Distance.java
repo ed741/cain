@@ -29,7 +29,7 @@ public class Distance {
     public Distance(Transformation.Direction dir, int length){
         this.x = -dir.x * length;
         this.y = -dir.y * length;
-        this.z = 0;
+        this.z = -dir.z * length;
     }
 
     public boolean isZero(){
@@ -38,6 +38,10 @@ public class Distance {
 
     public int manhattan() {
         return Math.abs(x)+Math.abs(y)+Math.abs(z);
+    }
+
+    public int manhattanXY() {
+        return Math.abs(x)+Math.abs(y);
     }
 
     @Override
@@ -82,7 +86,23 @@ public class Distance {
             return y>0? Transformation.Direction.N : Transformation.Direction.S;
         }
         if(absZ >= absX && absZ >= absY){
-            throw new UnsupportedOperationException("Movement in Z not supported");
+            return z>0? Transformation.Direction.U : Transformation.Direction.D;
+        }
+        return null;
+    }
+
+    public Transformation.Direction majorXYDirection() {
+        int absX = Math.abs(x);
+        int absY = Math.abs(y);
+
+        if (isZero()){
+            return null;
+        }
+        if(absX >= absY){
+            return x>0? Transformation.Direction.E : Transformation.Direction.W;
+        }
+        if(absY >= absX){
+            return y>0? Transformation.Direction.N : Transformation.Direction.S;
         }
         return null;
     }
