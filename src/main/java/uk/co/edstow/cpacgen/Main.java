@@ -14,8 +14,8 @@ import static uk.co.edstow.cpacgen.scamp5.Scamp5PairGenFactory.Config.SearchStra
 @SuppressWarnings("unused")
 class Main {
     public static void main(String[] args) {
-//        DemoSuite.runDemo();
-        test();
+        DemoSuite.runDemo();
+//        test();
     }
     public static void test() {
         List<Goal> final_goals = new ArrayList<>();
