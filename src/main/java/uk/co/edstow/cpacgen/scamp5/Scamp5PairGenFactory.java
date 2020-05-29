@@ -1,12 +1,12 @@
 package uk.co.edstow.cpacgen.scamp5;
 
-import com.sun.scenario.effect.impl.sw.sse.SSEBlend_SRC_OUTPeer;
 import uk.co.edstow.cpacgen.Atom;
 import uk.co.edstow.cpacgen.Goal;
 import uk.co.edstow.cpacgen.ReverseSearch;
 import uk.co.edstow.cpacgen.Transformation;
 import uk.co.edstow.cpacgen.pairgen.Distance;
 import uk.co.edstow.cpacgen.pairgen.PairGenFactory;
+import uk.co.edstow.cpacgen.pairgen.SimpleTransformation;
 import uk.co.edstow.cpacgen.util.Bounds;
 import uk.co.edstow.cpacgen.util.Tuple;
 
@@ -95,6 +95,13 @@ public class Scamp5PairGenFactory implements PairGenFactory {
 
         if(initialGoals.contains(goal)){
             list.add(new Tuple<>(Collections.emptyList(), goal));
+            return list;
+        }
+
+        if(goal.isEmpty()){
+            Res res = new Res(goal);
+            list.add(new Tuple<>(Collections.singletonList((new Goal.Pair(goal, Collections.emptyList(), res))), initialGoals.get(0)));
+            return list;
         }
 
 
@@ -115,11 +122,11 @@ public class Scamp5PairGenFactory implements PairGenFactory {
                 }
                 if(ic != null) {
                     List<Goal.Pair> pairs = new ArrayList<>();
-                    Divq div = new Divq(goal, true);
-                    pairs.add(new Goal.Pair(div.applyForwards(), Collections.singletonList(div.a), div));
+                    Div div = new Div(goal,true, true);
+                    pairs.add(new Goal.Pair(div.applyOpForwards(), Collections.singletonList(div.a), div));
                     while (div.a.atomCount() < ic.atomCount()){
-                        div = new Divq(div.a, true);
-                        pairs.add(new Goal.Pair(div.applyForwards(), Collections.singletonList(div.a), div));
+                        div = new Div(div.a, true,true);
+                        pairs.add(new Goal.Pair(div.applyOpForwards(), Collections.singletonList(div.a), div));
                     }
                     if(div.a.equals(ic)){
                         list.add(new Tuple<>(pairs, ic));
@@ -244,9 +251,15 @@ public class Scamp5PairGenFactory implements PairGenFactory {
             Neg neg = new Neg(upper, true);
             pairs.add(new Goal.Pair(upper, neg.a, neg));
 
+
             //Divide
-            Divq div = new Divq(upper, true);
+            Div divc = new Div(upper, true, true);
+            pairs.add(new Goal.Pair(upper, divc.a, divc));
+            Div div = new Div(upper, true, false);
             pairs.add(new Goal.Pair(upper, div.a, div));
+            //Divide
+            Divq divq = new Divq(upper, true);
+            pairs.add(new Goal.Pair(upper, divq.a, divq));
 
             //Mov
             Mov mov = new Mov(upper, true);
@@ -480,7 +493,7 @@ public class Scamp5PairGenFactory implements PairGenFactory {
         protected void addDirectMov(Goal a, List<AtomDistanceListItem> outList) {
             Distance centre = new Distance(a.getAveragePos());
             if(centre.manhattanXY()>0){
-                Transformation.Direction d1 = centre.majorXYDirection();
+                SimpleTransformation.Direction d1 = centre.majorXYDirection();
                 if(d1!= null) {
                     Dir dir1 = Dir.fromDirection(d1);
                     Movx movx = new Movx(a, dir1, true);
@@ -492,9 +505,9 @@ public class Scamp5PairGenFactory implements PairGenFactory {
                 }
             }
             if(conf.useMov2x && centre.manhattanXY()>1){
-                Transformation.Direction d1 = centre.majorXYDirection();
+                SimpleTransformation.Direction d1 = centre.majorXYDirection();
                 if(d1 != null) {
-                    Transformation.Direction d2 = centre.then(d1.opposite()).majorXYDirection();
+                    SimpleTransformation.Direction d2 = centre.then(d1.opposite()).majorXYDirection();
                     if (d2 != null) {
                         Dir dir1 = Dir.fromDirection(d1).opposite();
                         Dir dir2 = Dir.fromDirection(d2).opposite();
@@ -552,7 +565,10 @@ public class Scamp5PairGenFactory implements PairGenFactory {
 
     private double getCost(Goal.Pair pair, Goal.Bag goals, Config config) {
         Goal.Bag proposedGoals = new Goal.Bag(goals);
-        proposedGoals.remove(pair.getUpper());
+        for (Goal upper : pair.getUppers()) {
+            proposedGoals.remove(upper);
+        }
+
 
         List<Goal> toAdd = new ArrayList<>();
         for (Goal goal : pair.getLowers()) {
@@ -560,7 +576,7 @@ public class Scamp5PairGenFactory implements PairGenFactory {
             toAdd.add(goal);
         }
         proposedGoals.addAll(toAdd);
-        if(proposedGoals.size() +(pair.getTransformation().inputRegisterOutputInterferes()?1:0) > config.availableRegisters){
+        if(proposedGoals.size() +(pair.getTransformation().ExtraRegisterCount()) > config.availableRegisters){
             return -1; // exit early if too many registers are used.
         }
         double cost = 0;
@@ -613,7 +629,7 @@ public class Scamp5PairGenFactory implements PairGenFactory {
         cost += (1<<initialDivisionsMax) / min;
         cost += max / (1<<initialDivisionsMin);
 
-        if(pair.getLowers().size()==1&&pair.getUpper().same(pair.getLowers().get(0))){
+        if(pair.getLowers().size()==1&&pair.getUppers().get(0).same(pair.getLowers().get(0))){
             cost *=2;
         }
         return cost;
@@ -695,8 +711,8 @@ public class Scamp5PairGenFactory implements PairGenFactory {
 
         //add2x
         if(conf.useAdd2x && centre.manhattanXY()>1){
-            Transformation.Direction d1 = centre.majorXYDirection();
-            Transformation.Direction d2 = centre.then(d1.opposite()).majorXYDirection();
+            SimpleTransformation.Direction d1 = centre.majorXYDirection();
+            SimpleTransformation.Direction d2 = centre.then(d1.opposite()).majorXYDirection();
             Dir dir1 = Dir.fromDirection(d1);
             Dir dir2 = Dir.fromDirection(d2);
             Goal split1 = aWithoutTo.translated(-dir1.x -dir2.x, -dir1.y-dir2.y, 0);
@@ -717,8 +733,8 @@ public class Scamp5PairGenFactory implements PairGenFactory {
         }
 
         if(conf.useSub2x && item.distance.manhattanXY()>1){
-            Transformation.Direction d1 = item.distance.majorXYDirection();
-            Transformation.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
+            SimpleTransformation.Direction d1 = item.distance.majorXYDirection();
+            SimpleTransformation.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
             Dir dir1 = Dir.fromDirection(d1).opposite();
             Dir dir2 = Dir.fromDirection(d2).opposite();
             Goal split1 = aWithoutTo.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0);
@@ -740,8 +756,8 @@ public class Scamp5PairGenFactory implements PairGenFactory {
         if(tmp.same(item.a)){
             if(conf.useMov2x && item.distance.manhattanXY()>1){
                 //mov2x
-                Transformation.Direction d1 = item.distance.majorXYDirection();
-                Transformation.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
+                SimpleTransformation.Direction d1 = item.distance.majorXYDirection();
+                SimpleTransformation.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
                 Dir dir1 = Dir.fromDirection(d1).opposite();
                 Dir dir2 = Dir.fromDirection(d2).opposite();
                 Mov2x mov2x = new Mov2x(item.a, dir1, dir2, true);
@@ -750,7 +766,7 @@ public class Scamp5PairGenFactory implements PairGenFactory {
                 outList.add(newItem);
             } else if (item.distance.manhattanXY() > 0){
                 //movx
-                Transformation.Direction d1 = item.distance.majorXYDirection();
+                SimpleTransformation.Direction d1 = item.distance.majorXYDirection();
                 Dir dir1 = Dir.fromDirection(d1).opposite();
                 Movx movx = new Movx(item.a, dir1, true);
                 AtomDistanceListItem newItem = new AtomDistanceListItem(item);
@@ -796,8 +812,8 @@ public class Scamp5PairGenFactory implements PairGenFactory {
 
             //add2x
             if(conf.useAdd2x && item.distance.manhattanXY()>1){
-                Transformation.Direction d1 = item.distance.majorXYDirection();
-                Transformation.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
+                SimpleTransformation.Direction d1 = item.distance.majorXYDirection();
+                SimpleTransformation.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
                 Dir dir1 = Dir.fromDirection(d1).opposite();
                 Dir dir2 = Dir.fromDirection(d2).opposite();
                 Goal split1 = aWithoutTmp.translated(-dir1.x -dir2.x, -dir1.y-dir2.y, 0);
@@ -821,8 +837,8 @@ public class Scamp5PairGenFactory implements PairGenFactory {
 
             //Sub2x
             if(conf.useSub2x && item.distance.manhattanXY()>1){
-                Transformation.Direction d1 = item.distance.majorXYDirection();
-                Transformation.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
+                SimpleTransformation.Direction d1 = item.distance.majorXYDirection();
+                SimpleTransformation.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
                 Dir dir1 = Dir.fromDirection(d1).opposite();
                 Dir dir2 = Dir.fromDirection(d2).opposite();
                 Goal split1 = tmp.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0);

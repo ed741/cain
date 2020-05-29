@@ -19,7 +19,7 @@ public class Plan {
     private final int depth;
 
     public Plan(List<Goal> finalGoals, List<Goal> initialGoals, String comment){
-        Goal.Pair p = new Goal.Pair(null, finalGoals, new Transformation.Null(finalGoals.size()));
+        Goal.Pair p = new Goal.Pair((Goal) null, finalGoals, new Transformation.Null(finalGoals.size(), 0));
         Goal[] translation  = new Goal[finalGoals.size()];
         for (int i = 0; i < translation.length; i++) {
             translation[i] = finalGoals.get(i);
@@ -59,13 +59,18 @@ public class Plan {
         StringBuilder sb = new StringBuilder("//Kernel Code!\n");
         for (int i = all.size()-1; i >= 0; i--) {
             Step step = all.get(i);
-            RegisterAllocator.Register upper = step.getUpper()!=null?registerMap.get(step.getUpper()):null;
+            List<RegisterAllocator.Register> uppers = new ArrayList<>();
+            for (int j = 0; j < step.getUppers().size(); j++) {
+                Goal upperGoal = step.getUppers().get(j);
+                uppers.add(registerMap.get(upperGoal));
+            }
             List<RegisterAllocator.Register> lowers = new ArrayList<>();
             for (int j = 0; j < step.getLowers().size(); j++) {
                 Goal lowerGoal = step.getLowerTrueGoal(j);
                 lowers.add(registerMap.get(lowerGoal));
             }
-            sb.append(step.code(upper, lowers));
+            sb.append(step.code(uppers, lowers, registerMap.getTrash(i)));
+            sb.append("//").append(registerMap.getTrash(i));
             sb.append("\n");
         }
         return sb.toString();
@@ -91,8 +96,8 @@ public class Plan {
         public Goal.Bag liveGoals(){
             return currentGoals;
         }
-        public Goal getUpper(){
-            return goalPair.getUpper();
+        public List<Goal> getUppers(){
+            return goalPair.getUppers();
         }
         public List<Goal> getLowers(){
             return goalPair.getLowers();
@@ -132,8 +137,8 @@ public class Plan {
         }
 
         @SuppressWarnings("WeakerAccess")
-        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
-            return goalPair.getTransformation().code(upper, lowers);
+        public String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers,  List<RegisterAllocator.Register> trash) {
+            return goalPair.getTransformation().code(uppers, lowers, trash);
         }
 
         public Goal getLowerTrueGoal(int i) {
@@ -186,14 +191,19 @@ public class Plan {
             for (int l = 0; l < lowers.size(); l++) {
                 Goal lower = step.getLowerTrueGoal(l);
                 int j = i + 1;
+                jloop:
                 for (; j < all.size(); j++) {
-                    if (all.get(j).getUpper().equivalent(lower)) {
-                        step.backwardsLinks.add(all.get(j));
-                        all.get(j).forwardsLinks.add(step);
-                        break;
+                    for (Goal upper : all.get(j).getUppers()) {
+                        if (upper.equivalent(lower)) {
+                            step.backwardsLinks.add(all.get(j));
+                            all.get(j).forwardsLinks.add(step);
+                            break jloop;
+                        }
                     }
                 }
-                assert j != all.size() || initialGoals.contains(lower);
+                if(!(j != all.size() || initialGoals.contains(lower))) {
+                    assert j != all.size() || initialGoals.contains(lower);
+                }
 
             }
         }
@@ -256,7 +266,7 @@ public class Plan {
             sb.append("\n");
             List<Goal> input = new ArrayList<>();
             if(i+1<all.size()){
-                input.add(all.get(i+1).getUpper());
+                input.addAll(all.get(i+1).getUppers());
             }
             sb.append(all.get(i).toGoalsString(input));
             sb.append('\n');

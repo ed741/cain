@@ -48,7 +48,7 @@ public class V1PairGenFactory implements PairGenFactory{
 
     public static double getValue(Goal.Bag goals, Goal.Pair pair, Bounds bounds) {
         HashSet<Goal> goalSet = new HashSet<>(goals);
-        goalSet.remove(pair.getUpper());
+        goalSet.removeAll(pair.getUppers());
 
         goalSet.addAll(pair.getLowers());
         double v = 0;
@@ -75,7 +75,7 @@ public class V1PairGenFactory implements PairGenFactory{
 
     private List<Goal.Pair> getUnaryTransformations(Goal upper) {
         List<Goal.Pair> pairs = new ArrayList<>();
-        Collection<Tuple<? extends Transformation, Goal>> ts = Transformation.applyAllUnaryOpBackwards(upper);
+        Collection<Tuple<? extends Transformation, Goal>> ts = SimpleTransformation.applyAllUnaryOpBackwards(upper);
         for (Tuple<? extends Transformation, Goal> t : ts) {
             pairs.add(new Goal.Pair(upper, t.getB(), t.getA()));
         }
@@ -101,7 +101,7 @@ public class V1PairGenFactory implements PairGenFactory{
                 continue;
             }
 
-            Transformation.Add add = new Transformation.Add(a, b);
+            SimpleTransformation.Add add = new SimpleTransformation.Add(a, b);
             if (!add.applyForwards().same(upper)) throw new AssertionError();
             List<Goal> lowers = new ArrayList<>();
             lowers.add(a);

@@ -16,9 +16,9 @@ public class SimplePairGenFactory implements PairGenFactory {
 
     public static Collection<Tuple<List<Goal.Pair>, Goal>> applyAllUnaryOps(Goal goal, Goal upper){
         ArrayList<Tuple<List<Goal.Pair>, Goal>> list = new ArrayList<>();
-        for (Transformation.Direction d: Transformation.Direction.values()){
+        for (SimpleTransformation.Direction d: SimpleTransformation.Direction.values()){
             for (int i = 0; i < 4; i++){
-                Transformation t = new Transformation.Move(i, d, goal);
+                SimpleTransformation t = new SimpleTransformation.Move(i, d, goal);
                 try {
                     Goal go = t.applyForwards();
                     if(go.same(upper)) {
@@ -28,7 +28,7 @@ public class SimplePairGenFactory implements PairGenFactory {
             }
         }
         for (int i = 0; i < 8; i++){
-            Transformation t = new Transformation.Div(i, goal);
+            SimpleTransformation t = new SimpleTransformation.Div(i, goal);
             try {
                 Goal go = t.applyForwards();
                 if(go.same(upper)) {
@@ -127,7 +127,7 @@ public class SimplePairGenFactory implements PairGenFactory {
 
         List<Goal.Pair> getUnaryTransformations(Goal upper) {
             List<Goal.Pair> pairs = new ArrayList<>();
-            Collection<Tuple<? extends Transformation, Goal>> ts = Transformation.applyAllUnaryOpBackwards(upper);
+            Collection<Tuple<? extends Transformation, Goal>> ts = SimpleTransformation.applyAllUnaryOpBackwards(upper);
             for (Tuple<? extends Transformation, Goal> t: ts){
                 pairs.add(new Goal.Pair(upper, t.getB(), t.getA()));
             }
@@ -143,7 +143,7 @@ public class SimplePairGenFactory implements PairGenFactory {
                 if (b.isEmpty()) {
                     continue;
                 }
-                Transformation.Add add = new Transformation.Add(a, b);
+                SimpleTransformation.Add add = new SimpleTransformation.Add(a, b);
                 if (!add.applyForwards().same(upper)) throw new AssertionError();
                 List<Goal> lowers = new ArrayList<>();
                 lowers.add(a);

@@ -32,8 +32,10 @@ public class Bounds {
         int zMax = Integer.MIN_VALUE;
         int zMin = Integer.MAX_VALUE;
 
+        boolean found = false;
         for (Collection<? extends Atom> c: cs){
             for (Atom a: c){
+                found = true;
                 xMax = max(xMax, a.x);
                 xMin = min(xMin, a.x);
                 yMax = max(yMax, a.y);
@@ -42,13 +44,21 @@ public class Bounds {
                 zMin = min(zMin, a.z);
             }
         }
-
-        this.xMax = xMax;
-        this.xMin = xMin;
-        this.yMax = yMax;
-        this.yMin = yMin;
-        this.zMax = zMax;
-        this.zMin = zMin;
+        if(found) {
+            this.xMax = xMax;
+            this.xMin = xMin;
+            this.yMax = yMax;
+            this.yMin = yMin;
+            this.zMax = zMax;
+            this.zMin = zMin;
+        } else {
+            this.xMax = 0;
+            this.xMin = 0;
+            this.yMax = 0;
+            this.yMin = 0;
+            this.zMax = 0;
+            this.zMin = 0;
+        }
     }
 
     public static Bounds BoundsFromGoal(Collection<Atom> c) {

@@ -29,7 +29,7 @@ public class SortPairGenFactory extends SimplePairGenFactory {
             List<Tuple<Goal.Pair, Double>> list = new ArrayList<>(pairs.size());
             for (Goal.Pair pair: pairs){
                 HashSet<Goal> goalSet = new HashSet<>(this.goals);
-                goalSet.remove(pair.getUpper());
+                goalSet.removeAll(pair.getUppers());
                 goalSet.addAll(pair.getLowers());
                 double v = 0;
                 for (Goal g: goalSet){

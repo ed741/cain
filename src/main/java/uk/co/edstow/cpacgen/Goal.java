@@ -439,12 +439,12 @@ public class Goal implements List<Atom>, Comparable<Goal>{
 
 
     public static class Pair {
-        private final Goal upper;
+        private final List<Goal> uppers;
         private final List<Goal> lowers;
         private final Transformation transformation;
 
-        public Goal getUpper() {
-            return upper;
+        public List<Goal> getUppers() {
+            return uppers;
         }
 
         public List<Goal> getLowers() {
@@ -456,23 +456,30 @@ public class Goal implements List<Atom>, Comparable<Goal>{
         }
 
         public Pair(Goal u, Goal l, Transformation t) {
-            upper = u;
-            ArrayList<Goal> list = new ArrayList<>();
-            list.add(l);
-            lowers = Collections.unmodifiableList(list);
+            uppers = Collections.singletonList(u);
+            lowers = Collections.singletonList(l);
             transformation = t;
         }
 
         public Pair(Goal u, List<Goal> ls, Transformation t) {
-            upper = u;
+            uppers = Collections.singletonList(u);
             ArrayList<Goal> list = new ArrayList<>(ls);
             lowers = Collections.unmodifiableList(list);
             transformation = t;
         }
 
+        public Pair(List<Goal> us, List<Goal> ls, Transformation t) {
+            ArrayList<Goal> ulist = new ArrayList<>(us);
+            uppers = Collections.unmodifiableList(ulist);
+            ArrayList<Goal> llist = new ArrayList<>(ls);
+            lowers = Collections.unmodifiableList(llist);
+            transformation = t;
+        }
+
+
         @Override
         public String toString() {
-            return "{T:" + transformation + ", U: " + upper + ", Ls:" + lowers + "}";
+            return "{T:" + transformation + ", U: " + uppers.toString() + ", Ls:" + lowers.toString() + "}";
         }
         public String toStringN() {
             StringBuilder sLowers  = new StringBuilder("[");
@@ -484,7 +491,16 @@ public class Goal implements List<Atom>, Comparable<Goal>{
             }
             sLowers.append("]");
 
-            return "{T:" + transformation + ", U: " + goalStringN(upper) + ", Ls:" + sLowers.toString() + "}";
+            StringBuilder sUppers  = new StringBuilder("[");
+            for (Goal g: uppers){
+                sUppers.append(goalStringN(g));
+                if (g != uppers.get(uppers.size()-1)) {
+                    sUppers.append(",");
+                }
+            }
+            sUppers.append("]");
+
+            return "{T:" + transformation + ", U: " + sUppers.toString() + ", Ls:" + sLowers.toString() + "}";
         }
 
     }

@@ -14,8 +14,8 @@ import static uk.co.edstow.cpacgen.scamp5.Scamp5PairGenFactory.Config.SearchStra
 @SuppressWarnings("unused")
 class Main {
     public static void main(String[] args) {
-        DemoSuite.runDemo();
-//        test();
+//        DemoSuite.runDemo();
+        test();
     }
     public static void test() {
         List<Goal> final_goals = new ArrayList<>();
@@ -39,10 +39,10 @@ class Main {
                 { 0, 1, 0, -1, 0},
                 { 0, 0, 0, 0, 0}
         };
-        final_goals.add(new Goal.Factory(multiSobelV).get());
-        divisions[0] = 0;
-        final_goals.add(new Goal.Factory(1, multiSobelV).add(0, multiSobelV, 1).get());
-        divisions[1] = 2;
+//        final_goals.add(new Goal.Factory(multiSobelV).get());
+//        divisions[0] = 0;
+//        final_goals.add(new Goal.Factory(1, multiSobelV).add(0, multiSobelV, 1).get());
+//        divisions[1] = 2;
 
         int[][] multiSobelH = new int[][]{
                 { 0, 0, 0, 0, 0},
@@ -154,8 +154,11 @@ class Main {
 //        divisions = new int[]{0,0};
 //        final_goals.add(new Goal.Factory(new Atom(0, 0,0,true), new Atom(0, 0,0,true), new Atom(0,0,1,true)).get());
 
+        divisions = new int[]{0};
+        final_goals.add(new Goal());
+
         RegisterAllocator.Register[] availableRegisters = new RegisterAllocator.Register[]{A, B, C, D, E, F};
-        RegisterAllocator registerAllocator = new RegisterAllocator(new RegisterAllocator.Register[]{A,B}, availableRegisters);
+        RegisterAllocator registerAllocator = new RegisterAllocator(new RegisterAllocator.Register[]{A}, availableRegisters);
 
 
         Scamp5PairGenFactory pairGenFactory = new Scamp5PairGenFactory(
@@ -175,8 +178,8 @@ class Main {
         );
         ReverseSearch.RunConfig config = new ReverseSearch.RunConfig();
         config.setWorkers(1)
-                .setRegisterAllocator(registerAllocator)
-                .setTimeOut(false).setLiveCounter(true).setSearchTime(10000)
+                .setRegisterAllocator(registerAllocator).setLivePrintPlans(2)
+                .setTimeOut(true).setLiveCounter(true).setSearchTime(1000)
                 .setTraversalAlgorithm(TraversalSystem.SOTFactory());
         ReverseSearch rs = new ReverseSearch(divisions, final_goals, pairGenFactory, config);
         rs.search();

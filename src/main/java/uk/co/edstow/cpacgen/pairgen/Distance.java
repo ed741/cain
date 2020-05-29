@@ -2,7 +2,6 @@ package uk.co.edstow.cpacgen.pairgen;
 
 import uk.co.edstow.cpacgen.Atom;
 import uk.co.edstow.cpacgen.Goal;
-import uk.co.edstow.cpacgen.Transformation;
 
 @SuppressWarnings("WeakerAccess")
 public class Distance {
@@ -26,7 +25,7 @@ public class Distance {
         this.z = (int) Math.round(position.z);
     }
 
-    public Distance(Transformation.Direction dir, int length){
+    public Distance(SimpleTransformation.Direction dir, int length){
         this.x = -dir.x * length;
         this.y = -dir.y * length;
         this.z = -dir.z * length;
@@ -71,7 +70,7 @@ public class Distance {
         return factory.get();
     }
 
-    public Transformation.Direction majorDirection() {
+    public SimpleTransformation.Direction majorDirection() {
         int absX = Math.abs(x);
         int absY = Math.abs(y);
         int absZ = Math.abs(z);
@@ -80,31 +79,31 @@ public class Distance {
             return null;
         }
         if(absX >= absY && absX >= absZ){
-            return x>0? Transformation.Direction.E : Transformation.Direction.W;
+            return x>0? SimpleTransformation.Direction.E : SimpleTransformation.Direction.W;
         }
         if(absY >= absX && absY >= absZ){
-            return y>0? Transformation.Direction.N : Transformation.Direction.S;
+            return y>0? SimpleTransformation.Direction.N : SimpleTransformation.Direction.S;
         }
         if(absZ >= absX && absZ >= absY){
-            return z>0? Transformation.Direction.U : Transformation.Direction.D;
+            return z>0? SimpleTransformation.Direction.U : SimpleTransformation.Direction.D;
         }
         return null;
     }
 
-    public Transformation.Direction majorXYDirection() {
+    public SimpleTransformation.Direction majorXYDirection() {
         if (isZero()) return null;
 
         int absX = Math.abs(x);
         int absY = Math.abs(y);
 
         if(absX >= absY){
-            return x>0? Transformation.Direction.E : Transformation.Direction.W;
+            return x>0? SimpleTransformation.Direction.E : SimpleTransformation.Direction.W;
         } else {
-            return y>0? Transformation.Direction.N : Transformation.Direction.S;
+            return y>0? SimpleTransformation.Direction.N : SimpleTransformation.Direction.S;
         }
     }
 
-    public Distance then(Transformation.Direction direction) {
+    public Distance then(SimpleTransformation.Direction direction) {
         return new Distance(x-direction.x, y-direction.y, z);
     }
 

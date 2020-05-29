@@ -471,32 +471,9 @@ public class ReverseSearch {
                     return;
                 }
 
-                if (goals.size() == inputs) {
-                    if (goals.containsAll(initialGoals)) {
-                        if (addPlan(currentPlan, id, depth)) {
-                            return;
-                        }
-                    }
-                    List<Goal.Pair> pairs = isTransformable(goals, depth);
-                    if (pairs != null && !pairs.isEmpty()) {
-                        Plan p = currentPlan;
-                        Goal.Bag currentGoals = new Goal.Bag(goals);
 
-                        for (int i = 0; i < pairs.size(); i++) {
-                            Goal.Pair pair = pairs.get(i);
-                            boolean e = currentGoals.removeEquivalent(pair.getUpper());
-                            assert e;
-                            assert pair.getLowers().size() == 1;
-                            currentGoals.addAll(pair.getLowers());
-                            Goal[] translation = new Goal[1];
-                            translation[0] = pair.getLowers().get(0);
-                            p = p.newAdd(pair, currentGoals, translation, "final step " + i);
-                        }
-                        if (addPlan(p, id, depth)) {
-                            return;
-                        }
-                    }
-                }
+                if (tryDirectSolve(depth, goals, currentPlan)) return;
+
                 goalPairs = pairGenFactory.generatePairs(goals, depth);
             }
             Goal.Pair goalPair = goalPairs.next();
@@ -505,8 +482,11 @@ public class ReverseSearch {
             }
 
             Goal.Bag newGoals = new Goal.Bag(goals);
-            boolean removed = newGoals.removeEquivalent(goalPair.getUpper());
-            assert removed: "Pair Upper ERROR";
+
+            for (Goal upper : goalPair.getUppers()) {
+                boolean removed = newGoals.removeEquivalent(upper);
+                assert removed: "Pair Upper ERROR";
+            }
 
             ArrayList<Goal> toAdd = new ArrayList<>();
             List<Goal> lowers = goalPair.getLowers();
@@ -527,14 +507,16 @@ public class ReverseSearch {
                 }
                 if(add) {
                     boolean addNew = true;
-                    for (int j = 0; j < newGoals.size(); j++) {
-                        Goal goal = newGoals.get(j);
-                        if (goal.same(l)) {
-                            newGoals.remove(j);
-                            toAdd.add(goal);
-                            translation[i] = goal;
-                            addNew = false;
-                            break;
+                    if(!goalPair.getTransformation().clobbersInput(i)) {
+                        for (int j = 0; j < newGoals.size(); j++) {
+                            Goal goal = newGoals.get(j);
+                            if (goal.same(l)) {
+                                newGoals.remove(j);
+                                toAdd.add(goal);
+                                translation[i] = goal;
+                                addNew = false;
+                                break;
+                            }
                         }
                     }
                     if(addNew) {
@@ -549,7 +531,7 @@ public class ReverseSearch {
             newGoals.setImmutable();
 
             WorkState child = null;
-            boolean tryChildren = newGoals.size() +(goalPair.getTransformation().inputRegisterOutputInterferes()?1:0) <= availableRegisters;
+            boolean tryChildren = newGoals.size() +(goalPair.getTransformation().ExtraRegisterCount()) <= availableRegisters;
             if(tryChildren) {
                 Plan newPlan = currentPlan.newAdd(goalPair, newGoals, translation, "r_step");
                 child = new WorkState(depth + 1, newGoals, newPlan, null);
@@ -558,6 +540,44 @@ public class ReverseSearch {
             localTraversalSystem.add(child, next);
 
         }
+
+        private boolean tryDirectSolve(int depth, Goal.Bag goals, Plan currentPlan) {
+            if (goals.size() != inputs) {
+                return false;
+            }
+            if (goals.containsAll(initialGoals)) {
+                if (addPlan(currentPlan, id, depth)) {
+                    return true;
+                }
+            }
+            List<Goal.Pair> pairs = isTransformable(goals, depth);
+            if (pairs != null && !pairs.isEmpty()) {
+                Plan p = currentPlan;
+                Goal.Bag currentGoals = new Goal.Bag(goals);
+
+                for (int i = 0; i < pairs.size(); i++) {
+                    Goal.Pair pair = pairs.get(i);
+                    for (Goal upper : pair.getUppers()) {
+                        boolean removed = currentGoals.removeEquivalent(upper);
+                        assert removed : "Pair Upper ERROR";
+                    }
+                    currentGoals.addAll(pair.getLowers());
+                    Goal[] translation = new Goal[pair.getLowers().size()];
+                    for (int l = 0; l < pair.getLowers().size(); l++) {
+                        translation[l] = pair.getLowers().get(l);
+                    }
+                    boolean tryChildren = currentGoals.size() +(pair.getTransformation().ExtraRegisterCount()) <= availableRegisters;
+                    if(!tryChildren){
+                        return false;
+                    }
+                    p = p.newAdd(pair, currentGoals, translation, "final step " + i);
+                }
+                return addPlan(p, id, depth);
+            }
+
+            return false;
+        }
+
         private boolean addPlan(Plan p, int id, int depth){
             RegisterAllocator.Mapping mapping = registerAllocator.solve(p, initialGoals);
             if (mapping == null){
@@ -604,7 +624,6 @@ public class ReverseSearch {
         List<Goal.Pair> allPairs = new ArrayList<>();
         int found = 0;
         for(Goal goal: goals) {
-            assert !goal.isEmpty();
             for (Tuple<List<Goal.Pair>, Goal> tuple : this.pairGenFactory.applyAllUnaryOpForwards(initialGoals, depth, goal)) {
                 List<Goal.Pair> pairs = tuple.getA();
                 Goal g = tuple.getB();

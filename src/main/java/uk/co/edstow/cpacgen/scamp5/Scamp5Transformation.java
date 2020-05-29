@@ -4,16 +4,62 @@ import uk.co.edstow.cpacgen.Atom;
 import uk.co.edstow.cpacgen.Goal;
 import uk.co.edstow.cpacgen.RegisterAllocator;
 import uk.co.edstow.cpacgen.Transformation;
+import uk.co.edstow.cpacgen.pairgen.SimpleTransformation;
 import uk.co.edstow.cpacgen.util.Tuple;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
 public abstract class Scamp5Transformation extends Transformation {
+    public abstract List<Goal> applyOpForwards() throws TransformationApplicationException;
 
-    @Override
-    public String toString() {
-        return toStringN();
+
+    abstract static class SimpleScamp5Transformation extends Scamp5Transformation{
+
+        @Override
+        public String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
+            if (uppers.size() == 1) {
+                return code(uppers.get(0), lowers);
+            } else {
+                throw new IllegalArgumentException("This Transformation only accepts one Upper register");
+            }
+        }
+
+        abstract String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers);
+
+        public abstract Goal applyForwards() throws TransformationApplicationException;
+        public List<Goal> applyOpForwards() throws TransformationApplicationException{
+            return Collections.singletonList(applyForwards());
+        }
+
+        @Override
+        public boolean[] inputRegisterOutputInterference(int u) {
+            return this.inputRegisterOutputInterference();
+        }
+
+        abstract boolean[] inputRegisterOutputInterference();
+
+        @Override
+        public int ExtraRegisterCount() {
+            return inputRegisterOutputInterferes()?1:0;
+        }
+        abstract boolean inputRegisterOutputInterferes();
+
+        @Override
+        public String toString() {
+            return toStringN();
+        }
+
+        @Override
+        public int outputCount() {
+            return 1;
+        }
+
+        @Override
+        public boolean clobbersInput(int i) {
+            return false;
+        }
     }
 
     public enum Dir{
@@ -46,7 +92,7 @@ public abstract class Scamp5Transformation extends Transformation {
             return code;
         }
 
-        public static Dir fromDirection(Direction direction) {
+        public static Dir fromDirection(SimpleTransformation.Direction direction) {
             switch (direction){
                 case N: return North;
                 case E: return East;
@@ -57,8 +103,13 @@ public abstract class Scamp5Transformation extends Transformation {
         }
     }
 
-    public static class Res extends Scamp5Transformation{
+    public static class Res extends SimpleScamp5Transformation{
         // u := {}
+        final Goal result;
+
+        public Res(Goal result) {
+            this.result = result;
+        }
 
         @Override
         public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
@@ -73,7 +124,7 @@ public abstract class Scamp5Transformation extends Transformation {
 
         @Override
         public Goal applyForwards() {
-            return new Goal();
+            return result;
         }
 
         @Override
@@ -106,7 +157,7 @@ public abstract class Scamp5Transformation extends Transformation {
     }
 
 
-    public static class Mov extends Scamp5Transformation {
+    public static class Mov extends SimpleScamp5Transformation {
         //u := a
 
         final Goal a;
@@ -176,7 +227,7 @@ public abstract class Scamp5Transformation extends Transformation {
     }
 
 
-    public static class Add_2 extends Scamp5Transformation {
+    public static class Add_2 extends SimpleScamp5Transformation {
         // u := a + b
 
         final Goal a;
@@ -238,7 +289,7 @@ public abstract class Scamp5Transformation extends Transformation {
 
     }
 
-    public static class Add_3 extends Scamp5Transformation {
+    public static class Add_3 extends SimpleScamp5Transformation {
         // u := a + b + c
 
         final Goal a;
@@ -301,7 +352,7 @@ public abstract class Scamp5Transformation extends Transformation {
         }
     }
 
-    public static class Sub extends Scamp5Transformation {
+    public static class Sub extends SimpleScamp5Transformation {
         // u := a - b
 
          final Goal a;
@@ -362,7 +413,7 @@ public abstract class Scamp5Transformation extends Transformation {
         }
     }
 
-    public static class Neg extends Scamp5Transformation {
+    public static class Neg extends SimpleScamp5Transformation {
         // u := -a
 
         final Goal a;
@@ -432,7 +483,7 @@ public abstract class Scamp5Transformation extends Transformation {
         }
     }
 
-    public static class Divq extends Scamp5Transformation {
+    public static class Divq extends SimpleScamp5Transformation {
         // u := a*0.5 + error
 
         final Goal a;
@@ -475,6 +526,7 @@ public abstract class Scamp5Transformation extends Transformation {
         public int inputCount() {
             return 1;
         }
+
 
         @SuppressWarnings("ConstantConditions")
         @Override
@@ -752,6 +804,148 @@ public abstract class Scamp5Transformation extends Transformation {
         public String toStringN() {
             return String.format("Sub2X %s %s (%s, %s)", dir1, dir2, a, b);
         }
+    }
+
+
+    public static class Div extends Scamp5Transformation {
+        // u := a*0.5 + error
+
+        final Goal a;
+        final boolean clobber;
+        Goal div;
+
+
+        public Div(Goal a, boolean clobber) {
+            this.a = a;
+            this.div = null;
+            this.clobber = clobber;
+        }
+
+        public Div(Goal in, boolean upper, boolean clobber){
+            this.clobber = clobber;
+            if(!upper){
+                this.a = in;
+                this.div = null;
+            } else {
+                this.a = new Goal.Factory(in).addAll(in).get();
+                this.div = in;
+            }
+        }
+
+        public boolean isPossible(){
+            Iterator<Tuple<Atom, Integer>> it = a.uniqueCountIterator();
+            while(it.hasNext()){
+                Tuple<Atom, Integer> t = it.next();
+                int count = t.getB();
+                if(count < 2 || count % 2 != 0){
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        @Override
+        public String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
+            assert lowers.size() == inputCount();
+            assert uppers.size() == outputCount();
+            if(uppers.get(0) == lowers.get(0)){
+                assert trash.size()>=2;
+                return String.format("diva(%s, %s, %s);", uppers.get(0), trash.get(0), trash.get(1));
+            }
+            if(this.clobber) {
+                assert trash.size() >= 1;
+                return String.format("div(%s, %s, %s);", uppers.get(0), trash.get(0), lowers.get(0));
+            }else{
+                assert trash.size() >= 2;
+                return String.format("div(%s, %s, %s, %s);", uppers.get(0), trash.get(0), trash.get(1), lowers.get(0));
+            }
+
+        }
+
+        @Override
+        public int inputCount() {
+            return 1;
+        }
+
+        @Override
+        public int outputCount() {
+            return 1;
+        }
+
+        @Override
+        public boolean clobbersInput(int i) {
+            return this.clobber;
+        }
+
+        @Override
+        public int ExtraRegisterCount() {
+            return this.clobber?2:3;
+        }
+
+        @Override
+        public boolean[] inputRegisterOutputInterference(int u) {
+            if(this.clobber) {
+                return new boolean[]{false};
+            } else {
+                return new boolean[]{true};
+            }
+        }
+
+        @Override
+        public int[] inputRegisterIntraInterference() {
+            return new int[]{0};
+        }
+
+        @SuppressWarnings("ConstantConditions")
+        @Override
+        public List<Goal> applyOpForwards() throws TransformationApplicationException {
+            if(this.div==null) {
+                this.div = applyDiv(this.a);
+            }
+            return Collections.singletonList(this.div);
+        }
+
+        private Goal applyDiv(Goal in) throws TransformationApplicationException {
+            Goal.Factory factory = new Goal.Factory();
+            if (!in.isEmpty()) {
+                int count = 1;
+                Atom last = in.get(0);
+                for (int i = 1; i < in.size()+1; i++) {
+                    Atom c = i < in.size()?in.get(i):null;
+                    if(c == null || !last.equals(c)){
+                        if(count/2 != (count+1)/2){
+                            throw new TransformationApplicationException("Cannot divide uneven number of atoms!");
+                        } else {
+                            for (int j = 0; j < count / 2; j++) {
+                                factory.add(last);
+                            }
+                        }
+                        last = c;
+                        count = 1;
+                    } else {
+                        count++;
+                    }
+                }
+            }
+            return factory.get();
+        }
+
+        @Override
+        public double cost() {
+            return 2;
+        }
+
+        @Override
+        public String toStringN() {
+            return String.format("Divide(%b)(%s)", this.clobber, this.a);
+        }
+
+        @Override
+        public String toString() {
+            return toStringN();
+        }
+
+
     }
 
 }

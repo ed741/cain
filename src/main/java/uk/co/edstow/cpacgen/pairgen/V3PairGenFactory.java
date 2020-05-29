@@ -2,7 +2,6 @@ package uk.co.edstow.cpacgen.pairgen;
 
 import uk.co.edstow.cpacgen.Goal;
 import uk.co.edstow.cpacgen.ReverseSearch;
-import uk.co.edstow.cpacgen.Transformation;
 import uk.co.edstow.cpacgen.util.Bounds;
 import uk.co.edstow.cpacgen.util.Tuple;
 
@@ -59,7 +58,7 @@ public class V3PairGenFactory extends V2PairGenFactory{
                         Goal tmp = tuple.getA().inverse().translate(tuple.getB());
                         if (tmp.equals(a)) {
                             Goal lower = new Distance(tuple.getA().majorXYDirection(), 1).inverse().translate(tuple.getB());
-                            Transformation.Move mov = new Transformation.Move(1, tuple.getA().majorXYDirection(), lower);
+                            SimpleTransformation.Move mov = new SimpleTransformation.Move(1, tuple.getA().majorXYDirection(), lower);
                             Goal.Pair pair = new Goal.Pair(b, lower, mov);
                             double v = V1PairGenFactory.getValue(goals, pair, bounds);
                             rankList.add(Tuple.triple(pair, v, tuple.getB().size()));
@@ -67,14 +66,14 @@ public class V3PairGenFactory extends V2PairGenFactory{
                             int div = a.divide(tmp);
                             if (div > 1 && (((div - 1) & div) == 0)) {
                                 Goal lower = new Goal.Factory(b).addAll(b).get();
-                                Transformation.Div divide = new Transformation.Div(1, lower);
+                                SimpleTransformation.Div divide = new SimpleTransformation.Div(1, lower);
                                 Goal.Pair pair = new Goal.Pair(b, lower, divide);
                                 double v = V1PairGenFactory.getValue(goals, pair, bounds);
                                 rankList.add(Tuple.triple(pair, v, tuple.getB().size()));
                             } else {
                                 Goal split2 = a.without(tmp);
                                 List<Goal> lowers = Arrays.asList(tmp, split2);
-                                Goal.Pair pair = new Goal.Pair(a, lowers, new Transformation.Add(tmp, split2));
+                                Goal.Pair pair = new Goal.Pair(a, lowers, new SimpleTransformation.Add(tmp, split2));
                                 double v = V1PairGenFactory.getValue(goals, pair, bounds);
                                 rankList.add(Tuple.triple(pair, v, tuple.getB().size()));
                             }
@@ -90,7 +89,7 @@ public class V3PairGenFactory extends V2PairGenFactory{
 //                        System.out.println(tuple.getA());
 //                        System.out.println(split1.getCharTableString(true));
 //                        System.out.println(split2.getCharTableString(true));
-                        Goal.Pair pair = new Goal.Pair(a, Arrays.asList(split1, split2), new Transformation.Add(split1, split2));
+                        Goal.Pair pair = new Goal.Pair(a, Arrays.asList(split1, split2), new SimpleTransformation.Add(split1, split2));
                         double v = V1PairGenFactory.getValue(goals, pair, bounds);
                         rankList.add(Tuple.triple(pair, v, tuple.getB().size()));
                     }

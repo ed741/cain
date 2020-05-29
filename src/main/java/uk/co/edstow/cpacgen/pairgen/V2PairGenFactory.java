@@ -3,7 +3,6 @@ package uk.co.edstow.cpacgen.pairgen;
 import uk.co.edstow.cpacgen.Atom;
 import uk.co.edstow.cpacgen.Goal;
 import uk.co.edstow.cpacgen.ReverseSearch;
-import uk.co.edstow.cpacgen.Transformation;
 import uk.co.edstow.cpacgen.util.Tuple;
 
 import java.util.*;
@@ -95,12 +94,12 @@ public class V2PairGenFactory implements PairGenFactory{
                     for (Tuple<Distance, Goal> tuple : list) {
                         Goal tmp = tuple.getA().inverse().translate(tuple.getB());
                         if (tmp.equals(a)) {
-                            Transformation.Move mov = new Transformation.Move(1, tuple.getA().majorXYDirection().opposite(), a);
+                            SimpleTransformation.Move mov = new SimpleTransformation.Move(1, tuple.getA().majorXYDirection().opposite(), a);
                             currentList.add(new Goal.Pair(a, mov.applyForwards(), mov));
                         } else {
                             Goal split2 = a.without(tmp);
                             List<Goal> lowers = Arrays.asList(tmp, split2);
-                            currentList.add(new Goal.Pair(a, lowers, new Transformation.Add(tmp, split2)));
+                            currentList.add(new Goal.Pair(a, lowers, new SimpleTransformation.Add(tmp, split2)));
                         }
 
                     }
@@ -112,7 +111,7 @@ public class V2PairGenFactory implements PairGenFactory{
 //                        System.out.println(tuple.getA());
 //                        System.out.println(split1.getCharTableString(true));
 //                        System.out.println(split2.getCharTableString(true));
-                        currentList.add(new Goal.Pair(a, Arrays.asList(split1, split2), new Transformation.Add(split1, split2)));
+                        currentList.add(new Goal.Pair(a, Arrays.asList(split1, split2), new SimpleTransformation.Add(split1, split2)));
                     }
 
 
