@@ -1,20 +1,20 @@
-package uk.co.edstow.cpacgen;
+package uk.co.edstow.cain;
 
-import uk.co.edstow.cpacgen.scamp5.Scamp5PairGenFactory;
-import uk.co.edstow.cpacgen.scamp5.emulator.Scamp5Emulator;
-import uk.co.edstow.cpacgen.util.Bounds;
-import uk.co.edstow.cpacgen.util.Tuple;
+import uk.co.edstow.cain.scamp5.Scamp5PairGenFactory;
+import uk.co.edstow.cain.scamp5.emulator.Scamp5Emulator;
+import uk.co.edstow.cain.util.Bounds;
+import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 
-import static uk.co.edstow.cpacgen.RegisterAllocator.Register.*;
-import static uk.co.edstow.cpacgen.scamp5.Scamp5PairGenFactory.Config.SearchStrategy.Exhaustive;
-import static uk.co.edstow.cpacgen.scamp5.Scamp5PairGenFactory.Config.SearchStrategy.SortedAtomDistance;
+import static uk.co.edstow.cain.RegisterAllocator.Register.*;
+import static uk.co.edstow.cain.scamp5.Scamp5PairGenFactory.Config.SearchStrategy.Exhaustive;
+import static uk.co.edstow.cain.scamp5.Scamp5PairGenFactory.Config.SearchStrategy.SortedAtomDistance;
 
 @SuppressWarnings("unused")
 class Main {
     public static void main(String[] args) {
-//        DemoSuite.runDemo();
+        DemoSuite.runDemo();
         test();
     }
     public static void test() {
@@ -155,6 +155,7 @@ class Main {
 //        final_goals.add(new Goal.Factory(new Atom(0, 0,0,true), new Atom(0, 0,0,true), new Atom(0,0,1,true)).get());
 
         divisions = new int[]{0};
+        final_goals.add(new Goal());
         final_goals.add(new Goal());
 
         RegisterAllocator.Register[] availableRegisters = new RegisterAllocator.Register[]{A, B, C, D, E, F};

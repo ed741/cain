@@ -1,6 +1,6 @@
-package uk.co.edstow.cpacgen;
+package uk.co.edstow.cain;
 
-import uk.co.edstow.cpacgen.util.Bounds;
+import uk.co.edstow.cain.util.Bounds;
 
 import java.util.ArrayList;
 import java.util.Collections;

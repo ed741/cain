@@ -1,11 +1,11 @@
-package uk.co.edstow.cpacgen.pairgen;
+package uk.co.edstow.cain.pairgen;
 
-import uk.co.edstow.cpacgen.util.Bounds;
-import uk.co.edstow.cpacgen.util.Tuple;
-import uk.co.edstow.cpacgen.Atom;
-import uk.co.edstow.cpacgen.Goal;
-import uk.co.edstow.cpacgen.ReverseSearch;
-import uk.co.edstow.cpacgen.Transformation;
+import uk.co.edstow.cain.util.Bounds;
+import uk.co.edstow.cain.util.Tuple;
+import uk.co.edstow.cain.Atom;
+import uk.co.edstow.cain.Goal;
+import uk.co.edstow.cain.ReverseSearch;
+import uk.co.edstow.cain.Transformation;
 
 import java.util.*;
 

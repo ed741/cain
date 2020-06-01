@@ -1,6 +1,6 @@
-package uk.co.edstow.cpacgen;
+package uk.co.edstow.cain;
 
-import uk.co.edstow.cpacgen.util.Tuple;
+import uk.co.edstow.cain.util.Tuple;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;

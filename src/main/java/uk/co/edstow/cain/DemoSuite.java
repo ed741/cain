@@ -1,22 +1,22 @@
-package uk.co.edstow.cpacgen;
+package uk.co.edstow.cain;
 
-import uk.co.edstow.cpacgen.scamp5.Scamp5PairGenFactory;
-import uk.co.edstow.cpacgen.scamp5.emulator.Scamp5Emulator;
-import uk.co.edstow.cpacgen.util.Bounds;
-import uk.co.edstow.cpacgen.util.Tuple;
+import uk.co.edstow.cain.scamp5.Scamp5PairGenFactory;
+import uk.co.edstow.cain.scamp5.emulator.Scamp5Emulator;
+import uk.co.edstow.cain.util.Bounds;
+import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 import java.util.function.Supplier;
 
-import static uk.co.edstow.cpacgen.RegisterAllocator.Register.*;
-import static uk.co.edstow.cpacgen.scamp5.Scamp5PairGenFactory.Config.SearchStrategy.Exhaustive;
-import static uk.co.edstow.cpacgen.scamp5.Scamp5PairGenFactory.Config.SearchStrategy.SortedAtomDistance;
+import static uk.co.edstow.cain.RegisterAllocator.Register.*;
+import static uk.co.edstow.cain.scamp5.Scamp5PairGenFactory.Config.SearchStrategy.Exhaustive;
+import static uk.co.edstow.cain.scamp5.Scamp5PairGenFactory.Config.SearchStrategy.SortedAtomDistance;
 
 @SuppressWarnings("SameParameterValue")
 class DemoSuite {
 
     private final static boolean SOBEL = false;
-    private final static boolean BOX = false;
+    private final static boolean BOX = true;
     private final static boolean GUASS = false;
     private final static boolean CNN_ON_FPSP_ANALOG_NET_2 = true;
     private final static boolean CNN_ON_FPSP_MAX_POOLED = true;
@@ -88,8 +88,12 @@ class DemoSuite {
 //        setups.add(new TestSetup(1, TraversalSystem.SOTFactory(), 6, 10, false, 60));
 //        setups.add(new TestSetup(4, TraversalSystem.DFSFactory(), 6, 10, true, 60));
 //        setups.add(new TestSetup(4, TraversalSystem.SOTFactory(), 6, 0, true, 60));
-        setups.add(new TestSetup(4, TraversalSystem.SOTFactory(), 6, 10, true, 5));
-        setups.add(new TestSetup(4, TraversalSystem.HOSFactory(), 6, 10, true, 5));
+        setups.add(new TestSetup(1, TraversalSystem.SOTFactory(), 6, 10, true, 5));
+        setups.add(new TestSetup(1, TraversalSystem.AStarFactory(ws -> {
+            int sum = ws.goals.stream().mapToInt(goal -> -1+goal.stream().mapToInt(a -> Math.abs(a.x) + Math.abs(a.y) + Math.abs(a.z) + 1).sum()).sum();
+            sum += ws.depth;
+            return (double) sum;
+        }), 6, 10, true, 5));
 
         return setups;
     }
@@ -378,12 +382,12 @@ class DemoSuite {
         sb.append("\\begin{longtable}{| m{2.5cm} m{4.5cm} | c |");
         setups.forEach(t-> sb.append(" c"));
         sb.append(" | m{2cm} |}\n");
-        sb.append("\\caption{Kernels Tested in AUKE and CPACGen}\n");
+        sb.append("\\caption{Kernels Tested in AUKE and Cain}\n");
         sb.append("\\label{table:kernelResults}\n");
         sb.append("\\endfirsthead\n");
         sb.append("\\endhead\n");
         sb.append("\\hline\n");
-        sb.append("Name & Approximated Kernel & AUKE & \\multicolumn{").append(setups.size()).append("}{|c|}{CPACGen} & \\\\\n");
+        sb.append("Name & Approximated Kernel & AUKE & \\multicolumn{").append(setups.size()).append("}{|c|}{Cain} & \\\\\n");
         sb.append("\\hline\n");
         sb.append("\\hline\n");
         // time

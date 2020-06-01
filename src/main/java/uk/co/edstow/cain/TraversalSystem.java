@@ -1,4 +1,4 @@
-package uk.co.edstow.cpacgen;
+package uk.co.edstow.cain;
 
 import java.util.Objects;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -7,7 +7,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static uk.co.edstow.cpacgen.ReverseSearch.*;
+import static uk.co.edstow.cain.ReverseSearch.*;
 
 public abstract class TraversalSystem {
 
@@ -200,6 +200,7 @@ public abstract class TraversalSystem {
         }
         private final PriorityBlockingQueue<Entry> workQueue = new PriorityBlockingQueue<>();
         private final Function<WorkState, Double> f;
+        private WorkState next = null;
 
         AStar(Function<WorkState, Double> f) {
             this.f = f;
@@ -208,6 +209,7 @@ public abstract class TraversalSystem {
         @Override
         public void add(WorkState child, WorkState next) {
             if(child!=null)workQueue.add(new Entry(child, f.apply(child)));
+            this.next = next;
             if(next!=null)workQueue.add(new Entry(next, f.apply(next)));
         }
 
@@ -218,6 +220,11 @@ public abstract class TraversalSystem {
 
         @Override
         public WorkState poll() {
+            if(this.next!=null){
+                WorkState out = next;
+                this.next = null;
+                return out;
+            }
             Entry e = workQueue.poll();
             if(e == null){
                 return null;

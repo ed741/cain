@@ -1,7 +1,7 @@
-package uk.co.edstow.cpacgen;
+package uk.co.edstow.cain;
 
-import uk.co.edstow.cpacgen.util.Bounds;
-import uk.co.edstow.cpacgen.util.Tuple;
+import uk.co.edstow.cain.util.Bounds;
+import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 
@@ -272,6 +272,9 @@ public class Goal implements List<Atom>, Comparable<Goal>{
     }
 
     public boolean allSame() {
+        if(isEmpty()){
+            return true;
+        }
         Atom a = list.get(0);
         for (int i = 1; i < list.size(); i++) {
             if(!a.equals(list.get(i))){

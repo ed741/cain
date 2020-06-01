@@ -1,6 +1,6 @@
-package uk.co.edstow.cpacgen.scamp5.emulator;
+package uk.co.edstow.cain.scamp5.emulator;
 
-import uk.co.edstow.cpacgen.util.Tuple;
+import uk.co.edstow.cain.util.Tuple;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;

@@ -1,20 +1,20 @@
-package uk.co.edstow.cpacgen.scamp5;
+package uk.co.edstow.cain.scamp5;
 
-import uk.co.edstow.cpacgen.Atom;
-import uk.co.edstow.cpacgen.Goal;
-import uk.co.edstow.cpacgen.ReverseSearch;
-import uk.co.edstow.cpacgen.Transformation;
-import uk.co.edstow.cpacgen.pairgen.Distance;
-import uk.co.edstow.cpacgen.pairgen.PairGenFactory;
-import uk.co.edstow.cpacgen.pairgen.SimpleTransformation;
-import uk.co.edstow.cpacgen.util.Bounds;
-import uk.co.edstow.cpacgen.util.Tuple;
+import uk.co.edstow.cain.Atom;
+import uk.co.edstow.cain.Goal;
+import uk.co.edstow.cain.ReverseSearch;
+import uk.co.edstow.cain.Transformation;
+import uk.co.edstow.cain.pairgen.Distance;
+import uk.co.edstow.cain.pairgen.PairGenFactory;
+import uk.co.edstow.cain.pairgen.SimpleTransformation;
+import uk.co.edstow.cain.util.Bounds;
+import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static uk.co.edstow.cpacgen.scamp5.Scamp5Transformation.*;
+import static uk.co.edstow.cain.scamp5.Scamp5Transformation.*;
 
 public class Scamp5PairGenFactory implements PairGenFactory {
 
@@ -86,6 +86,32 @@ public class Scamp5PairGenFactory implements PairGenFactory {
 
     public interface ConfigGetter {
         Config getConfig(List<Goal> goals, int depth, ReverseSearch rs, boolean initialGoal);
+    }
+
+    @Override
+    public List<Goal.Pair> applyAllUnaryOpForwards(List<Goal> initialGoals, int depth, List<Goal> goals){
+        goals = new Goal.Bag(goals);
+        List<Goal.Pair> allPairs = new ArrayList<>();
+        Goal.Bag empties = new Goal.Bag();
+        for (int i = goals.size() - 1; i >= 0; i--) {
+          if(goals.get(i).isEmpty()){
+              empties.add(goals.remove(i));
+          }
+        }
+        for (int i = 0; i < empties.size(); i++) {
+            if(i+1 < empties.size()){
+                allPairs.add(new Goal.Pair(Arrays.asList(empties.get(i), empties.get(i+1)), Collections.emptyList(), new Res_2(empties.get(i), empties.get(i+1))));
+                i++;
+            } else {
+                allPairs.add(new Goal.Pair(empties.get(i), Collections.emptyList(), new Res(empties.get(i))));
+            }
+        }
+        List<Goal.Pair> pairList = PairGenFactory.super.applyAllUnaryOpForwards(initialGoals, depth, goals);
+        if(pairList==null){
+            return null;
+        }
+        allPairs.addAll(pairList);
+        return allPairs;
     }
 
     @Override
@@ -250,6 +276,23 @@ public class Scamp5PairGenFactory implements PairGenFactory {
             //Negate
             Neg neg = new Neg(upper, true);
             pairs.add(new Goal.Pair(upper, neg.a, neg));
+
+            if(upper.isEmpty()){
+                Res res = new Res(upper);
+                pairs.add(new Goal.Pair(upper, Collections.emptyList(), res));
+
+                Goal other = null;
+                for(Goal g: goals){
+                    if (g.isEmpty() && !g.equivalent(upper)){
+                        other = g;
+                        break;
+                    }
+                }
+                if (other!=null){
+                    Res_2 res_2 = new Res_2(upper, other);
+                    pairs.add(new Goal.Pair(Arrays.asList(upper, other), Collections.emptyList(), res_2));
+                }
+            }
 
 
             //Divide
@@ -551,7 +594,7 @@ public class Scamp5PairGenFactory implements PairGenFactory {
                 Goal b = goals.get(ij.getB());
                 boolean diagonal = ij.getA().equals(ij.getB());
                 List<AtomDistanceListItem> inList = getAtomDistanceList(a, b, diagonal);
-                inList.sort(atomDistanceComparator);
+                //inList.sort(atomDistanceComparator);
                 addPairs(a, diagonal, inList, outList);
             }
             outList.parallelStream().forEach(item -> item.cost = getCost(item.pair, goals, conf));
@@ -593,7 +636,8 @@ public class Scamp5PairGenFactory implements PairGenFactory {
             }
             double atomDistanceCost = 0;
             for (Atom a : g) {
-                cost += Math.abs(a.x) + Math.abs(a.y) + Math.abs(a.z) + (a.positive?0:1);
+                atomDistanceCost += Math.abs(a.x) + Math.abs(a.y) + Math.abs(a.z) + (a.positive?0:1);
+                cost +=1;
             }
             cost += atomDistanceCost/subset;
         }
@@ -615,7 +659,6 @@ public class Scamp5PairGenFactory implements PairGenFactory {
                 System.exit(-1);
             }
             goalList.add(i, goal);
-            cost += toRemove.size()*goal.atomCount();
             if(!goal.allSame()) {
                 cost += Math.pow(goal.atomCount(), 2);
             }
@@ -626,7 +669,7 @@ public class Scamp5PairGenFactory implements PairGenFactory {
             max = Math.max(max, goal.maximumCount());
         }
 
-        cost += (1<<initialDivisionsMax) / min;
+        cost += (1<<initialDivisionsMax) / (min>0?min:1);
         cost += max / (1<<initialDivisionsMin);
 
         if(pair.getLowers().size()==1&&pair.getUppers().get(0).same(pair.getLowers().get(0))){
@@ -764,7 +807,8 @@ public class Scamp5PairGenFactory implements PairGenFactory {
                 AtomDistanceListItem newItem = new AtomDistanceListItem(item);
                 newItem.pair = new Goal.Pair(item.a, mov2x.a, mov2x);
                 outList.add(newItem);
-            } else if (item.distance.manhattanXY() > 0){
+            }
+            if (item.distance.manhattanXY() > 0){
                 //movx
                 SimpleTransformation.Direction d1 = item.distance.majorXYDirection();
                 Dir dir1 = Dir.fromDirection(d1).opposite();

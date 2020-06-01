@@ -1,7 +1,7 @@
-package uk.co.edstow.cpacgen.util;
+package uk.co.edstow.cain.util;
 
 
-import uk.co.edstow.cpacgen.Atom;
+import uk.co.edstow.cain.Atom;
 
 import java.util.Collection;
 import java.util.stream.IntStream;

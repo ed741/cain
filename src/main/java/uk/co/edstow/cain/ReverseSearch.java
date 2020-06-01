@@ -1,7 +1,7 @@
-package uk.co.edstow.cpacgen;
+package uk.co.edstow.cain;
 
-import uk.co.edstow.cpacgen.pairgen.PairGenFactory;
-import uk.co.edstow.cpacgen.util.Tuple;
+import uk.co.edstow.cain.pairgen.PairGenFactory;
+import uk.co.edstow.cain.util.Tuple;
 
 import java.time.Duration;
 import java.util.*;
@@ -284,6 +284,11 @@ public class ReverseSearch {
             sb.append(workers.get(i).plansFound);
             sb.append(i==workers.size()-1?']':',');
         }
+        sb.append(" | NodesExpanded:[");
+        for (int i = 0; i < workers.size(); i++) {
+            sb.append(workers.get(i).nodesExpanded);
+            sb.append(i==workers.size()-1?']':',');
+        }
         sb.append(" | CacheHits:[");
         for (int i = 0; i < workers.size(); i++) {
             sb.append(workers.get(i).cacheHits);
@@ -402,6 +407,7 @@ public class ReverseSearch {
         int cacheChecks = 0;
         int cacheHits = 0;
         int steals = 0;
+        int nodesExpanded = 0;
 
         Worker(int id) {
             this.id = id;
@@ -426,7 +432,7 @@ public class ReverseSearch {
                 //ignore
                 //System.out.println(id + " interpreted!");
             }
-            System.out.println(String.format("Worker %d Finished:  Active: %b,  Min Depth: %d,  Max Depth: %d,  PlansFound: %d, CacheHits: %d,  CacheChecks: %d,  Steals: %d", id, active, workerMinDepth, workerMaxDepth, plansFound, cacheHits, cacheChecks, steals));
+            System.out.println(String.format("Worker %d Finished:  Active: %b,  Min Depth: %d,  Max Depth: %d,  PlansFound: %d, CacheHits: %d,  CacheChecks: %d,  Steals: %d, NodesExpanded: %d", id, active, workerMinDepth, workerMaxDepth, plansFound, cacheHits, cacheChecks, steals, nodesExpanded));
             workersFinished.release();
         }
 
@@ -475,6 +481,7 @@ public class ReverseSearch {
                 if (tryDirectSolve(depth, goals, currentPlan)) return;
 
                 goalPairs = pairGenFactory.generatePairs(goals, depth);
+                nodesExpanded++;
             }
             Goal.Pair goalPair = goalPairs.next();
             if(goalPair == null){
@@ -542,10 +549,10 @@ public class ReverseSearch {
         }
 
         private boolean tryDirectSolve(int depth, Goal.Bag goals, Plan currentPlan) {
-            if (goals.size() != inputs) {
+            if (goals.size() > inputs) {
                 return false;
             }
-            if (goals.containsAll(initialGoals)) {
+            if (goals.isEmpty() || goals.containsAll(initialGoals)) {
                 if (addPlan(currentPlan, id, depth)) {
                     return true;
                 }
@@ -621,20 +628,7 @@ public class ReverseSearch {
 
 
     private List<Goal.Pair> isTransformable(Goal.Bag goals, int depth) {
-        List<Goal.Pair> allPairs = new ArrayList<>();
-        int found = 0;
-        for(Goal goal: goals) {
-            for (Tuple<List<Goal.Pair>, Goal> tuple : this.pairGenFactory.applyAllUnaryOpForwards(initialGoals, depth, goal)) {
-                List<Goal.Pair> pairs = tuple.getA();
-                Goal g = tuple.getB();
-                if (initialGoals.contains(g)) {
-                    allPairs.addAll(pairs);
-                    found++;
-                    break;
-                }
-            }
-        }
-        return found!=goals.size()?null:allPairs;
+        return this.pairGenFactory.applyAllUnaryOpForwards(initialGoals, depth, goals);
     }
 
 

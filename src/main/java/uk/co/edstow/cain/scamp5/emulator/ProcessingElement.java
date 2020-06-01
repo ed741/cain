@@ -1,12 +1,12 @@
-package uk.co.edstow.cpacgen.scamp5.emulator;
+package uk.co.edstow.cain.scamp5.emulator;
 
-import uk.co.edstow.cpacgen.Atom;
-import uk.co.edstow.cpacgen.Goal;
-import uk.co.edstow.cpacgen.util.Tuple;
+import uk.co.edstow.cain.Atom;
+import uk.co.edstow.cain.Goal;
+import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 
-import static uk.co.edstow.cpacgen.scamp5.emulator.Scamp5Emulator.*;
+import static uk.co.edstow.cain.scamp5.emulator.Scamp5Emulator.*;
 
 class ProcessingElement {
 

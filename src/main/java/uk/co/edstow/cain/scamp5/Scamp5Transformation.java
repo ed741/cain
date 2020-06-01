@@ -1,12 +1,13 @@
-package uk.co.edstow.cpacgen.scamp5;
+package uk.co.edstow.cain.scamp5;
 
-import uk.co.edstow.cpacgen.Atom;
-import uk.co.edstow.cpacgen.Goal;
-import uk.co.edstow.cpacgen.RegisterAllocator;
-import uk.co.edstow.cpacgen.Transformation;
-import uk.co.edstow.cpacgen.pairgen.SimpleTransformation;
-import uk.co.edstow.cpacgen.util.Tuple;
+import uk.co.edstow.cain.Atom;
+import uk.co.edstow.cain.Goal;
+import uk.co.edstow.cain.RegisterAllocator;
+import uk.co.edstow.cain.Transformation;
+import uk.co.edstow.cain.pairgen.SimpleTransformation;
+import uk.co.edstow.cain.util.Tuple;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -153,6 +154,71 @@ public abstract class Scamp5Transformation extends Transformation {
         @Override
         public int[] inputRegisterIntraInterference() {
             return inputRegisterIntraInterference;
+        }
+    }
+
+
+    public static class Res_2 extends Scamp5Transformation{
+        // u := {}
+        final Goal result1;
+        final Goal result2;
+
+        public Res_2(Goal a, Goal b) {
+            this.result1 = a;
+            this.result2 = b;
+        }
+
+        @Override
+        public String code(List<RegisterAllocator.Register> upper, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
+            assert lowers.size() == inputCount();
+            return String.format("res(%s, %s);", upper.get(0), upper.get(1));
+        }
+
+        @Override
+        public int inputCount() {
+            return 0;
+        }
+
+        @Override
+        public int outputCount() {
+            return 2;
+        }
+
+        @Override
+        public List<Goal> applyOpForwards() {
+            return Arrays.asList(result1, result2);
+        }
+
+        @Override
+        public double cost() {
+            return 2;
+        }
+
+        @Override
+        public String toStringN() {
+            return "Res/2";
+        }
+        @Override
+        public String toString() {
+            return toStringN();
+        }
+
+        private static final boolean[] inputRegisterOutputInterference = new boolean[0];
+        private static final int[] inputRegisterIntraInterference = new int[0];
+
+        @Override
+        public boolean[] inputRegisterOutputInterference(int u) {
+            return inputRegisterOutputInterference;
+        }
+
+        @Override
+        public int[] inputRegisterIntraInterference() {
+            return inputRegisterIntraInterference;
+        }
+
+        @Override
+        public boolean clobbersInput(int i) {
+            return false;
         }
     }
 
