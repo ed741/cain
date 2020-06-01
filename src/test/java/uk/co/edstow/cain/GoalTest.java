@@ -294,43 +294,6 @@ class GoalTest {
         assertTrue(lists.contains(new Goal(new Atom(1,1,0,true), new Atom(2,1,0,true), new Atom(3,1,0,true), new Atom(4,1,0,true))));
 
         assertEquals(15, lists.size());
-
-
-        Goal g2 = new Goal(
-                new Atom(-1,1,0, true),
-                new Atom(-1,1,0, true),
-                new Atom(-1,1,0, true),
-                new Atom(-1,1,0, true),
-                new Atom(1,1,0, true),
-                new Atom(1,1,0, true),
-                new Atom(1,1,0, true),
-                new Atom(1,1,0, true)
-                );
-        List<Goal> splits = g2.allSplits();
-        System.out.println(splits.size());
-        splits.forEach(s->{
-            //System.out.println(s.getCharTableString(true, true, true, true));
-            Goal sb = g2.without(s);
-            System.out.println(Goal.Bag.toGoalsString(Arrays.asList(s, sb)));
-        });
-        for (int i = splits.size() - 1; i >= 0; i--) {
-            Goal a = splits.get(i);
-            Goal b = g2.without(a);
-            if(!b.equals(a) && splits.remove(b)){
-                i--;
-            }
-        }
-//        splits.remove(new Goal());
-//        splits.remove(g2);
-        System.out.println(splits.size());
-        splits.forEach(s->{
-            //System.out.println(s.getCharTableString(true, true, true, true));
-            Goal sb = g2.without(s);
-            System.out.println(Goal.Bag.toGoalsString(Arrays.asList(s, sb)));
-        });
-
-
-
     }
 
     @Test
