@@ -14,12 +14,12 @@ import static uk.co.edstow.cain.scamp5.Scamp5PairGenFactory.Config.SearchStrateg
 @SuppressWarnings("unused")
 class Main {
     public static void main(String[] args) {
-        DemoSuite.runDemo();
+//        DemoSuite.runDemo();
         test();
     }
     public static void test() {
         List<Goal> final_goals = new ArrayList<>();
-        int[] divisions = new int[2];
+        int[] divisions = new int[1];
 
 
 
@@ -30,7 +30,7 @@ class Main {
                 { 8, 7, 5, 6, 0},
                 { 0, 8, 6, 8, 4}
         };
-        //final_goals.add(new Goal.Factory(multi3).get());
+//        final_goals.add(new Goal.Factory(multi3).get());
 
         int[][] multiSobelV = new int[][]{
                 { 0, 0, 0, 0, 0},
@@ -109,7 +109,7 @@ class Main {
                 { 0, 0, 0, 0, 0}
         };
 //        final_goals.add(new Goal.Factory(multiGuass3x3, 4).get());
-//        divisions = 6;
+//        divisions[0] = 6;
 //        final_goals.add(new Goal.Factory(multiGuass3x3).get());
 //        divisions = 4;
 
@@ -120,8 +120,8 @@ class Main {
                 { 1, 4, 6, 4, 1},
                 { 0, 1, 2, 1, 0}
         };
-//        final_goals.add(new Goal.Factory(multiGuass5x5).get());
-//        divisions = 6;
+        final_goals.add(new Goal.Factory(multiGuass5x5).get());
+        divisions[0] = 6;
 
         int[][] multi1 = new int[][]{
                 { 0, 0, 0, 0, 0},
@@ -154,9 +154,9 @@ class Main {
 //        divisions = new int[]{0,0};
 //        final_goals.add(new Goal.Factory(new Atom(0, 0,0,true), new Atom(0, 0,0,true), new Atom(0,0,1,true)).get());
 
-        divisions = new int[]{0};
-        final_goals.add(new Goal());
-        final_goals.add(new Goal());
+//        divisions = new int[]{0};
+//        final_goals.add(new Goal());
+//        final_goals.add(new Goal());
 
         RegisterAllocator.Register[] availableRegisters = new RegisterAllocator.Register[]{A, B, C, D, E, F};
         RegisterAllocator registerAllocator = new RegisterAllocator(new RegisterAllocator.Register[]{A}, availableRegisters);
@@ -178,10 +178,12 @@ class Main {
                 }
         );
         ReverseSearch.RunConfig config = new ReverseSearch.RunConfig();
-        config.setWorkers(1)
+        config.setWorkers(4)
                 .setRegisterAllocator(registerAllocator).setLivePrintPlans(2)
-                .setTimeOut(true).setLiveCounter(true).setSearchTime(1000)
-                .setTraversalAlgorithm(TraversalSystem.SOTFactory());
+                .setTimeOut(true).setLiveCounter(true).setSearchTime(60000)
+                .setTraversalAlgorithm(TraversalSystem.SOTFactory())
+        .setForcedDepthReduction(1)
+        .setForcedCostReduction(0);
         ReverseSearch rs = new ReverseSearch(divisions, final_goals, pairGenFactory, config);
         rs.search();
 
@@ -190,17 +192,29 @@ class Main {
         int iMin = 0;
         for (int i = 0; i < rs.getPlans().size(); i ++){
             Plan pl = rs.getPlans().get(i);
+            System.out.println("=======================================================================================");
             System.out.println(pl);
-            if(pl.cost() < min){
+
+            System.out.println("length: " + pl.depth() + " Cost: "+rs.costFunction.apply(pl));
+            System.out.println("CircuitDepths:" + Arrays.toString(pl.circuitDepths()));
+            //System.out.println(pl.toGoalsString());
+            RegisterAllocator.Mapping mapping = registerAllocator.solve(pl, rs.getInitialGoals());
+//            System.out.println(mapping);
+            String code = pl.produceCode(mapping);
+//            System.out.println(code);
+
+            emulate(final_goals, divisions, availableRegisters, registerAllocator, code, false);
+
+            if(rs.costFunction.apply(pl) < min){
                 iMin = i;
-                min = pl.cost();
+                min = rs.costFunction.apply(pl);
             }
         }
         rs.printStats();
 
         System.out.println("Best");
         Plan p = rs.getPlans().get(iMin);
-        System.out.println("length: " + p.depth() + " Cost: "+p.cost());
+        System.out.println("length: " + p.depth() + " Cost: "+rs.costFunction.apply(p));
         System.out.println("CircuitDepths:" + Arrays.toString(p.circuitDepths()));
         System.out.println(p);
         System.out.println(p.toGoalsString());
@@ -209,7 +223,13 @@ class Main {
         String code = p.produceCode(mapping);
         System.out.println(code);
 
-        System.out.println(new Bounds(final_goals).largestMagnitude());
+        emulate(final_goals, divisions, availableRegisters, registerAllocator, code, true);
+
+
+    }
+
+    private static void emulate(List<Goal> final_goals, int[] divisions, RegisterAllocator.Register[] availableRegisters, RegisterAllocator registerAllocator, String code, boolean full) {
+//        System.out.println(new Bounds(final_goals).largestMagnitude());
         Scamp5Emulator emulator = new Scamp5Emulator(new Bounds(final_goals).largestMagnitude()*2);
         RegisterAllocator.Register[] initRegisters = registerAllocator.getInitRegisters();
         for (int i = 0; i < initRegisters.length; i++) {
@@ -219,10 +239,11 @@ class Main {
         emulator.pushCode(code);
         emulator.flushInstructionBuffer();
         for (int i = 0; i < final_goals.size(); i++) {
-            System.out.println("Goal: " + i + "In: " + availableRegisters[i].toString());
-            System.out.println(final_goals.get(i));
+            System.out.println("Goal: " + i + " In: " + availableRegisters[i].toString());
+//            System.out.println(final_goals.get(i));
             Map<Tuple<Integer, Tuple<Integer, String>>, Double> testMap = emulator.getRawProcessingElementContains(0, 0, availableRegisters[i].toString());
-            System.out.println(testMap);
+//            System.out.println(testMap);
+            System.out.println(emulator.getRegToString(0, 0, availableRegisters[i].toString()));
 
             Goal.Factory factory = new Goal.Factory();
             testMap.forEach((tuple, d) -> {
@@ -232,11 +253,15 @@ class Main {
             });
 
             Goal testOut = factory.get();
-            System.out.println("true out:");
-            System.out.println(testOut.getCharTableString(true, true, true, true));
-            System.out.println("target out:");
-            System.out.println(final_goals.get(i).getCharTableString(false, false, true, true));
 
+
+            String trueOut = "true out:\n" + testOut.getCharTableString(true, true, true, true);
+            String targetOut = "target out:\n" + final_goals.get(i).getCharTableString(false, false, true, true);
+            if(full) {
+                System.out.println(trueOut);
+                System.out.println(targetOut);
+            }
+            boolean error = false;
             Iterator<Tuple<Atom, Integer>> iterator = final_goals.get(i).uniqueCountIterator();
             while (iterator.hasNext()){
                 Tuple<Atom, Integer> t = iterator.next();
@@ -248,16 +273,20 @@ class Main {
                     System.out.println(coordinate);
                     System.out.println(d);
                     System.out.println(t.getB());
+                    error = true;
                 }
                 testMap.remove(coordinate);
             }
             if(!testMap.isEmpty()){
                 System.out.println("INTEGRITY CHECK ERROR!");
                 System.out.println(testMap);
+                error = true;
+            }
+            if(error) {
+                System.out.println(trueOut);
+                System.out.println(targetOut);
             }
 
         }
-
-
     }
 }

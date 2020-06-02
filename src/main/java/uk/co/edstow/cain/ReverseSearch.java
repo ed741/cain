@@ -8,6 +8,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 
@@ -30,22 +31,28 @@ public class ReverseSearch {
         private Supplier<? extends TraversalSystem> traversalAlgorithm;
         private int initialMaxDepth;
         private int forcedDepthReduction; // once a plan is found at depth 10, cull searches at "depth - forcedDepthReduction".
+        private int initialMaxCost;
+        private int forcedCostReduction;
         private RegisterAllocator registerAllocator; // The register allocator to ensure plans are allocatable
+        private Function<Plan, Integer> costFunction;
 
         // Search Heuristics
         private int allowableAtomsCoefficient; // cull plans that use more atoms than: "finalGoal * allowableAtomsCoefficient + initialGoals".
         private int goalReductionsPerStep; // cull plans that have more active goals than steps before max depth to reduce the number to one.
         private int goalReductionsTolerance; // add a tolerance to allow for a "less conservative" (lower) goalReductionsPerStep if larger reductions are unlikely.
 
-        public RunConfig(boolean liveCounter, int livePrintPlans, int workers, int searchTime, boolean timeOut, Supplier<TraversalSystem> traversalAlgorithm, int initialMaxDepth, int forcedDepthReduction, RegisterAllocator registerAllocator, int allowableAtomsCoefficient, int goalReductionsPerStep, int goalReductionsTolerance) {
+        public RunConfig(boolean liveCounter, int livePrintPlans, int workers, int searchTime, boolean timeOut, Supplier<TraversalSystem> traversalAlgorithm, Function<Plan, Integer> costFunction, int initialMaxDepth, int forcedDepthReduction, int initialMaxCost, int forcedCostReduction, RegisterAllocator registerAllocator, int allowableAtomsCoefficient, int goalReductionsPerStep, int goalReductionsTolerance) {
             this.liveCounter = liveCounter;
             this.livePrintPlans = livePrintPlans;
             this.workers = workers;
             this.searchTime = searchTime;
             this.timeOut = timeOut;
             this.traversalAlgorithm = traversalAlgorithm;
+            this.costFunction = costFunction;
             this.initialMaxDepth = initialMaxDepth;
             this.forcedDepthReduction = forcedDepthReduction;
+            this.initialMaxCost = initialMaxCost;
+            this.forcedCostReduction = forcedCostReduction;
             this.registerAllocator=registerAllocator;
             this.allowableAtomsCoefficient = allowableAtomsCoefficient;
             this.goalReductionsPerStep = goalReductionsPerStep;
@@ -59,8 +66,11 @@ public class ReverseSearch {
             this.searchTime = 60000;
             this.timeOut = false;
             this.traversalAlgorithm = TraversalSystem.SOTFactory();
+            this.costFunction = p -> p.maxCircuitDepth() + 200*p.depth();
             this.initialMaxDepth = 200;
             this.forcedDepthReduction = 1;
+            this.initialMaxCost = Integer.MAX_VALUE;
+            this.forcedCostReduction = 0;
             this.allowableAtomsCoefficient = 2;
             this.goalReductionsPerStep = 1;
             this.goalReductionsTolerance = 1;
@@ -110,6 +120,16 @@ public class ReverseSearch {
 
         public RunConfig setForcedDepthReduction(int forcedDepthReduction) {
             this.forcedDepthReduction = forcedDepthReduction;
+            return this;
+        }
+
+        public RunConfig setInitialMaxCost(int initialMaxCost) {
+            this.initialMaxCost = initialMaxCost;
+            return this;
+        }
+
+        public RunConfig setForcedCostReduction(int forcedCostReduction) {
+            this.forcedCostReduction = forcedCostReduction;
             return this;
         }
 
@@ -174,12 +194,15 @@ public class ReverseSearch {
     private final boolean timeout;
     private final long maxTime;
     private final AtomicInteger maxDepth;
+    private final AtomicInteger maxCost;
     private final RegisterAllocator registerAllocator;
     private final int availableRegisters;
     private final Supplier<? extends TraversalSystem> traversalAlgorithm;
+    public final Function<Plan, Integer> costFunction;
 
     private final int allowableAtomsCoefficent;
     private final int forcedDepthReduction;
+    private final int forcedCostReduction;
     private final int goalReductionsPerStep;
     private final int goalReductionsTolerance;
 
@@ -218,8 +241,10 @@ public class ReverseSearch {
 
         // Init search parameters
         this.traversalAlgorithm = runConfig.traversalAlgorithm;
+        this.costFunction = runConfig.costFunction;
         this.availableRegisters = runConfig.registerAllocator.getAvailableRegisters();
         this.maxDepth = new AtomicInteger(runConfig.initialMaxDepth);
+        this.maxCost = new AtomicInteger(runConfig.initialMaxCost);
         this.maxTime = runConfig.searchTime;
         this.timeout = runConfig.timeOut;
         this.registerAllocator = runConfig.registerAllocator;
@@ -227,6 +252,7 @@ public class ReverseSearch {
         // Init Heuristics
         this.allowableAtomsCoefficent = runConfig.allowableAtomsCoefficient;
         this.forcedDepthReduction = runConfig.forcedDepthReduction;
+        this.forcedCostReduction = runConfig.forcedCostReduction;
         this.goalReductionsPerStep = runConfig.goalReductionsPerStep;
         this.goalReductionsTolerance = runConfig.goalReductionsTolerance;
 
@@ -458,9 +484,14 @@ public class ReverseSearch {
             this.workerMinDepth = Math.min(this.workerMinDepth, depth);
             this.workerMaxDepth = Math.max(this.workerMaxDepth, depth);
             int currentMaxDepth = maxDepth.get();
+            int currentMaxCost = maxCost.get();
             if (depth > currentMaxDepth) {
                 return;
             }
+            if (costFunction.apply(currentPlan) > currentMaxCost) {
+                return;
+            }
+
             if (goals.size() - (((currentMaxDepth - depth) * goalReductionsPerStep) + goalReductionsTolerance) > 1) {
                 return;
             }
@@ -472,7 +503,7 @@ public class ReverseSearch {
                 }
 
                 cacheChecks++;
-                if (!cache.isBest(goals, currentPlan.cost())) {
+                if (!cache.isBest(goals, costFunction.apply(currentPlan))) {
                     cacheHits++;
                     return;
                 }
@@ -592,6 +623,7 @@ public class ReverseSearch {
                 return false;
             }
             maxDepth.updateAndGet(x->Math.min(p.depth()-forcedDepthReduction, x));
+            maxCost.updateAndGet(x->Math.min(costFunction.apply(p)-forcedCostReduction, x));
             Worker w = this;
             do {
                 w.workerMinDepth = depth;
@@ -601,7 +633,7 @@ public class ReverseSearch {
 
             this.plansFound++;
 
-            if (livePrintPlans>0) System.out.println("Found new Plan (id:" + id + "): Length: " + p.depth() + " (" + depth + ") | Cost: " + p.cost());
+            if (livePrintPlans>0) System.out.println("Found new Plan (id:" + id + "): Length: " + p.depth() + " (" + depth + ") | max-Circuit-Depth: " + p.maxCircuitDepth() + " | Cost: " + costFunction.apply(p));
             if (livePrintPlans>1) System.out.println(p);
 
 
@@ -636,10 +668,11 @@ public class ReverseSearch {
         System.out.println(cache);
         System.out.println("Number of Plans: " + plans.size());
         System.out.println("Current Max Depth: " + maxDepth);
+        System.out.println("Current Max Cost: " + maxCost);
         try{
             planLock.lock();
             for (int i = 0; i < planTimes.size(); i++) {
-                System.out.println("Plan: "+i+" (depth="+plans.get(i).depth()+") found at " + planTimes.get(i) + "ms");
+                System.out.println("Plan: "+i+" (depth="+plans.get(i).depth()+") (circuit-depth="+Arrays.toString(plans.get(i).circuitDepths())+") found at " + planTimes.get(i) + "ms");
             }
         } finally {
             planLock.unlock();

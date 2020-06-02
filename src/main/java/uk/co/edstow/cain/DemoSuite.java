@@ -316,7 +316,7 @@ class DemoSuite {
         for (Test demo : demos) {
             System.out.println(demo.name + ":");
             for(Map.Entry<TestSetup, Plan> entry: demo.results.entrySet())
-                System.out.println("\t" + entry.getKey().name + " -> " + entry.getValue().cost() + " ("+entry.getValue().depth()+ ")");
+                System.out.println("\t" + entry.getKey().name + " -> circuit-depth: " + entry.getValue().maxCircuitDepth() + " depth: "+entry.getValue().depth());
 
         }
         System.out.println("\nLatex Table:\n");
@@ -336,9 +336,9 @@ class DemoSuite {
             int iMin = 0;
             for (int i = 0; i < rs.getPlans().size(); i++) {
                 Plan pl = rs.getPlans().get(i);
-                if (pl.cost() < min) {
+                if (rs.costFunction.apply(pl) < min) {
                     iMin = i;
-                    min = pl.cost();
+                    min = rs.costFunction.apply(pl);
                 }
             }
             rs.printStats();
@@ -346,7 +346,7 @@ class DemoSuite {
             System.out.println("Best: "+ iMin);
             if(iMin < rs.getPlans().size()) {
                 Plan p = rs.getPlans().get(iMin);
-                System.out.println("length: " + p.depth() + " Cost: " + p.cost());
+                System.out.println("length: " + p.depth() + " Cost: " + rs.costFunction.apply(p));
                 System.out.println(p);
                 System.out.println("CircuitDepths:" + Arrays.toString(p.circuitDepths()));
                 //System.out.println(p.toGoalsString());

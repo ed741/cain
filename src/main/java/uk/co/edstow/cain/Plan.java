@@ -17,6 +17,7 @@ public class Plan {
     private final Plan previous;
     private final List<Goal> initialGoals;
     private final int depth;
+    private final int[] depths;
 
     public Plan(List<Goal> finalGoals, List<Goal> initialGoals, String comment){
         Goal.Pair p = new Goal.Pair((Goal) null, finalGoals, new Transformation.Null(finalGoals.size(), 0));
@@ -29,6 +30,7 @@ public class Plan {
         this.previous = null;
         this.initialGoals = initialGoals;
         this.depth = 0;
+        this.depths = new int[finalGoals.size()];
     }
 
     private Plan(Plan previous, List<Goal> initialGoals, Step step){
@@ -36,6 +38,33 @@ public class Plan {
         this.initialGoals = initialGoals;
         this.step = step;
         this.depth = previous.depth + 1;
+        this.depths = new int[step.currentGoals.size()];
+
+        int d = 0;
+        for (Goal upper : step.getUppers()) {
+            for (int i = 0; i < previous.step.currentGoals.size(); i++) {
+                if(upper.equivalent(previous.step.currentGoals.get(i))){
+                    d = Math.max(d, previous.depths[i]+1);
+                }
+            }
+        }
+        for (int i = 0; i < step.currentGoals.size(); i++) {
+            Goal g = step.currentGoals.get(i);
+            for (int j = 0; j < previous.step.currentGoals.size(); j++) {
+                if(g.equivalent(previous.step.currentGoals.get(j))){
+                    this.depths[i] = previous.depths[j];
+                    break;
+                }
+            }
+            for (int j = 0; j < step.getLowers().size(); j++) {
+                Goal l = step.getLowerTrueGoal(j);
+                if(g.equivalent(l)){
+                    this.depths[i] = Math.max(this.depths[i], d);
+                }
+            }
+
+        }
+
     }
 
     public Plan newAdd(Goal.Pair newPair, Goal.Bag currentGoals, Goal[] translation, String comment) {
@@ -90,6 +119,8 @@ public class Plan {
             this.comment = comment;
             this.currentGoals = new Goal.Bag(currentGoals);
             this.translation = translation;
+
+
         }
 
         @SuppressWarnings("unused")
@@ -146,7 +177,15 @@ public class Plan {
         }
     }
 
-    public double cost(){
+    public int maxCircuitDepth(){
+        int max = 0;
+        for (int i : this.depths) {
+            max = Math.max(max, i);
+        }
+        return max;
+    }
+
+    public double totalInstructionCost(){
         double cost = 0;
         Plan c = this;
         while (c != null){
@@ -212,34 +251,42 @@ public class Plan {
 
     public int[] circuitDepths(){
         List<Step> all = getAll();
-        return link(()->{
-            int[] depths = new int[all.get(0).getLowers().size()];
-            for (int i = 0; i < depths.length; i++) {
-                int[] depth = new int[all.size()];
-                for (int k = 0; k < depth.length; k++) {
-                    depth[k] = -1;
-                }
-
-                depth[all.get(0).backwardsLinks.get(i).idx] = 0;
-                for (int j = all.get(0).backwardsLinks.get(i).idx + 1; j < all.size(); j++) {
-                    int max = Integer.MIN_VALUE;
-                    for (Step forwardsLink : all.get(j).forwardsLinks) {
-                        if (depth[forwardsLink.idx] >= 0) {
-                            max = Math.max(max, 1 + depth[forwardsLink.idx]);
-                        }
-                    }
-                    depth[j] = max;
-                }
-                for (int j = depth.length - 1; j >= 0; j--) {
-                    if(depth[j]>=0){
-                        depths[i] = depth[j];
+        int[] depths = new int[all.get(0).getLowers().size()];
+        for (int i = 0; i < depths.length; i++) {
+            int[] depth = new int[all.size()];
+            int start = -1;
+            Goal lower = all.get(0).getLowerTrueGoal(i);
+            for (int j = 1; start < 0 && j < all.size(); j++){
+                for (Goal upper : all.get(j).getUppers()) {
+                    if(lower.equivalent(upper)){
+                        start = j;
                         break;
                     }
                 }
-                System.out.println("Depth of filter " + i + " is: " + depths[i]);
             }
-            return depths;
-        });
+            depth[start] = 1;
+            for (int j = start + 1; j < all.size(); j++) {
+                int max = Integer.MIN_VALUE;
+                for(Goal upper: all.get(j).getUppers()){
+                    for (int k = j-1; k >= start ; k--) {
+                        for (int l = 0; l < all.get(k).getLowers().size(); l++) {
+                            if(upper.equivalent(all.get(k).getLowerTrueGoal(l))){
+                                max = Math.max(max, 1+depth[k]);
+                            }
+                        }
+                    }
+                }
+                depth[j] = max;
+            }
+            for (int j = depth.length - 1; j >= 0; j--) {
+                if(depth[j]>=0){
+                    depths[i] = depth[j];
+                    break;
+                }
+            }
+//            System.out.println("Depth of filter " + i + " is: " + depths[i]);
+        }
+        return depths;
     }
 
 

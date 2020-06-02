@@ -5,6 +5,7 @@ import uk.co.edstow.cain.Goal;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static uk.co.edstow.cain.scamp5.emulator.Scamp5Emulator.*;
 
@@ -133,6 +134,7 @@ class ProcessingElement {
         double value = ((double)i)/128d;
         state.contains.put(new OriginPos(position.x, position.y, r), value);
         state.writeNoise += noiseConfig.writeNoiseConstant + (noiseConfig.writeNoiseFactor *Math.abs(value));
+        state.coverage.add(this.position);
     }
 
     @Override
@@ -181,15 +183,27 @@ class ProcessingElement {
         return registerState.getRawContains();
     }
 
+    public String getRegToString(Reg r) {
+        RegisterState registerState = this.registers.get(r);
+        if(registerState == null){
+            return null;
+        }
+        return registerState.toString();
+    }
+
 
     private class RegisterState {
+        private final Set<Pos> coverage;
         private final Map<OriginPos, Double> contains;
         private double writeNoise;
         private double readNoise;
 
         RegisterState() {
             contains = new HashMap<>();
+            coverage = new HashSet<>();
         }
+
+        private Pos getPos(){return position;}
 
         double readValue(){
             double sum = 0;
@@ -212,6 +226,8 @@ class ProcessingElement {
 
         void writeOver() {
             contains.clear();
+            coverage.clear();
+            coverage.add(getPos());
             writeNoise = noiseConfig.writeNoiseConstant;
             readNoise = 0;
         }
@@ -221,8 +237,11 @@ class ProcessingElement {
         }
 
         void addNegate(double factor, RegisterState... states){
+
             double magnitude = 0;
             for (RegisterState state : states) {
+                coverage.addAll(state.coverage);
+                coverage.add(state.getPos());
                 double stateMagnitude = state.writeNoise + state.readNoise;
                 for (Map.Entry<OriginPos, Double> entry : state.contains.entrySet()) {
                     double c = contains.getOrDefault(entry.getKey(), 0d);
@@ -241,6 +260,7 @@ class ProcessingElement {
                     "contains=" + contains +
                     ", writeNoise=" + writeNoise +
                     ", readNoise=" + readNoise +
+                    ", coverage:\n" + new Goal.Factory(coverage.stream().map(p -> new Atom(p.x, p.y, 0, true)).collect(Collectors.toList())).get().getCharTableString(false, false, false, true)+"\n"+
                     '}';
         }
 

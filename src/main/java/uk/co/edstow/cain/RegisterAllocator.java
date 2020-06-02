@@ -3,6 +3,7 @@ package uk.co.edstow.cain;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class RegisterAllocator {
     private final Register[] registers;
@@ -278,6 +279,12 @@ public class RegisterAllocator {
 
         public Register get(Goal goal){
             return map.get(new Wrapper(goal));
+        }
+
+        @Override
+        public String toString() {
+            return map.entrySet().stream().map(e -> e.getKey().goal.getCharTableString(false, false, true, true) + "\n@" + Integer.toHexString(e.getKey().goal.hashCode()) + " -> " +e.getValue().toString()).collect(Collectors.joining("\n\n", "{\n", "\n}\n")) +
+                    trashMap.entrySet().stream().map(e -> Integer.toString(e.getKey()) + " -> " +e.getValue()).collect(Collectors.joining(",\n ", "[\n", "\n]"));
         }
 
         private class Wrapper {

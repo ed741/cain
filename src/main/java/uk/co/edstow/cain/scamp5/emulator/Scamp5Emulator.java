@@ -419,6 +419,16 @@ public class Scamp5Emulator {
         return pe.getRawRegisterContains(r);
     }
 
+    public String getRegToString(int x, int y, String reg){
+        ProcessingElement pe = this.tiles.get(new Pos(x, y));
+        if (pe == null) {
+            return null;
+        }
+        Reg r = Reg.valueOf(reg);
+        return pe.getRegToString(r);
+    }
+
+
 
     private Tuple<InstructionSignature, String[]> parseInput(String instruction) {
         Matcher matcher = this.instructionPatten.matcher(instruction);
