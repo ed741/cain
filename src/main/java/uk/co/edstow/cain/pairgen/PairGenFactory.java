@@ -31,6 +31,7 @@ public interface PairGenFactory {
 
     interface PairGen{
         GoalPair next();
+        int getNumber();
     }
 
     void init(ReverseSearch rs);

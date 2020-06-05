@@ -21,6 +21,7 @@ public class ReverseSearch {
         //interface
         private boolean liveCounter;
         private int livePrintPlans;
+        private boolean quiet;
 
         // Search capabilities
         private int workers;
@@ -43,9 +44,10 @@ public class ReverseSearch {
         private int goalReductionsPerStep; // cull plans that have more active goals than steps before max maxDepth to reduce the number to one.
         private int goalReductionsTolerance; // add a tolerance to allow for a "less conservative" (lower) goalReductionsPerStep if larger reductions are unlikely.
 
-        public RunConfig(boolean liveCounter, int livePrintPlans, int workers, int searchTime, boolean timeOut, Supplier<TraversalSystem> traversalAlgorithm, Function<Plan, Integer> costFunction, int initialMaxDepth, int forcedDepthReduction, int initialMaxCost, int forcedCostReduction, RegisterAllocator registerAllocator, int allowableAtomsCoefficient, int goalReductionsPerStep, int goalReductionsTolerance) {
+        public RunConfig(boolean liveCounter, int livePrintPlans, boolean quiet, int workers, int searchTime, boolean timeOut, Supplier<TraversalSystem> traversalAlgorithm, Function<Plan, Integer> costFunction, int initialMaxDepth, int forcedDepthReduction, int initialMaxCost, int forcedCostReduction, RegisterAllocator registerAllocator, int allowableAtomsCoefficient, int goalReductionsPerStep, int goalReductionsTolerance) {
             this.liveCounter = liveCounter;
             this.livePrintPlans = livePrintPlans;
+            this.quiet = quiet;
             this.workers = workers;
             this.searchTime = searchTime;
             this.timeOut = timeOut;
@@ -64,6 +66,7 @@ public class ReverseSearch {
         public RunConfig() {
             this.liveCounter = true;
             this.livePrintPlans = 2;
+            this.quiet = false;
             this.workers = 1;
             this.searchTime = 60000;
             this.timeOut = false;
@@ -84,6 +87,10 @@ public class ReverseSearch {
         }
         public RunConfig setLivePrintPlans(int printPlans){
             this.livePrintPlans = printPlans;
+            return this;
+        }
+        public RunConfig setQuiet(boolean quiet){
+            this.quiet = quiet;
             return this;
         }
         public RunConfig setWorkers(int workers) {
@@ -184,6 +191,7 @@ public class ReverseSearch {
 
     private final List<Plan> plans;
     private final List<Long> planTimes;
+    private final List<Long> planNodesExplored;
     private final ReentrantLock planLock;
     private final GoalsCache cache;
 
@@ -196,6 +204,7 @@ public class ReverseSearch {
     private long startTime;
     private final boolean liveCounter;
     private final int livePrintPlans;
+    private final boolean quiet;
 
     private final boolean timeout;
     private final long maxTime;
@@ -216,6 +225,7 @@ public class ReverseSearch {
     public ReverseSearch(int[] divisions, List<Goal> finalGoals, PairGenFactory pairGenFactory, RunConfig runConfig) {
         this.liveCounter = runConfig.liveCounter;
         this.livePrintPlans = runConfig.livePrintPlans;
+        this.quiet = runConfig.quiet;
 
         // Set up final and initial Goals
         this.finalGoals = Collections.unmodifiableList(new ArrayList<>(finalGoals));
@@ -233,6 +243,7 @@ public class ReverseSearch {
         // Init Internal components
         this.plans = new ArrayList<>();
         this.planTimes = new ArrayList<>();
+        this.planNodesExplored = new ArrayList<>();
         this.planLock = new ReentrantLock();
         this.cache = new GoalsCache();
 
@@ -347,7 +358,7 @@ public class ReverseSearch {
                 worker.next = workersThreads.get(i-1);
             }
         }
-        workersThreads.get(0).localTraversalSystem.add(new WorkState(0, goals, new Plan(finalGoals, initialGoals, "final goals")));
+        workersThreads.get(0).localTraversalSystem.add(new WorkState(0, goals, new Plan(finalGoals, initialGoals)));
         workersThreads.get(0).next = workersThreads.get(workersThreads.size()-1);
         workersThreads.forEach(Thread::start);
         Thread mainThread = Thread.currentThread();
@@ -386,7 +397,9 @@ public class ReverseSearch {
                             + " | " + getWorkerInfo(workersThreads) + " | Cache Size: " + cache.size());
                 }
                 if (timeout && System.currentTimeMillis() > startTime + maxTime) {
-                    System.out.println("\nTime is up!");
+                    if(!quiet) {
+                        System.out.println("\nTime is up!");
+                    }
                     endTime();
                 }
             } catch (InterruptedException e) {
@@ -400,8 +413,9 @@ public class ReverseSearch {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
-        System.out.println("Master finished waiting");
+        if(!quiet) {
+            System.out.println("Master finished waiting");
+        }
 
     }
 
@@ -427,7 +441,9 @@ public class ReverseSearch {
 
         @Override
         public void run() {
-            System.out.println("Worker " + id + " Starting");
+            if (!quiet) {
+                System.out.println("Worker " + id + " Starting");
+            }
             try {
                 while (running()) {
                     WorkState s = localTraversalSystem.poll();
@@ -442,7 +458,9 @@ public class ReverseSearch {
                 //ignore
                 //System.out.println(id + " interpreted!");
             }
-            System.out.println(String.format("Worker %d Finished:  Active: %b,  Min Depth: %d,  Max Depth: %d,  PlansFound: %d, CacheHits: %d,  CacheChecks: %d,  Steals: %d, NodesExpanded: %d", id, active, workerMinDepth, workerMaxDepth, plansFound, cacheHits, cacheChecks, steals, nodesExpanded));
+            if (!quiet) {
+                System.out.println(String.format("Worker %d Finished:  Active: %b,  Min Depth: %d,  Max Depth: %d,  PlansFound: %d, CacheHits: %d,  CacheChecks: %d,  Steals: %d, NodesExpanded: %d", id, active, workerMinDepth, workerMaxDepth, plansFound, cacheHits, cacheChecks, steals, nodesExpanded));
+            }
             workersFinished.release();
         }
 
@@ -498,7 +516,9 @@ public class ReverseSearch {
                 goalPairs = pairGenFactory.generatePairs(goals, depth);
                 nodesExpanded++;
             }
+            int childNumber = goalPairs.getNumber();
             GoalPair goalPair = goalPairs.next();
+
             if(goalPair == null){
                 return;
             }
@@ -555,7 +575,7 @@ public class ReverseSearch {
             WorkState child = null;
             boolean tryChildren = newGoals.size() +(goalPair.getTransformation().ExtraRegisterCount()) <= availableRegisters;
             if(tryChildren) {
-                Plan newPlan = currentPlan.newAdd(goalPair, newGoals, translation, "r_step");
+                Plan newPlan = currentPlan.newAdd(goalPair, newGoals, translation, childNumber);
                 child = new WorkState(depth + 1, newGoals, newPlan, null);
             }
             WorkState next = new WorkState(depth, goals, currentPlan, goalPairs);
@@ -568,7 +588,7 @@ public class ReverseSearch {
                 return false;
             }
             if (goals.isEmpty() || goals.containsAll(initialGoals)) {
-                if (addPlan(currentPlan, id, depth)) {
+                if (addPlan(currentPlan, id, depth, this.nodesExpanded)) {
                     return true;
                 }
             }
@@ -592,15 +612,15 @@ public class ReverseSearch {
                     if(!tryChildren){
                         return false;
                     }
-                    p = p.newAdd(pair, currentGoals, translation, "final step " + i);
+                    p = p.newAdd(pair, currentGoals, translation, 0);
                 }
-                return addPlan(p, id, depth);
+                return addPlan(p, id, depth, this.nodesExpanded);
             }
 
             return false;
         }
 
-        private boolean addPlan(Plan p, int id, int depth){
+        private boolean addPlan(Plan p, int id, int depth, long nodesExpanded){
             RegisterAllocator.Mapping mapping = registerAllocator.solve(p, initialGoals);
             if (mapping == null){
                 if (livePrintPlans>0) System.out.println(this.id + " Plan Found but registers cannot be allocated");
@@ -624,6 +644,7 @@ public class ReverseSearch {
                 planLock.lock();
                 plans.add(p);
                 planTimes.add(System.currentTimeMillis()-startTime);
+                planNodesExplored.add(nodesExpanded);
 
                 if (plans.size() > 1) {
                     Plan lastPlan = plans.get(plans.size() - 2);
@@ -648,17 +669,19 @@ public class ReverseSearch {
 
 
     public void printStats(){
-        System.out.println(cache);
-        System.out.println("Number of Plans: " + plans.size());
-        System.out.println("Current Max Depth: " + maxDepth);
-        System.out.println("Current Max Cost: " + maxCost);
-        try{
-            planLock.lock();
-            for (int i = 0; i < planTimes.size(); i++) {
-                System.out.println("Plan: "+i+" (maxDepth="+plans.get(i).depth()+") (circuit-maxDepth="+Arrays.toString(plans.get(i).circuitDepths())+") found at " + planTimes.get(i) + "ms");
+        if(!quiet) {
+            System.out.println(cache);
+            System.out.println("Number of Plans: " + plans.size());
+            System.out.println("Current Max Depth: " + maxDepth);
+            System.out.println("Current Max Cost: " + maxCost);
+            try {
+                planLock.lock();
+                for (int i = 0; i < planTimes.size(); i++) {
+                    System.out.println("Plan: " + i + " Cost: " + costFunction.apply(plans.get(i)) + " (maxDepth=" + plans.get(i).depth() + ") (circuit-maxDepth=" + Arrays.toString(plans.get(i).circuitDepths()) + ") found at " + planTimes.get(i) + "ms after locally searching " + planNodesExplored.get(i) + " nodes");
+                }
+            } finally {
+                planLock.unlock();
             }
-        } finally {
-            planLock.unlock();
         }
     }
 

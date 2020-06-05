@@ -1,5 +1,7 @@
 package uk.co.edstow.cain.scamp5.emulator;
 
+import uk.co.edstow.cain.structures.Goal;
+import uk.co.edstow.cain.util.Bounds;
 import uk.co.edstow.cain.util.Tuple;
 
 import javax.imageio.ImageIO;
@@ -426,6 +428,15 @@ public class Scamp5Emulator {
         }
         Reg r = Reg.valueOf(reg);
         return pe.getRegToString(r);
+    }
+
+    public Bounds getRegCoverge(int x, int y, String reg){
+        ProcessingElement pe = this.tiles.get(new Pos(x, y));
+        if (pe == null) {
+            return null;
+        }
+        Reg r = Reg.valueOf(reg);
+        return pe.getRegCoverage(r);
     }
 
 

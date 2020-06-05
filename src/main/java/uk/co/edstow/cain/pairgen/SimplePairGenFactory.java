@@ -64,6 +64,7 @@ public class SimplePairGenFactory implements PairGenFactory {
 
         private final GoalBag goalList;
         private final List<GoalPair> currentList;
+        private int count;
 
 
         public SimplePairGen(GoalBag goals) {
@@ -76,12 +77,18 @@ public class SimplePairGenFactory implements PairGenFactory {
 
         @Override
         public final GoalPair next() {
+            count++;
             GoalPair p = get_next();
             while(p != null && !check(p)){
                 p = get_next();
             }
             return p;
 
+        }
+
+        @Override
+        public int getNumber() {
+            return count;
         }
 
         final void appendCurrentList(GoalPair pair){

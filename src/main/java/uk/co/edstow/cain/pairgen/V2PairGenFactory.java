@@ -34,6 +34,7 @@ public class V2PairGenFactory implements PairGenFactory{
         int jj;
         int dia = -1;
         final List<GoalPair> currentList = new ArrayList<>();
+        private int count;
 
         V2PairGen(GoalBag goals) {
             this.goals = goals;
@@ -80,6 +81,7 @@ public class V2PairGenFactory implements PairGenFactory{
 
         @Override
         public GoalPair next() {
+            count++;
             while(currentList.isEmpty()) {
                 updateIJ();
                 if (getJ() >= goals.size() || getI() >= goals.size()) {
@@ -121,6 +123,11 @@ public class V2PairGenFactory implements PairGenFactory{
 
             }
             return currentList.remove(currentList.size()-1);
+        }
+
+        @Override
+        public int getNumber() {
+            return count;
         }
 
 

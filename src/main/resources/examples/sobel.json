@@ -22,6 +22,7 @@
     "costFunction":"CircuitDepthThenLength",
     "liveCounter":true,
     "livePrintPlans":2,
+    "quiet": false,
     "initialMaxDepth":200,
     "forcedDepthReduction":1,
     "initialMaxCost":2147483647,

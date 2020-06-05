@@ -167,5 +167,12 @@ public class V1PairGenFactory implements PairGenFactory{
             }
             return null;
         }
+
+        @Override
+        public int getNumber() {
+            return i;
+        }
+
+
     }
 }

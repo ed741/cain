@@ -152,6 +152,7 @@ public class Scamp5PairGenFactory<T extends Config> implements PairGenFactory {
         private final T conf;
         private final Iterator<GoalPair> it;
         private final GoalBag goals;
+        private int count;
 
         public ExhaustivePairGen(GoalBag goals, T conf, CostHuristic<T> huristic) {
             this.goals = goals;
@@ -171,7 +172,13 @@ public class Scamp5PairGenFactory<T extends Config> implements PairGenFactory {
 
         @Override
         public GoalPair next() {
+            count++;
             return it.hasNext()?it.next():null;
+        }
+
+        @Override
+        public int getNumber() {
+            return count;
         }
 
 
@@ -375,6 +382,7 @@ public class Scamp5PairGenFactory<T extends Config> implements PairGenFactory {
         final T conf;
         final GoalBag goals;
         final Iterator<Tuple<Integer, Integer>> ijGetter;
+        private int count;
 
         List<GoalPair> currentList = new ArrayList<>();
 
@@ -472,8 +480,14 @@ public class Scamp5PairGenFactory<T extends Config> implements PairGenFactory {
 
         @Override
         public GoalPair next() {
+            count++;
             fillCurrentList();
             return  currentList.isEmpty()? null:currentList.remove(currentList.size()-1);
+        }
+
+        @Override
+        public int getNumber() {
+            return count;
         }
     }
 
@@ -831,6 +845,7 @@ public class Scamp5PairGenFactory<T extends Config> implements PairGenFactory {
 
     private class IteratorPairGen implements PairGen{
         private final Iterator<GoalPair> it;
+        private int count;
 
         private IteratorPairGen(Iterator<GoalPair> it) {
             this.it = it;
@@ -838,7 +853,13 @@ public class Scamp5PairGenFactory<T extends Config> implements PairGenFactory {
 
         @Override
         public GoalPair next() {
+            count++;
             return it.hasNext()?it.next():null;
+        }
+
+        @Override
+        public int getNumber() {
+            return count;
         }
     }
 }

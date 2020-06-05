@@ -4,6 +4,7 @@ package uk.co.edstow.cain.util;
 import uk.co.edstow.cain.structures.Atom;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.stream.IntStream;
 
 @SuppressWarnings("WeakerAccess")
@@ -126,5 +127,30 @@ public class Bounds {
                 ", zMax=" + zMax +
                 ", zMin=" + zMin +
                 '}';
+    }
+
+    public static Bounds combine(Collection<Bounds> bounds) {
+        int xMax = Integer.MIN_VALUE;
+        int xMin = Integer.MAX_VALUE;
+        int yMax = Integer.MIN_VALUE;
+        int yMin = Integer.MAX_VALUE;
+        int zMax = Integer.MIN_VALUE;
+        int zMin = Integer.MAX_VALUE;
+
+        boolean found = false;
+        for (Bounds b: bounds){
+            found = true;
+            xMax = max(xMax, b.xMax);
+            xMin = min(xMin, b.xMin);
+            yMax = max(yMax, b.yMax);
+            yMin = min(yMin, b.yMin);
+            zMax = max(zMax, b.zMax);
+            zMin = min(zMin, b.zMin);
+        }
+        if(found) {
+            return new Bounds(xMax, xMin, yMax, yMin, zMax, zMin);
+        } else {
+            return new Bounds(0,0,0,0,0,0);
+        }
     }
 }

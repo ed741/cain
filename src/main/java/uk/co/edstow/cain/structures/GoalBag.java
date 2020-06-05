@@ -183,11 +183,13 @@ public class GoalBag extends ArrayList<Goal> {
         return toGoalsString(goals, tops, bottoms, centreDot, colourNeg);
     }
 
-
-    @SuppressWarnings("ForLoopReplaceableByForEach")
     public static String toGoalsString(List<Goal> goals, boolean[] topBorder, boolean[] bottomBorder, boolean centreDot, boolean colourNeg) {
+        return toGoalsString(goals, new Bounds(goals), topBorder, bottomBorder, centreDot, colourNeg);
+    }
+    @SuppressWarnings("ForLoopReplaceableByForEach")
+    public static String toGoalsString(List<Goal> goals, Bounds inputBounds, boolean[] topBorder, boolean[] bottomBorder, boolean centreDot, boolean colourNeg) {
 
-        Bounds b = new Bounds(new Bounds(goals), new Atom(0,0,0, true));
+        Bounds b = new Bounds(inputBounds, new Atom(0,0,0, true));
         int height = 1 + b.yMax - b.yMin;
         int width = 1 + b.xMax - b.xMin;
         List<String[][]> arrays = new ArrayList<>();

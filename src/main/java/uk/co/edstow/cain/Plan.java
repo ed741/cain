@@ -21,14 +21,14 @@ public class Plan {
     private final int depth;
     private final int[] depths;
 
-    public Plan(List<Goal> finalGoals, List<Goal> initialGoals, String comment){
+    public Plan(List<Goal> finalGoals, List<Goal> initialGoals){
         GoalPair p = new GoalPair((Goal) null, finalGoals, new Transformation.Null(finalGoals.size(), 0));
         Goal[] translation  = new Goal[finalGoals.size()];
         for (int i = 0; i < translation.length; i++) {
             translation[i] = finalGoals.get(i);
         }
 
-        this.step = new Step(p, new GoalBag(finalGoals), translation, comment);
+        this.step = new Step(p, new GoalBag(finalGoals), translation, -1);
         this.previous = null;
         this.initialGoals = initialGoals;
         this.depth = 0;
@@ -69,8 +69,8 @@ public class Plan {
 
     }
 
-    public Plan newAdd(GoalPair newPair, GoalBag currentGoals, Goal[] translation, String comment) {
-        Step newStep = new Step(newPair, currentGoals, translation, comment);
+    public Plan newAdd(GoalPair newPair, GoalBag currentGoals, Goal[] translation, int child) {
+        Step newStep = new Step(newPair, currentGoals, translation, child);
         return new Plan(this, this.initialGoals, newStep);
     }
 
@@ -108,20 +108,19 @@ public class Plan {
     }
 
     public static class Step {
-        private final String comment;
         private final GoalPair goalPair;
         private final GoalBag currentGoals;
         private final Goal[] translation;
+        private final int child;
         private int idx;
         private List<Step> forwardsLinks;
         private List<Step> backwardsLinks;
 
-        private Step(GoalPair t, GoalBag currentGoals, Goal[] translation, String comment) {
+        private Step(GoalPair t, GoalBag currentGoals, Goal[] translation, int child) {
             goalPair = t;
-            this.comment = comment;
             this.currentGoals = new GoalBag(currentGoals);
             this.translation = translation;
-
+            this.child = child;
 
         }
 
@@ -144,15 +143,14 @@ public class Plan {
         public String toString() {
             List<String> forward = forwardsLinks==null?new ArrayList<>():forwardsLinks.stream().map(s->String.valueOf(s.idx)).collect(Collectors.toList());
             List<String> backward = backwardsLinks==null?new ArrayList<>():backwardsLinks.stream().map(s->String.valueOf(s.idx)).collect(Collectors.toList());
-            return "Step("+ idx +")"+forward+""+backward+"{" +
+            return "Step("+ idx +")"+forward+""+backward+"<"+child+">{" +
                     "goalPair=" + goalPair.toString() +
-                    ", " + comment +
                     '}';
         }
 
         private String toStringN() {
             return idx +" " + goalPair.toStringN() +
-                    "\n" + comment;
+                    "\n";
         }
 
         private String toGoalsString(List<Goal> input) {

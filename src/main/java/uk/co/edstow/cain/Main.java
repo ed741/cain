@@ -1,8 +1,5 @@
 package uk.co.edstow.cain;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-import org.json.JSONTokener;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.scamp5.*;
 import uk.co.edstow.cain.scamp5.emulator.Scamp5Emulator;
@@ -12,11 +9,6 @@ import uk.co.edstow.cain.traversal.SOT;
 import uk.co.edstow.cain.util.Bounds;
 import uk.co.edstow.cain.util.Tuple;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
-import java.nio.file.Files;
 import java.util.*;
 
 import static uk.co.edstow.cain.RegisterAllocator.Register.*;

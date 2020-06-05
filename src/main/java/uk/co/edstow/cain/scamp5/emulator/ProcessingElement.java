@@ -3,6 +3,7 @@ package uk.co.edstow.cain.scamp5.emulator;
 import uk.co.edstow.cain.structures.Atom;
 import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.structures.GoalBag;
+import uk.co.edstow.cain.util.Bounds;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
@@ -192,6 +193,14 @@ class ProcessingElement {
         return registerState.toString();
     }
 
+    public Bounds getRegCoverage(Reg r) {
+        RegisterState registerState = this.registers.get(r);
+        if(registerState == null){
+            return null;
+        }
+        return Bounds.BoundsFromGoal(registerState.getCoverage());
+    }
+
 
     private class RegisterState {
         private final Set<Pos> coverage;
@@ -261,8 +270,12 @@ class ProcessingElement {
                     "contains=" + contains +
                     ", writeNoise=" + writeNoise +
                     ", readNoise=" + readNoise +
-                    ", coverage:\n" + new Goal.Factory(coverage.stream().map(p -> new Atom(p.x, p.y, 0, true)).collect(Collectors.toList())).get().getCharTableString(false, false, false, true)+"\n"+
+                    ", coverage:\n" + getCoverage().getCharTableString(false, false, true, true) +"\n"+
                     '}';
+        }
+
+        private Goal getCoverage() {
+            return new Goal.Factory(coverage.stream().map(p -> new Atom(p.x, p.y, 0, true)).collect(Collectors.toList())).get();
         }
 
         String getContained(){
