@@ -1,8 +1,10 @@
 package uk.co.edstow.cain.pairgen;
 
-import uk.co.edstow.cain.Atom;
-import uk.co.edstow.cain.Goal;
+import uk.co.edstow.cain.structures.Atom;
+import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.ReverseSearch;
+import uk.co.edstow.cain.structures.GoalBag;
+import uk.co.edstow.cain.structures.GoalPair;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
@@ -13,7 +15,7 @@ public class V2PairGenFactory implements PairGenFactory{
 
 
     @Override
-    public Collection<Tuple<List<Goal.Pair>, Goal>> applyAllUnaryOpForwards(List<Goal> initialGoals, int depth, Goal goal) {
+    public Collection<Tuple<List<GoalPair>, Goal>> applyAllUnaryOpForwards(List<Goal> initialGoals, int depth, Goal goal) {
         return SimplePairGenFactory.applyAllUnaryOps(initialGoals.get(0), goal);
     }
 
@@ -22,18 +24,18 @@ public class V2PairGenFactory implements PairGenFactory{
     }
 
     @Override
-    public PairGen generatePairs(Goal.Bag goals, int depth) {
+    public PairGen generatePairs(GoalBag goals, int depth) {
         return new V2PairGen(goals);
     }
 
     protected class V2PairGen implements PairGen {
-        final Goal.Bag goals;
+        final GoalBag goals;
         int ii;
         int jj;
         int dia = -1;
-        final List<Goal.Pair> currentList = new ArrayList<>();
+        final List<GoalPair> currentList = new ArrayList<>();
 
-        V2PairGen(Goal.Bag goals) {
+        V2PairGen(GoalBag goals) {
             this.goals = goals;
             ii = 0;
             jj = 0;
@@ -77,7 +79,7 @@ public class V2PairGenFactory implements PairGenFactory{
         }
 
         @Override
-        public Goal.Pair next() {
+        public GoalPair next() {
             while(currentList.isEmpty()) {
                 updateIJ();
                 if (getJ() >= goals.size() || getI() >= goals.size()) {
@@ -95,11 +97,11 @@ public class V2PairGenFactory implements PairGenFactory{
                         Goal tmp = tuple.getA().inverse().translate(tuple.getB());
                         if (tmp.equals(a)) {
                             SimpleTransformation.Move mov = new SimpleTransformation.Move(1, tuple.getA().majorXYDirection().opposite(), a);
-                            currentList.add(new Goal.Pair(a, mov.applyForwards(), mov));
+                            currentList.add(new GoalPair(a, mov.applyForwards(), mov));
                         } else {
                             Goal split2 = a.without(tmp);
                             List<Goal> lowers = Arrays.asList(tmp, split2);
-                            currentList.add(new Goal.Pair(a, lowers, new SimpleTransformation.Add(tmp, split2)));
+                            currentList.add(new GoalPair(a, lowers, new SimpleTransformation.Add(tmp, split2)));
                         }
 
                     }
@@ -111,7 +113,7 @@ public class V2PairGenFactory implements PairGenFactory{
 //                        System.out.println(tuple.getA());
 //                        System.out.println(split1.getCharTableString(true));
 //                        System.out.println(split2.getCharTableString(true));
-                        currentList.add(new Goal.Pair(a, Arrays.asList(split1, split2), new SimpleTransformation.Add(split1, split2)));
+                        currentList.add(new GoalPair(a, Arrays.asList(split1, split2), new SimpleTransformation.Add(split1, split2)));
                     }
 
 

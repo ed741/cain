@@ -1,7 +1,17 @@
 package uk.co.edstow.cain;
 
+import uk.co.edstow.cain.pairgen.PairGenFactory;
+import uk.co.edstow.cain.scamp5.Config;
+import uk.co.edstow.cain.scamp5.ConfigGetter;
+import uk.co.edstow.cain.scamp5.PatternHuristic;
 import uk.co.edstow.cain.scamp5.Scamp5PairGenFactory;
 import uk.co.edstow.cain.scamp5.emulator.Scamp5Emulator;
+import uk.co.edstow.cain.structures.Atom;
+import uk.co.edstow.cain.structures.Goal;
+import uk.co.edstow.cain.structures.GoalBag;
+import uk.co.edstow.cain.traversal.DFS;
+import uk.co.edstow.cain.traversal.SOT;
+import uk.co.edstow.cain.traversal.TraversalSystem;
 import uk.co.edstow.cain.util.Bounds;
 import uk.co.edstow.cain.util.Tuple;
 
@@ -9,26 +19,24 @@ import java.util.*;
 import java.util.function.Supplier;
 
 import static uk.co.edstow.cain.RegisterAllocator.Register.*;
-import static uk.co.edstow.cain.scamp5.Scamp5PairGenFactory.Config.SearchStrategy.Exhaustive;
-import static uk.co.edstow.cain.scamp5.Scamp5PairGenFactory.Config.SearchStrategy.SortedAtomDistance;
 
 @SuppressWarnings("SameParameterValue")
 class DemoSuite {
 
     private final static boolean SOBEL = false;
-    private final static boolean BOX = true;
+    private final static boolean BOX = false;
     private final static boolean GUASS = false;
-    private final static boolean CNN_ON_FPSP_ANALOG_NET_2 = true;
-    private final static boolean CNN_ON_FPSP_MAX_POOLED = true;
+    private final static boolean CNN_ON_FPSP_ANALOG_NET_2 = false;
+    private final static boolean CNN_ON_FPSP_MAX_POOLED = false;
     private final static boolean RANDOM_DENSE = true;
-    private final static boolean RANDOM_SPARSE = true;
+    private final static boolean RANDOM_SPARSE = false;
 
 
 
     private static class TestSetup {
         final String name;
         final RegisterAllocator.Register[] availableRegisters;
-        final Scamp5PairGenFactory pairGenFactory;
+        final PairGenFactory pairGenFactory;
         final ReverseSearch.RunConfig runConfig;
 
         final int cores;
@@ -43,26 +51,36 @@ class DemoSuite {
             RegisterAllocator.Register[] allRegisters = new RegisterAllocator.Register[]{A, B, C, D, E, F};
             final RegisterAllocator.Register[] availableRegisters = Arrays.copyOfRange(allRegisters, 0, registerCount);
             RegisterAllocator ra = new RegisterAllocator(new RegisterAllocator.Register[]{A}, availableRegisters);
-            Scamp5PairGenFactory pairGenFactory = new Scamp5PairGenFactory(
-                    (goals, depth, rs1, initialGoal) -> {
-                        int max = Integer.MIN_VALUE;
+            PairGenFactory pairGenFactory = new Scamp5PairGenFactory<>(rs -> new ConfigGetter<Config>() {
+                PatternHuristic heuristic = new PatternHuristic(rs);
+                @Override
+                public Config getConfig(GoalBag goals, int depth) {
+                    int max = Integer.MIN_VALUE;
                         for (Goal goal : goals) {
                             max = Math.max(max, goal.atomCount());
                         }
-                        Scamp5PairGenFactory.Config conf = new Scamp5PairGenFactory.Config(max>threshold? SortedAtomDistance: Exhaustive, availableRegisters.length, depth);
+                        Config conf = new Config(availableRegisters.length, depth, rs.getInitialGoals());
                         if(allOps) {
                             conf.useAll();
                             conf.useSubPowerOf2();
                         }else{
                             conf.useBasicOps();
                         }
+                        conf.setStrategy(max>threshold? new Scamp5PairGenFactory.AtomDistanceSortedPairGen<>(goals, conf, heuristic): new Scamp5PairGenFactory.ExhaustivePairGen<>(goals, conf, heuristic));
                         return conf;
-                    }
-            );
+                }
+
+                @Override
+                public Config getConfigForDirectSolve(List<Goal> goals, int depth) {
+                    return new Config(availableRegisters.length, depth, rs.getInitialGoals()).useAll();
+                }
+            });
 
             ReverseSearch.RunConfig config = new ReverseSearch.RunConfig();
             config.setSearchTime(seconds*1000).setWorkers(cores).setRegisterAllocator(ra).setTimeOut(true)
                     .setTraversalAlgorithm(traversalAlgorithm).setLivePrintPlans(1);
+            config.setCostFunction(Plan::depth);
+
 
             this.name = String.format("%d Core, %s, %d registers, threshold %d, %s, %d seconds", cores, traversalAlgorithm.get().getClass().getSimpleName(), registerCount, threshold, allOps?"AllOps":"BasicOps", seconds);
             this.availableRegisters = availableRegisters;
@@ -83,17 +101,17 @@ class DemoSuite {
 
     private static List<TestSetup> initialiseTestSetups() {
         List<TestSetup> setups = new ArrayList<>();
-//        setups.add(new TestSetup(4, TraversalSystem.SOTFactory(), 6, 10, true, 60));
-//        setups.add(new TestSetup(1, TraversalSystem.SOTFactory(), 6, 10, true, 60));
-//        setups.add(new TestSetup(1, TraversalSystem.SOTFactory(), 6, 10, false, 60));
-//        setups.add(new TestSetup(4, TraversalSystem.DFSFactory(), 6, 10, true, 60));
-//        setups.add(new TestSetup(4, TraversalSystem.SOTFactory(), 6, 0, true, 60));
-        setups.add(new TestSetup(1, TraversalSystem.SOTFactory(), 6, 10, true, 5));
-        setups.add(new TestSetup(1, TraversalSystem.AStarFactory(ws -> {
-            int sum = ws.goals.stream().mapToInt(goal -> -1+goal.stream().mapToInt(a -> Math.abs(a.x) + Math.abs(a.y) + Math.abs(a.z) + 1).sum()).sum();
-            sum += ws.depth;
-            return (double) sum;
-        }), 6, 10, true, 5));
+        setups.add(new TestSetup(4, SOT.SOTFactory(), 6, 0, true, 60));
+//        setups.add(new TestSetup(1, SOT.SOTFactory(), 6, 10, true, 60));
+//        setups.add(new TestSetup(1, SOT.SOTFactory(), 6, 10, false, 60));
+//        setups.add(new TestSetup(4, DFS.DFSFactory(), 6, 10, true, 60));
+//        setups.add(new TestSetup(4, SOT.SOTFactory(), 6, 0, true, 60));
+//        setups.add(new TestSetup(1, SOT.SOTFactory(), 6, 10, true, 5));
+//        setups.add(new TestSetup(1, BestFirstSearch.BestFirstSearchFactory(ws -> {
+//            int sum = ws.goals.stream().mapToInt(goal -> -1+goal.stream().mapToInt(a -> Math.abs(a.x) + Math.abs(a.y) + Math.abs(a.z) + 1).sum()).sum();
+//            sum += ws.maxDepth;
+//            return (double) sum;
+//        }), 6, 10, true, 5));
 
         return setups;
     }
@@ -316,7 +334,7 @@ class DemoSuite {
         for (Test demo : demos) {
             System.out.println(demo.name + ":");
             for(Map.Entry<TestSetup, Plan> entry: demo.results.entrySet())
-                System.out.println("\t" + entry.getKey().name + " -> circuit-depth: " + entry.getValue().maxCircuitDepth() + " depth: "+entry.getValue().depth());
+                System.out.println("\t" + entry.getKey().name + " -> circuit-maxDepth: " + entry.getValue().maxCircuitDepth() + " maxDepth: "+entry.getValue().depth());
 
         }
         System.out.println("\nLatex Table:\n");
@@ -326,7 +344,7 @@ class DemoSuite {
 
     private static void runFilter(Test test, List<TestSetup> setups){
         System.out.println("Running: "+ test.name);
-        System.out.println(Goal.Bag.toGoalsString(test.finalGoals));
+        System.out.println(GoalBag.toGoalsString(test.finalGoals));
 
         for (TestSetup setup : setups) {
             ReverseSearch rs = new ReverseSearch(test.divisions, test.finalGoals, setup.pairGenFactory, setup.runConfig);
@@ -354,7 +372,7 @@ class DemoSuite {
                 //System.out.println(mapping);
                 String code = p.produceCode(mapping);
                 System.out.println(code);
-                System.out.println(Goal.Bag.toGoalsString(test.finalGoals));
+                System.out.println(GoalBag.toGoalsString(test.finalGoals));
 
                 if(checkPlan(test, setup, code)) {
                     System.out.println("Code validated on emulator");

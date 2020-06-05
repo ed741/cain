@@ -1,19 +1,19 @@
-package uk.co.edstow.cain;
+package uk.co.edstow.cain.structures;
 
 
 import java.util.concurrent.ConcurrentHashMap;
 
 
 public class GoalsCache {
-    private final ConcurrentHashMap<Goal.Bag, Double> costMap;
+    private final ConcurrentHashMap<GoalBag, Double> costMap;
 
 
     public GoalsCache() {
         this.costMap = new ConcurrentHashMap<>();
     }
 
-    public boolean isBest(Goal.Bag b, double d) {
-        Goal.Bag sortedB = new Goal.Bag(b, true);
+    public boolean isBest(GoalBag b, double d) {
+        GoalBag sortedB = new GoalBag(b, true);
         double c = costMap.compute(sortedB, (k, v) -> {
             if(v == null) {
                 return d;

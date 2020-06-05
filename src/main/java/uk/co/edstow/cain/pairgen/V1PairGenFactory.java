@@ -1,10 +1,12 @@
 package uk.co.edstow.cain.pairgen;
 
 
+import uk.co.edstow.cain.structures.GoalBag;
+import uk.co.edstow.cain.structures.GoalPair;
 import uk.co.edstow.cain.util.Bounds;
 import uk.co.edstow.cain.util.Tuple;
-import uk.co.edstow.cain.Atom;
-import uk.co.edstow.cain.Goal;
+import uk.co.edstow.cain.structures.Atom;
+import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.ReverseSearch;
 import uk.co.edstow.cain.Transformation;
 
@@ -15,7 +17,7 @@ public class V1PairGenFactory implements PairGenFactory{
 
 
     @Override
-    public Collection<Tuple<List<Goal.Pair>, Goal>> applyAllUnaryOpForwards(List<Goal> initialGoals, int depth, Goal goal) {
+    public Collection<Tuple<List<GoalPair>, Goal>> applyAllUnaryOpForwards(List<Goal> initialGoals, int depth, Goal goal) {
         return SimplePairGenFactory.applyAllUnaryOps(initialGoals.get(0), goal);
     }
 
@@ -27,26 +29,26 @@ public class V1PairGenFactory implements PairGenFactory{
     }
 
     @Override
-    public PairGen generatePairs(Goal.Bag goals, int depth) {
-        List<Goal.Pair> pairList = new ArrayList<>();
+    public PairGen generatePairs(GoalBag goals, int depth) {
+        List<GoalPair> pairList = new ArrayList<>();
         for(Goal upper: goals) {
             pairList.addAll(getAddTransformations(upper));
             pairList.addAll(getUnaryTransformations(upper));
         }
 
-        List<Tuple<Goal.Pair, Double>> list = new ArrayList<>(pairList.size());
-        for (Goal.Pair pair : pairList) {
+        List<Tuple<GoalPair, Double>> list = new ArrayList<>(pairList.size());
+        for (GoalPair pair : pairList) {
             if (check(pair)) {
                 double v = getValue(goals, pair, bounds);
                 list.add(new Tuple<>(pair, v));
             }
         }
         list.sort(Comparator.comparingDouble(Tuple::getB));
-        List<Goal.Pair> out = list.stream().map(Tuple::getA).collect(Collectors.toList());
+        List<GoalPair> out = list.stream().map(Tuple::getA).collect(Collectors.toList());
         return new V1PairGen(out);
     }
 
-    public static double getValue(Goal.Bag goals, Goal.Pair pair, Bounds bounds) {
+    public static double getValue(GoalBag goals, GoalPair pair, Bounds bounds) {
         HashSet<Goal> goalSet = new HashSet<>(goals);
         goalSet.removeAll(pair.getUppers());
 
@@ -73,17 +75,17 @@ public class V1PairGenFactory implements PairGenFactory{
     }
 
 
-    private List<Goal.Pair> getUnaryTransformations(Goal upper) {
-        List<Goal.Pair> pairs = new ArrayList<>();
+    private List<GoalPair> getUnaryTransformations(Goal upper) {
+        List<GoalPair> pairs = new ArrayList<>();
         Collection<Tuple<? extends Transformation, Goal>> ts = SimpleTransformation.applyAllUnaryOpBackwards(upper);
         for (Tuple<? extends Transformation, Goal> t : ts) {
-            pairs.add(new Goal.Pair(upper, t.getB(), t.getA()));
+            pairs.add(new GoalPair(upper, t.getB(), t.getA()));
         }
         return pairs;
     }
 
-    private List<Goal.Pair> getAddTransformations(Goal upper) {
-        List<Goal.Pair> pairs = new ArrayList<>();
+    private List<GoalPair> getAddTransformations(Goal upper) {
+        List<GoalPair> pairs = new ArrayList<>();
         // Addition
         Collection<Goal> splits = upper.allSplitsRecursive();
         Set<Goal> seen = new HashSet<>();
@@ -106,7 +108,7 @@ public class V1PairGenFactory implements PairGenFactory{
             List<Goal> lowers = new ArrayList<>();
             lowers.add(a);
             lowers.add(b);
-            pairs.add(new Goal.Pair(upper, lowers, add));
+            pairs.add(new GoalPair(upper, lowers, add));
         }
 
         return pairs;
@@ -137,7 +139,7 @@ public class V1PairGenFactory implements PairGenFactory{
         return factory.get();
     }
 
-    private boolean check(Goal.Pair p){
+    private boolean check(GoalPair p){
         for (Goal l: p.getLowers()) {
             for (Atom a : l) {
                 if (bounds.excludes(a)) {
@@ -150,16 +152,16 @@ public class V1PairGenFactory implements PairGenFactory{
     }
 
     private class V1PairGen implements PairGen {
-        final List<Goal.Pair> pairs;
+        final List<GoalPair> pairs;
         int i;
 
-        V1PairGen(List<Goal.Pair> pairs) {
+        V1PairGen(List<GoalPair> pairs) {
             this.pairs = pairs;
             i = 0;
         }
 
         @Override
-        public Goal.Pair next() {
+        public GoalPair next() {
             if (i < pairs.size()){
                 return pairs.get(i++);
             }

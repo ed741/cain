@@ -57,10 +57,9 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.graphstream</groupId>
-            <artifactId>gs-ui</artifactId>
-            <version>1.3</version>
-            <optional>false</optional>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>20200518</version>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>

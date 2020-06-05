@@ -1,7 +1,7 @@
 package uk.co.edstow.cain.scamp5;
 
-import uk.co.edstow.cain.Atom;
-import uk.co.edstow.cain.Goal;
+import uk.co.edstow.cain.structures.Atom;
+import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.RegisterAllocator;
 import uk.co.edstow.cain.Transformation;
 import uk.co.edstow.cain.pairgen.SimpleTransformation;

@@ -1,0 +1,41 @@
+{"name":"Sobel",
+  "maxApproximationDepth":3,
+  "maxApproximationError":0,
+  "3d": false,
+  "filter":{
+    "A": {"depth":0,
+      "array":
+        [[1, 0, -1],
+         [2, 0, -2],
+         [1, 0, -1]
+        ]}
+  },
+
+  "availableRegisters":["A","B","C","D","E","F"],
+  "initialRegisters":["A"],
+
+  "runConfig":{
+    "searchTime":1000,
+    "timeOut":true,
+    "workers":4,
+    "traversalAlgorithm":"SOT",
+    "costFunction":"CircuitDepthThenLength",
+    "liveCounter":true,
+    "livePrintPlans":2,
+    "initialMaxDepth":200,
+    "forcedDepthReduction":1,
+    "initialMaxCost":2147483647,
+    "forcedCostReduction":0,
+    "allowableAtomsCoefficient":2,
+    "goalReductionsPerStep":1,
+    "goalReductionsTolerance":1
+  },
+
+  "pairGen":{
+    "name": "Scamp5",
+    "configGetter": "Threshold",
+    "ops":"all",
+    "threshold":10
+  }
+
+}

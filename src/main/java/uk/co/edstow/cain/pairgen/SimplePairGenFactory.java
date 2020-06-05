@@ -1,9 +1,11 @@
 package uk.co.edstow.cain.pairgen;
 
+import uk.co.edstow.cain.structures.GoalBag;
+import uk.co.edstow.cain.structures.GoalPair;
 import uk.co.edstow.cain.util.Bounds;
 import uk.co.edstow.cain.util.Tuple;
-import uk.co.edstow.cain.Atom;
-import uk.co.edstow.cain.Goal;
+import uk.co.edstow.cain.structures.Atom;
+import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.ReverseSearch;
 import uk.co.edstow.cain.Transformation;
 
@@ -14,15 +16,15 @@ public class SimplePairGenFactory implements PairGenFactory {
     private Bounds bounds;
 
 
-    public static Collection<Tuple<List<Goal.Pair>, Goal>> applyAllUnaryOps(Goal goal, Goal upper){
-        ArrayList<Tuple<List<Goal.Pair>, Goal>> list = new ArrayList<>();
+    public static Collection<Tuple<List<GoalPair>, Goal>> applyAllUnaryOps(Goal goal, Goal upper){
+        ArrayList<Tuple<List<GoalPair>, Goal>> list = new ArrayList<>();
         for (SimpleTransformation.Direction d: SimpleTransformation.Direction.values()){
             for (int i = 0; i < 4; i++){
                 SimpleTransformation t = new SimpleTransformation.Move(i, d, goal);
                 try {
                     Goal go = t.applyForwards();
                     if(go.same(upper)) {
-                        list.add(new Tuple<>(Collections.singletonList(new Goal.Pair(upper, goal, t)), goal));
+                        list.add(new Tuple<>(Collections.singletonList(new GoalPair(upper, goal, t)), goal));
                     }
                 } catch (Transformation.TransformationApplicationException ignored) {}
             }
@@ -32,7 +34,7 @@ public class SimplePairGenFactory implements PairGenFactory {
             try {
                 Goal go = t.applyForwards();
                 if(go.same(upper)) {
-                    list.add(new Tuple<>(Collections.singletonList(new Goal.Pair(upper, goal, t)), goal));
+                    list.add(new Tuple<>(Collections.singletonList(new GoalPair(upper, goal, t)), goal));
                 }
             } catch (Transformation.TransformationApplicationException ignored) {}
         }
@@ -40,7 +42,7 @@ public class SimplePairGenFactory implements PairGenFactory {
     }
 
     @Override
-    public Collection<Tuple<List<Goal.Pair>, Goal>> applyAllUnaryOpForwards(List<Goal> initialGoals, int depth, Goal goal) {
+    public Collection<Tuple<List<GoalPair>, Goal>> applyAllUnaryOpForwards(List<Goal> initialGoals, int depth, Goal goal) {
         return applyAllUnaryOps(initialGoals.get(0), goal);
     }
 
@@ -50,22 +52,22 @@ public class SimplePairGenFactory implements PairGenFactory {
     }
 
     @Override
-    public PairGen generatePairs(Goal.Bag goals, int depth) {
+    public PairGen generatePairs(GoalBag goals, int depth) {
         return generatePairs(goals);
     }
     @SuppressWarnings("WeakerAccess")
-    public PairGen generatePairs(Goal.Bag goals) {
+    public PairGen generatePairs(GoalBag goals) {
         return new SimplePairGen(goals);
     }
 
     public class SimplePairGen implements PairGen {
 
-        private final Goal.Bag goalList;
-        private final List<Goal.Pair> currentList;
+        private final GoalBag goalList;
+        private final List<GoalPair> currentList;
 
 
-        public SimplePairGen(Goal.Bag goals) {
-            goalList = new Goal.Bag(goals);
+        public SimplePairGen(GoalBag goals) {
+            goalList = new GoalBag(goals);
             goalList.setImmutable();
             currentList = new ArrayList<>();
 
@@ -73,8 +75,8 @@ public class SimplePairGenFactory implements PairGenFactory {
         }
 
         @Override
-        public final Goal.Pair next() {
-            Goal.Pair p = get_next();
+        public final GoalPair next() {
+            GoalPair p = get_next();
             while(p != null && !check(p)){
                 p = get_next();
             }
@@ -82,16 +84,16 @@ public class SimplePairGenFactory implements PairGenFactory {
 
         }
 
-        final void appendCurrentList(Goal.Pair pair){
+        final void appendCurrentList(GoalPair pair){
             currentList.add(pair);
         }
 
-        final void appendCurrentList(Collection<Goal.Pair> pairs){
+        final void appendCurrentList(Collection<GoalPair> pairs){
             currentList.addAll(pairs);
         }
 
 
-        boolean check(Goal.Pair p){
+        boolean check(GoalPair p){
             for (Goal l: p.getLowers()) {
                 for (Atom a : l) {
                     if (bounds.excludes(a)) {
@@ -103,7 +105,7 @@ public class SimplePairGenFactory implements PairGenFactory {
 
         }
 
-        private Goal.Pair get_next() {
+        private GoalPair get_next() {
             if (!currentList.isEmpty()){
                 return currentList.remove(0);
 
@@ -125,17 +127,17 @@ public class SimplePairGenFactory implements PairGenFactory {
             appendCurrentList(getUnaryTransformations(upper));
         }
 
-        List<Goal.Pair> getUnaryTransformations(Goal upper) {
-            List<Goal.Pair> pairs = new ArrayList<>();
+        List<GoalPair> getUnaryTransformations(Goal upper) {
+            List<GoalPair> pairs = new ArrayList<>();
             Collection<Tuple<? extends Transformation, Goal>> ts = SimpleTransformation.applyAllUnaryOpBackwards(upper);
             for (Tuple<? extends Transformation, Goal> t: ts){
-                pairs.add(new Goal.Pair(upper, t.getB(), t.getA()));
+                pairs.add(new GoalPair(upper, t.getB(), t.getA()));
             }
             return pairs;
         }
 
-        List<Goal.Pair> getAddTransformations(Goal upper) {
-            List<Goal.Pair> pairs = new ArrayList<>();
+        List<GoalPair> getAddTransformations(Goal upper) {
+            List<GoalPair> pairs = new ArrayList<>();
             // Addition
             Collection<Goal> splits = upper.allSplitsRecursive();
             for (Goal a : splits) {
@@ -148,7 +150,7 @@ public class SimplePairGenFactory implements PairGenFactory {
                 List<Goal> lowers = new ArrayList<>();
                 lowers.add(a);
                 lowers.add(b);
-                pairs.add(new Goal.Pair(upper, lowers, add));
+                pairs.add(new GoalPair(upper, lowers, add));
             }
 
             return pairs;

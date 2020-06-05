@@ -1,5 +1,6 @@
 package uk.co.edstow.cain;
 
+import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
@@ -17,6 +18,10 @@ public class RegisterAllocator {
 
     public int getAvailableRegisters() {
         return registers.length;
+    }
+
+    public Register[] getAvailableRegistersArray() {
+        return registers;
     }
 
     public Register[] getInitRegisters() {

@@ -1,7 +1,9 @@
 package uk.co.edstow.cain.pairgen;
 
-import uk.co.edstow.cain.Atom;
-import uk.co.edstow.cain.Goal;
+import uk.co.edstow.cain.structures.Atom;
+import uk.co.edstow.cain.structures.Goal;
+import uk.co.edstow.cain.structures.GoalBag;
+import uk.co.edstow.cain.structures.GoalPair;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
@@ -10,24 +12,24 @@ import java.util.stream.Collectors;
 public class SortPairGenFactory extends SimplePairGenFactory {
 
     @Override
-    public PairGen generatePairs(Goal.Bag goals) {
+    public PairGen generatePairs(GoalBag goals) {
         return new AddSortPairGen(goals);
     }
 
     private class AddSortPairGen extends SimplePairGen {
         private final HashSet<Goal> goals;
-        AddSortPairGen(Goal.Bag goals) {
+        AddSortPairGen(GoalBag goals) {
             super(goals);
             this.goals = new HashSet<>(goals);
         }
 
         @Override
         void putTransformations(Goal upper) {
-            List<Goal.Pair> pairs = getAddTransformations(upper);
+            List<GoalPair> pairs = getAddTransformations(upper);
             pairs.addAll(getUnaryTransformations(upper));
 
-            List<Tuple<Goal.Pair, Double>> list = new ArrayList<>(pairs.size());
-            for (Goal.Pair pair: pairs){
+            List<Tuple<GoalPair, Double>> list = new ArrayList<>(pairs.size());
+            for (GoalPair pair: pairs){
                 HashSet<Goal> goalSet = new HashSet<>(this.goals);
                 goalSet.removeAll(pair.getUppers());
                 goalSet.addAll(pair.getLowers());

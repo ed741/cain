@@ -1,7 +1,9 @@
 package uk.co.edstow.cain.pairgen;
 
-import uk.co.edstow.cain.Goal;
+import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.ReverseSearch;
+import uk.co.edstow.cain.structures.GoalBag;
+import uk.co.edstow.cain.structures.GoalPair;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.ArrayList;
@@ -9,12 +11,12 @@ import java.util.Collection;
 import java.util.List;
 
 public interface PairGenFactory {
-    default List<Goal.Pair> applyAllUnaryOpForwards(List<Goal> initialGoals, int depth, List<Goal> goals){
-        List<Goal.Pair> allPairs = new ArrayList<>();
+    default List<GoalPair> applyAllUnaryOpForwards(List<Goal> initialGoals, int depth, List<Goal> goals){
+        List<GoalPair> allPairs = new ArrayList<>();
         int found = 0;
         for(Goal goal: goals) {
-            for (Tuple<List<Goal.Pair>, Goal> tuple : this.applyAllUnaryOpForwards(initialGoals, depth, goal)) {
-                List<Goal.Pair> pairs = tuple.getA();
+            for (Tuple<List<GoalPair>, Goal> tuple : this.applyAllUnaryOpForwards(initialGoals, depth, goal)) {
+                List<GoalPair> pairs = tuple.getA();
                 Goal g = tuple.getB();
                 if (initialGoals.contains(g)) {
                     allPairs.addAll(pairs);
@@ -25,14 +27,14 @@ public interface PairGenFactory {
         }
         return found!=goals.size()?null:allPairs;
     }
-    Collection<Tuple<List<Goal.Pair>, Goal>> applyAllUnaryOpForwards(List<Goal> initialGoals, int depth, Goal goal);
+    Collection<Tuple<List<GoalPair>, Goal>> applyAllUnaryOpForwards(List<Goal> initialGoals, int depth, Goal goal);
 
     interface PairGen{
-        Goal.Pair next();
+        GoalPair next();
     }
 
     void init(ReverseSearch rs);
 
-    PairGen generatePairs(Goal.Bag goals, int depth);
+    PairGen generatePairs(GoalBag goals, int depth);
 
 }

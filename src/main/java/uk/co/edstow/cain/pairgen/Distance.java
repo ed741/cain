@@ -1,7 +1,7 @@
 package uk.co.edstow.cain.pairgen;
 
-import uk.co.edstow.cain.Atom;
-import uk.co.edstow.cain.Goal;
+import uk.co.edstow.cain.structures.Atom;
+import uk.co.edstow.cain.structures.Goal;
 
 @SuppressWarnings("WeakerAccess")
 public class Distance {

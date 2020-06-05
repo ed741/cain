@@ -1,6 +1,8 @@
 package uk.co.edstow.cain;
 
-import uk.co.edstow.cain.util.Bounds;
+import uk.co.edstow.cain.structures.Goal;
+import uk.co.edstow.cain.structures.GoalBag;
+import uk.co.edstow.cain.structures.GoalPair;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -20,13 +22,13 @@ public class Plan {
     private final int[] depths;
 
     public Plan(List<Goal> finalGoals, List<Goal> initialGoals, String comment){
-        Goal.Pair p = new Goal.Pair((Goal) null, finalGoals, new Transformation.Null(finalGoals.size(), 0));
+        GoalPair p = new GoalPair((Goal) null, finalGoals, new Transformation.Null(finalGoals.size(), 0));
         Goal[] translation  = new Goal[finalGoals.size()];
         for (int i = 0; i < translation.length; i++) {
             translation[i] = finalGoals.get(i);
         }
 
-        this.step = new Step(p, new Goal.Bag(finalGoals), translation, comment);
+        this.step = new Step(p, new GoalBag(finalGoals), translation, comment);
         this.previous = null;
         this.initialGoals = initialGoals;
         this.depth = 0;
@@ -67,7 +69,7 @@ public class Plan {
 
     }
 
-    public Plan newAdd(Goal.Pair newPair, Goal.Bag currentGoals, Goal[] translation, String comment) {
+    public Plan newAdd(GoalPair newPair, GoalBag currentGoals, Goal[] translation, String comment) {
         Step newStep = new Step(newPair, currentGoals, translation, comment);
         return new Plan(this, this.initialGoals, newStep);
     }
@@ -107,24 +109,24 @@ public class Plan {
 
     public static class Step {
         private final String comment;
-        private final Goal.Pair goalPair;
-        private final Goal.Bag currentGoals;
+        private final GoalPair goalPair;
+        private final GoalBag currentGoals;
         private final Goal[] translation;
         private int idx;
         private List<Step> forwardsLinks;
         private List<Step> backwardsLinks;
 
-        private Step(Goal.Pair t, Goal.Bag currentGoals, Goal[] translation, String comment) {
+        private Step(GoalPair t, GoalBag currentGoals, Goal[] translation, String comment) {
             goalPair = t;
             this.comment = comment;
-            this.currentGoals = new Goal.Bag(currentGoals);
+            this.currentGoals = new GoalBag(currentGoals);
             this.translation = translation;
 
 
         }
 
         @SuppressWarnings("unused")
-        public Goal.Bag liveGoals(){
+        public GoalBag liveGoals(){
             return currentGoals;
         }
         public List<Goal> getUppers(){
@@ -164,7 +166,7 @@ public class Plan {
                 tops[i] = out;
                 bottoms[i] = in;
             }
-            return Goal.Bag.toGoalsString(currentGoals, tops, bottoms, true, true);
+            return GoalBag.toGoalsString(currentGoals, tops, bottoms, true, true);
         }
 
         @SuppressWarnings("WeakerAccess")

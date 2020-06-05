@@ -1,7 +1,9 @@
 package uk.co.edstow.cain;
 
 import uk.co.edstow.cain.pairgen.PairGenFactory;
-import uk.co.edstow.cain.util.Tuple;
+import uk.co.edstow.cain.structures.*;
+import uk.co.edstow.cain.traversal.SOT;
+import uk.co.edstow.cain.traversal.TraversalSystem;
 
 import java.time.Duration;
 import java.util.*;
@@ -30,7 +32,7 @@ public class ReverseSearch {
         // Search Rules
         private Supplier<? extends TraversalSystem> traversalAlgorithm;
         private int initialMaxDepth;
-        private int forcedDepthReduction; // once a plan is found at depth 10, cull searches at "depth - forcedDepthReduction".
+        private int forcedDepthReduction; // once a plan is found at maxDepth 10, cull searches at "maxDepth - forcedDepthReduction".
         private int initialMaxCost;
         private int forcedCostReduction;
         private RegisterAllocator registerAllocator; // The register allocator to ensure plans are allocatable
@@ -38,7 +40,7 @@ public class ReverseSearch {
 
         // Search Heuristics
         private int allowableAtomsCoefficient; // cull plans that use more atoms than: "finalGoal * allowableAtomsCoefficient + initialGoals".
-        private int goalReductionsPerStep; // cull plans that have more active goals than steps before max depth to reduce the number to one.
+        private int goalReductionsPerStep; // cull plans that have more active goals than steps before max maxDepth to reduce the number to one.
         private int goalReductionsTolerance; // add a tolerance to allow for a "less conservative" (lower) goalReductionsPerStep if larger reductions are unlikely.
 
         public RunConfig(boolean liveCounter, int livePrintPlans, int workers, int searchTime, boolean timeOut, Supplier<TraversalSystem> traversalAlgorithm, Function<Plan, Integer> costFunction, int initialMaxDepth, int forcedDepthReduction, int initialMaxCost, int forcedCostReduction, RegisterAllocator registerAllocator, int allowableAtomsCoefficient, int goalReductionsPerStep, int goalReductionsTolerance) {
@@ -65,7 +67,7 @@ public class ReverseSearch {
             this.workers = 1;
             this.searchTime = 60000;
             this.timeOut = false;
-            this.traversalAlgorithm = TraversalSystem.SOTFactory();
+            this.traversalAlgorithm = SOT.SOTFactory();
             this.costFunction = p -> p.maxCircuitDepth() + 200*p.depth();
             this.initialMaxDepth = 200;
             this.forcedDepthReduction = 1;
@@ -112,7 +114,7 @@ public class ReverseSearch {
 
         public RunConfig setInitialMaxDepth(int initialMaxDepth) {
             if(initialMaxDepth < 0){
-                throw new IllegalArgumentException("depth must be non-negative");
+                throw new IllegalArgumentException("maxDepth must be non-negative");
             }
             this.initialMaxDepth = initialMaxDepth;
             return this;
@@ -167,6 +169,10 @@ public class ReverseSearch {
             this.goalReductionsTolerance = goalReductionsTolerance;
             return this;
         }
+        public RunConfig setCostFunction(Function<Plan, Integer> costFunction) {
+            this.costFunction = costFunction;
+            return this;
+        }
     }
 
     private final int[] divisions;
@@ -213,7 +219,7 @@ public class ReverseSearch {
 
         // Set up final and initial Goals
         this.finalGoals = Collections.unmodifiableList(new ArrayList<>(finalGoals));
-        this.finalGoalAtoms = new Goal.Bag(this.finalGoals).atomCount();
+        this.finalGoalAtoms = new GoalBag(this.finalGoals).atomCount();
         this.divisions = divisions;
         this.inputs = divisions.length;
         this.initialGoals = new ArrayList<>();
@@ -330,7 +336,7 @@ public class ReverseSearch {
 
     public void search(){
         startTime = System.currentTimeMillis();
-        Goal.Bag goals = new Goal.Bag(finalGoals);
+        GoalBag goals = new GoalBag(finalGoals);
         goals.setImmutable();
         List<Worker> workersThreads = new ArrayList<>();
 
@@ -399,28 +405,6 @@ public class ReverseSearch {
 
     }
 
-    static class WorkState {
-        final int depth;
-        final Goal.Bag goals;
-        final Plan currentPlan;
-        final PairGenFactory.PairGen pairGen;
-
-        WorkState(int depth, Goal.Bag goals, Plan currentPlan, PairGenFactory.PairGen pairGen) {
-            this.depth = depth;
-            this.goals = goals;
-            this.currentPlan = currentPlan;
-            this.pairGen = pairGen;
-        }
-
-        WorkState(int depth, Goal.Bag goals, Plan currentPlan) {
-            this.depth = depth;
-            this.goals = goals;
-            this.currentPlan = currentPlan;
-            this.pairGen = null;
-        }
-
-    }
-
     private class Worker extends Thread {
         final int id;
         boolean active = false;
@@ -475,7 +459,7 @@ public class ReverseSearch {
 
         private void iSearch(WorkState s){
             int depth = s.depth;
-            Goal.Bag goals = s.goals;
+            GoalBag goals = s.goals;
             Plan currentPlan = s.currentPlan;
             PairGenFactory.PairGen goalPairs = s.pairGen;
 
@@ -514,12 +498,12 @@ public class ReverseSearch {
                 goalPairs = pairGenFactory.generatePairs(goals, depth);
                 nodesExpanded++;
             }
-            Goal.Pair goalPair = goalPairs.next();
+            GoalPair goalPair = goalPairs.next();
             if(goalPair == null){
                 return;
             }
 
-            Goal.Bag newGoals = new Goal.Bag(goals);
+            GoalBag newGoals = new GoalBag(goals);
 
             for (Goal upper : goalPair.getUppers()) {
                 boolean removed = newGoals.removeEquivalent(upper);
@@ -579,7 +563,7 @@ public class ReverseSearch {
 
         }
 
-        private boolean tryDirectSolve(int depth, Goal.Bag goals, Plan currentPlan) {
+        private boolean tryDirectSolve(int depth, GoalBag goals, Plan currentPlan) {
             if (goals.size() > inputs) {
                 return false;
             }
@@ -588,13 +572,13 @@ public class ReverseSearch {
                     return true;
                 }
             }
-            List<Goal.Pair> pairs = isTransformable(goals, depth);
+            List<GoalPair> pairs = isTransformable(goals, depth);
             if (pairs != null && !pairs.isEmpty()) {
                 Plan p = currentPlan;
-                Goal.Bag currentGoals = new Goal.Bag(goals);
+                GoalBag currentGoals = new GoalBag(goals);
 
                 for (int i = 0; i < pairs.size(); i++) {
-                    Goal.Pair pair = pairs.get(i);
+                    GoalPair pair = pairs.get(i);
                     for (Goal upper : pair.getUppers()) {
                         boolean removed = currentGoals.removeEquivalent(upper);
                         assert removed : "Pair Upper ERROR";
@@ -636,7 +620,6 @@ public class ReverseSearch {
             if (livePrintPlans>0) System.out.println("Found new Plan (id:" + id + "): Length: " + p.depth() + " (" + depth + ") | max-Circuit-Depth: " + p.maxCircuitDepth() + " | Cost: " + costFunction.apply(p));
             if (livePrintPlans>1) System.out.println(p);
 
-
             try {
                 planLock.lock();
                 plans.add(p);
@@ -659,7 +642,7 @@ public class ReverseSearch {
     }
 
 
-    private List<Goal.Pair> isTransformable(Goal.Bag goals, int depth) {
+    private List<GoalPair> isTransformable(GoalBag goals, int depth) {
         return this.pairGenFactory.applyAllUnaryOpForwards(initialGoals, depth, goals);
     }
 
@@ -672,7 +655,7 @@ public class ReverseSearch {
         try{
             planLock.lock();
             for (int i = 0; i < planTimes.size(); i++) {
-                System.out.println("Plan: "+i+" (depth="+plans.get(i).depth()+") (circuit-depth="+Arrays.toString(plans.get(i).circuitDepths())+") found at " + planTimes.get(i) + "ms");
+                System.out.println("Plan: "+i+" (maxDepth="+plans.get(i).depth()+") (circuit-maxDepth="+Arrays.toString(plans.get(i).circuitDepths())+") found at " + planTimes.get(i) + "ms");
             }
         } finally {
             planLock.unlock();

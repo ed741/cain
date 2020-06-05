@@ -1,7 +1,8 @@
 package uk.co.edstow.cain.scamp5.emulator;
 
-import uk.co.edstow.cain.Atom;
-import uk.co.edstow.cain.Goal;
+import uk.co.edstow.cain.structures.Atom;
+import uk.co.edstow.cain.structures.Goal;
+import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
@@ -163,7 +164,7 @@ class ProcessingElement {
                     });
                     goals.add(factory.get());
                 });
-        sb.append("\n").append(Goal.Bag.toGoalsString(goals)).append("\n");
+        sb.append("\n").append(GoalBag.toGoalsString(goals)).append("\n");
         return sb.toString();
     }
 

@@ -1,0 +1,44 @@
+{"name":"Guassian5x5",
+  "maxApproximationDepth":6,
+  "maxApproximationError":0,
+  "3d": false,
+  "filter":{
+    "A": {"depth":-6,
+      "array":
+        [ [ 0, 1, 2, 1, 0],
+          [ 1, 4, 6, 4, 1],
+          [ 2, 6, 10, 6, 2],
+          [ 1, 4, 6, 4, 1],
+          [ 0, 1, 2, 1, 0]
+        ]
+    }
+  },
+
+  "availableRegisters":["A","B","C","D","E","F"],
+  "initialRegisters":["A"],
+
+  "runConfig":{
+    "searchTime":5000,
+    "timeOut":true,
+    "workers":4,
+    "traversalAlgorithm":"SOT",
+    "costFunction":"CircuitDepthThenLength",
+    "liveCounter":true,
+    "livePrintPlans":2,
+    "initialMaxDepth":200,
+    "forcedDepthReduction":1,
+    "initialMaxCost":2147483647,
+    "forcedCostReduction":0,
+    "allowableAtomsCoefficient":2,
+    "goalReductionsPerStep":1,
+    "goalReductionsTolerance":1
+  },
+
+  "pairGen":{
+    "name": "Scamp5",
+    "configGetter": "Threshold",
+    "ops":"all",
+    "threshold":10
+  }
+
+}

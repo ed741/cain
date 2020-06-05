@@ -1,22 +1,40 @@
 package uk.co.edstow.cain;
 
-import uk.co.edstow.cain.scamp5.Scamp5PairGenFactory;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.json.JSONTokener;
+import uk.co.edstow.cain.pairgen.PairGenFactory;
+import uk.co.edstow.cain.scamp5.*;
 import uk.co.edstow.cain.scamp5.emulator.Scamp5Emulator;
+import uk.co.edstow.cain.structures.Atom;
+import uk.co.edstow.cain.structures.Goal;
+import uk.co.edstow.cain.traversal.SOT;
 import uk.co.edstow.cain.util.Bounds;
 import uk.co.edstow.cain.util.Tuple;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.*;
 
 import static uk.co.edstow.cain.RegisterAllocator.Register.*;
-import static uk.co.edstow.cain.scamp5.Scamp5PairGenFactory.Config.SearchStrategy.Exhaustive;
-import static uk.co.edstow.cain.scamp5.Scamp5PairGenFactory.Config.SearchStrategy.SortedAtomDistance;
 
 @SuppressWarnings("unused")
 class Main {
     public static void main(String[] args) {
+//        test();
+        for (int i = 0; i < args.length; i++) {
+            new FileRun(args[i]).run();
+
+        }
 //        DemoSuite.runDemo();
-        test();
+
     }
+
+
+
     public static void test() {
         List<Goal> final_goals = new ArrayList<>();
         int[] divisions = new int[1];
@@ -41,27 +59,6 @@ class Main {
         };
 //        final_goals.add(new Goal.Factory(multiSobelV).get());
 //        divisions[0] = 0;
-//        final_goals.add(new Goal.Factory(1, multiSobelV).add(0, multiSobelV, 1).get());
-//        divisions[1] = 2;
-
-        int[][] multiSobelH = new int[][]{
-                { 0, 0, 0, 0, 0},
-                { 0, 1, 2, 1, 0},
-                { 0, 0, 0, 0, 0},
-                { 0, -1, -2, -1, 0},
-                { 0, 0, 0, 0, 0}
-        };
-//        final_goals.add(new Goal.Factory(multiSobelH).get());
-
-        int[][] multiBox1x1 = new int[][]{
-                { 0, 0, 0, 0, 0},
-                { 0, 0, 0, 0, 0},
-                { 0, 0, 1, 0, 0},
-                { 0, 0, 0, 0, 0},
-                { 0, 0, 0, 0, 0}
-        };
-        //final_goals.add(new Goal.Factory(multiBox1x1).get());
-
 
         int[][] multiBox2x2 = new int[][]{
                 { 0, 0, 0, 0, 0},
@@ -161,27 +158,13 @@ class Main {
         RegisterAllocator.Register[] availableRegisters = new RegisterAllocator.Register[]{A, B, C, D, E, F};
         RegisterAllocator registerAllocator = new RegisterAllocator(new RegisterAllocator.Register[]{A}, availableRegisters);
 
+        PairGenFactory pairGenFactory = new Scamp5PairGenFactory<>(rs -> new ThresholdConfigGetter(rs, availableRegisters));
 
-        Scamp5PairGenFactory pairGenFactory = new Scamp5PairGenFactory(
-                (goals, depth, rs1, initialGoal) -> {
-//                    Scamp5PairGenFactory.Config conf = new Scamp5PairGenFactory.Config(SortedAtomDistance, availableRegisters.length, depth);
-                    int max = Integer.MIN_VALUE;
-                    for (Goal goal : goals) {
-                        max = Math.max(max, goal.atomCount());
-                    }
-                    int threshold = 10;
-                    Scamp5PairGenFactory.Config conf = new Scamp5PairGenFactory.Config(max>threshold? SortedAtomDistance: Exhaustive, availableRegisters.length, depth);
-                    conf.useAll();
-                    conf.useSubPowerOf2();
-//                    conf.useBasicOps();
-                    return conf;
-                }
-        );
         ReverseSearch.RunConfig config = new ReverseSearch.RunConfig();
         config.setWorkers(4)
                 .setRegisterAllocator(registerAllocator).setLivePrintPlans(2)
-                .setTimeOut(true).setLiveCounter(true).setSearchTime(60000)
-                .setTraversalAlgorithm(TraversalSystem.SOTFactory())
+                .setTimeOut(true).setLiveCounter(true).setSearchTime(6000)
+                .setTraversalAlgorithm(SOT.SOTFactory())
         .setForcedDepthReduction(1)
         .setForcedCostReduction(0);
         ReverseSearch rs = new ReverseSearch(divisions, final_goals, pairGenFactory, config);
@@ -289,4 +272,5 @@ class Main {
 
         }
     }
+
 }
