@@ -52,7 +52,9 @@ class FileRunTest {
                 "\n" +
                 "}";
         try {
-            new FileRun(json).run();
+            FileRun fileRun = new FileRun(json);
+            fileRun.run();
+            fileRun.getResults();
         } catch (Exception ignored){
             fail();
         }

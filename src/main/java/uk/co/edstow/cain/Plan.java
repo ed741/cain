@@ -138,6 +138,9 @@ public class Plan {
             return goalPair.getTransformation();
         }
 
+        public int getSearchOrderIdx() {
+            return child;
+        }
 
         @Override
         public String toString() {

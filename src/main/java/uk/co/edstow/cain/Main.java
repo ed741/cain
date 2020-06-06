@@ -18,7 +18,10 @@ class Main {
     public static void main(String[] args) {
 //        test();
         for (int i = 0; i < args.length; i++) {
-            new FileRun(args[i]).run();
+            FileRun fileRun = new FileRun(args[i]);
+            fileRun.run();
+            String code = fileRun.getBest();
+            System.out.println(code);
 
         }
 //        DemoSuite.runDemo();
@@ -59,7 +62,7 @@ class Main {
                 { 0, 0, 0, 0, 0},
                 { 0, 0, 0, 0, 0}
         };
-        //final_goals.add(new Goal.Factory(multiBox2x2).get());
+        final_goals.add(new Goal.Factory(multiBox2x2).get());
 
         int[][] multiBox3x3 = new int[][]{
                 { 0, 0, 0, 0, 0},
@@ -109,8 +112,8 @@ class Main {
                 { 1, 4, 6, 4, 1},
                 { 0, 1, 2, 1, 0}
         };
-        final_goals.add(new Goal.Factory(multiGuass5x5).get());
-        divisions[0] = 6;
+//        final_goals.add(new Goal.Factory(multiGuass5x5).get());
+//        divisions[0] = 6;
 
         int[][] multi1 = new int[][]{
                 { 0, 0, 0, 0, 0},

@@ -29,6 +29,7 @@ public class ReverseSearch {
         // Search limits
         private int searchTime;
         private boolean timeOut;
+        private long maxNodes;
 
         // Search Rules
         private Supplier<? extends TraversalSystem> traversalAlgorithm;
@@ -44,13 +45,14 @@ public class ReverseSearch {
         private int goalReductionsPerStep; // cull plans that have more active goals than steps before max maxDepth to reduce the number to one.
         private int goalReductionsTolerance; // add a tolerance to allow for a "less conservative" (lower) goalReductionsPerStep if larger reductions are unlikely.
 
-        public RunConfig(boolean liveCounter, int livePrintPlans, boolean quiet, int workers, int searchTime, boolean timeOut, Supplier<TraversalSystem> traversalAlgorithm, Function<Plan, Integer> costFunction, int initialMaxDepth, int forcedDepthReduction, int initialMaxCost, int forcedCostReduction, RegisterAllocator registerAllocator, int allowableAtomsCoefficient, int goalReductionsPerStep, int goalReductionsTolerance) {
+        public RunConfig(boolean liveCounter, int livePrintPlans, boolean quiet, int workers, int searchTime, long maxNodes, boolean timeOut, Supplier<TraversalSystem> traversalAlgorithm, Function<Plan, Integer> costFunction, int initialMaxDepth, int forcedDepthReduction, int initialMaxCost, int forcedCostReduction, RegisterAllocator registerAllocator, int allowableAtomsCoefficient, int goalReductionsPerStep, int goalReductionsTolerance) {
             this.liveCounter = liveCounter;
             this.livePrintPlans = livePrintPlans;
             this.quiet = quiet;
             this.workers = workers;
             this.searchTime = searchTime;
             this.timeOut = timeOut;
+            this.maxNodes = maxNodes;
             this.traversalAlgorithm = traversalAlgorithm;
             this.costFunction = costFunction;
             this.initialMaxDepth = initialMaxDepth;
@@ -70,6 +72,7 @@ public class ReverseSearch {
             this.workers = 1;
             this.searchTime = 60000;
             this.timeOut = false;
+            this.maxNodes = 0;
             this.traversalAlgorithm = SOT.SOTFactory();
             this.costFunction = p -> p.maxCircuitDepth() + 200*p.depth();
             this.initialMaxDepth = 200;
@@ -108,6 +111,15 @@ public class ReverseSearch {
             this.searchTime = searchTime;
             return this;
         }
+
+        public RunConfig setMaxNodes(int maxNodes) {
+            if(maxNodes < 0){
+                throw new IllegalArgumentException("maxNodes must be non-negative");
+            }
+            this.maxNodes = maxNodes;
+            return this;
+        }
+
 
         public RunConfig setTimeOut(boolean timeOut) {
             this.timeOut = timeOut;
@@ -206,6 +218,7 @@ public class ReverseSearch {
     private final int livePrintPlans;
     private final boolean quiet;
 
+    private final long maxNodes;
     private final boolean timeout;
     private final long maxTime;
     private final AtomicInteger maxDepth;
@@ -264,6 +277,7 @@ public class ReverseSearch {
         this.maxCost = new AtomicInteger(runConfig.initialMaxCost);
         this.maxTime = runConfig.searchTime;
         this.timeout = runConfig.timeOut;
+        this.maxNodes = runConfig.maxNodes;
         this.registerAllocator = runConfig.registerAllocator;
 
         // Init Heuristics
@@ -292,12 +306,19 @@ public class ReverseSearch {
         return plans;
     }
 
+    public List<Long> getPlanTimes() { return planTimes; }
+
+    public List<Long> getPlanNodesExplored() { return planNodesExplored; }
+
     public int[] getInitialDivisions() {
         return divisions;
     }
 
 
     private boolean running(){
+        if(timeout && System.currentTimeMillis() > startTime + maxTime){
+            return false;
+        }
         return !end.get();
     }
 
@@ -363,7 +384,7 @@ public class ReverseSearch {
         workersThreads.forEach(Thread::start);
         Thread mainThread = Thread.currentThread();
 
-        if (!timeout){
+        if (!timeout && maxNodes==0){
             new Thread(){
                 @Override
                 public void run() {
@@ -400,6 +421,14 @@ public class ReverseSearch {
                     if(!quiet) {
                         System.out.println("\nTime is up!");
                     }
+                    endTime();
+                }
+                if(workersFinished.tryAcquire()){
+                    workersFinished.release();
+                    if(!quiet) {
+                        System.out.println("\nWorkers Are finished");
+                    }
+
                     endTime();
                 }
             } catch (InterruptedException e) {
@@ -446,10 +475,18 @@ public class ReverseSearch {
             }
             try {
                 while (running()) {
+                    if(maxNodes>0 && nodesExpanded > maxNodes){
+                        active = false;
+                        break;
+                    }
                     WorkState s = localTraversalSystem.poll();
                     if (s == null) {
                         active = false;
-                        s = stealWork();
+                        if(workers>1) {
+                            s = stealWork();
+                        }else{
+                            break;
+                        }
                     }
                     active = true;
                     iSearch(s);
@@ -684,6 +721,7 @@ public class ReverseSearch {
             }
         }
     }
+
 
 
 

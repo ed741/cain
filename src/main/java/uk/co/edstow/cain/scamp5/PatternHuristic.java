@@ -7,10 +7,7 @@ import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 public class PatternHuristic implements CostHuristic<Config>{
 

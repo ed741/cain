@@ -604,9 +604,9 @@ public class Scamp5Emulator {
         try {
             img = ImageIO.read(imgFile);
 //            Scamp5Emulator e = new Scamp5Emulator(img, Reg.A);
-            Scamp5Emulator e = new Scamp5Emulator(1);
+            Scamp5Emulator e = new Scamp5Emulator(3);
 
-            e.run("input(A,"+(1*128)+")");
+            e.run("input(A,"+(2*128)+")");
 //            e.run("input(A,"+(1*128)+")");
 
 //            BufferedImage out = e.getImage(Reg.F, false);
@@ -620,54 +620,27 @@ public class Scamp5Emulator {
 //            e.run("movx(F,F,north)");
             verbose = 100;
             e.runCode(
-                    "movx(B, A, south);\n" +
-                            "add(A, B, A);\n" +
-                            "movx(B, A, north);\n" +
-                            "add(B, A, B);\n" +
-                            "movx(A, B, west);\n" +
-                            "movx(B, B, east);\n" +
-                            "sub(A, A, B);");
+                    "//Kernel Code!\n" +
+                            "div(D, C, A);//[C, B, E, F]\n" +
+                            "mov2x(A, D, south, south);//[C, B, E, F]\n" +
+                            "mov2x(C, D, south, south);//[B, E, F]\n" +
+                            "add2x(B, A, C, north, east);//[E, F]\n" +
+                            "add2x(E, C, A, north, east);//[F]\n" +
+                            "addx(C, A, C, north);//[F]\n" +
+                            "movx(F, C, west);//[]\n" +
+                            "add2x(A, A, C, north, north);//[]\n" +
+                            "add2x(D, D, E, west, north);//[]\n" +
+                            "add(C, C, A);//[]\n" +
+                            "add(E, B, E, F);//[]\n" +
+                            "addx(A, A, C, west);//[F]\n" +
+                            "add(B, E, B, D);//[F]\n" +
+                            "addx(C, C, A, east);//[D, E, F]\n" +
+                            "add(A, B, A, C);//[D, E, F]\n" +
+                            "//Null Instruction: [null] <- [A]//[B, C, D, E, F]" +
+                            "");
             e.flushInstructionBuffer();
             System.out.println(e.tiles.get(new Pos(0,0)));
-            //
-//            e.run("movx(B,F,north)");
-//            e.run("add(F,F,B)");
-//            e.run("movx(B,F,south)");
-//            e.run("add(F,F,B)");
-//            e.run("movx(B,F,east)");
-//            e.run("movx(F,F,west)");
-//            e.run("sub(F,F,B)");
-//
-//            e.run("divq(D,A)");
-//            e.run("divq(C,D)");
-//            e.run("movx(E,C,east)");
-//            e.run("add(D,D,E)");
-//            e.run("movx(E,C,west)");
-//            e.run("add(D,D,E)");
-//            e.run("divq(C,D)");
-//            e.run("mov(D,C)");
-//            e.run("divq(C,D)");
-//            e.run("movx(E,C,north)");
-//            e.run("add(D,D,E)");
-//            e.run("movx(D,C,south)");
-//            e.run("add(D,D,E)");
-//
-//            e.run("mov(A,D)");
-//
-//
-//            e.run("divq(D,A)");
-//            e.run("divq(C,D)");
-//            e.run("movx(E,C,east)");
-//            e.run("add(D,D,E)");
-//            e.run("movx(E,C,west)");
-//            e.run("add(D,D,E)");
-//            e.run("divq(C,D)");
-//            e.run("mov(D,C)");
-//            e.run("divq(C,D)");
-//            e.run("movx(E,C,north)");
-//            e.run("add(D,D,E)");
-//            e.run("movx(D,C,south)");
-//            e.run("add(D,D,E)");
+            System.out.println(e.getRegToString(0,0,"A"));
 
 
 //            BufferedImage out1 = e.getImage(Reg.F, true);

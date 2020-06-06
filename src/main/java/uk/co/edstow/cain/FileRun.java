@@ -24,25 +24,164 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class FileRun {
-    private final Approximater goalAprox;
-    private final List<RegisterAllocator.Register> outputRegisters;
+
+
+    public class Result{
+        public final Plan plan;
+        public final long nodesExpanded;
+        public final int cost;
+        public final int depth;
+        public final int[] circuitDepths;
+        public final long time;
+        public final String code;
+        public final Bounds bounds;
+        public final List<Goal> initialGoals;
+        public final List<Goal> finalGoals;
+
+        public Result(Plan plan, long nodesExpanded, long time, String code, Bounds b) {
+            this.plan = plan;
+            this.nodesExpanded = nodesExpanded;
+            this.time = time;
+            this.cost = reverseSearch.costFunction.apply(plan);
+            this.depth = plan.depth();
+            this.circuitDepths = plan.circuitDepths();
+            this.code = code;
+            this.bounds = b;
+            this.initialGoals = reverseSearch.getInitialGoals();
+            this.finalGoals = reverseSearch.getFinalGoals();
+
+        }
+    }
+
+    private List<RegisterAllocator.Register> outputRegisters;
+    private int approximationDepth;
     private int verbose;
     private final ReverseSearch reverseSearch;
     private RegisterAllocator registerAllocator;
+    private final JSONObject config;
 
     public FileRun(String path) {
-        JSONObject config = fromJson(path);
+        this.config = fromJson(path);
         verbose = config.has("verbose")? config.getInt("verbose"):10;
         printLn("Json config read from   : '"+ path +"'" );
         printLn("Name                    : "+ config.getString("name"));
 
+        List<Goal> finalGoals = makeFinalGoals(config);
+
+        registerAllocator = makeRegisterAllocator(config);
+        printLn("");
+        ReverseSearch.RunConfig runConfig = makeRunConfig(config.getJSONObject("runConfig"), registerAllocator);
+        printLn("");
+        PairGenFactory pairGenFactory = makePairGenFactory(config.getJSONObject("pairGen"), registerAllocator);
+        printLn("");
+
+        int[] divisions = new int[registerAllocator.getInitRegisters().length];
+        Arrays.fill(divisions, approximationDepth);
+
+        printLn("Initialising Reverse Search:");
+        reverseSearch = new ReverseSearch(divisions, finalGoals, pairGenFactory, runConfig);
+
+    }
+
+    public FileRun(String path, List<Goal> finalGoals, int approximationDepth) {
+        this.config = fromJson(path);
+        verbose = config.has("verbose")? config.getInt("verbose"):10;
+        printLn("Json config read from   : '"+ path +"'" );
+        printLn("Name                    : "+ config.getString("name"));
+
+        configureFinalGoals(finalGoals, approximationDepth);
+
+        registerAllocator = makeRegisterAllocator(config);
+        printLn("");
+        ReverseSearch.RunConfig runConfig = makeRunConfig(config.getJSONObject("runConfig"), registerAllocator);
+        printLn("");
+        PairGenFactory pairGenFactory = makePairGenFactory(config.getJSONObject("pairGen"), registerAllocator);
+        printLn("");
+
+        int[] divisions = new int[registerAllocator.getInitRegisters().length];
+        Arrays.fill(divisions, this.approximationDepth);
+
+        printLn("Initialising Reverse Search:");
+        reverseSearch = new ReverseSearch(divisions, finalGoals, pairGenFactory, runConfig);
+
+    }
+
+    public void run() {
+        reverseSearch.search();
+        reverseSearch.printStats();
+    }
+    public String getBest(){
+        List<Plan> plans = reverseSearch.getPlans();
+        if (plans.isEmpty()){
+            printLnCritial("No Plans Found!");
+            return null;
+        }
+        double min = Double.MAX_VALUE;
+        int iMin = 0;
+        for (int i = 0; i < plans.size(); i++) {
+            Plan pl = plans.get(i);
+            double c = reverseSearch.costFunction.apply(pl);
+            if (c < min) {
+                iMin = i;
+                min = c;
+            }
+        }
+        printLn("Best Plan: ");
+        Plan p = plans.get(iMin);
+        printLn(p.toString());
+
+        printLnImportant("length: " + p.depth() + " Cost: " + reverseSearch.costFunction.apply(p));
+        printLnImportant("CircuitDepths:" + Arrays.toString(p.circuitDepths()));
+        RegisterAllocator.Mapping mapping = registerAllocator.solve(p, reverseSearch.getInitialGoals());
+        String code = p.produceCode(mapping);
+        printLnCritial(code);
+        Bounds b = checkPlan(code, p);
+        if(b==null){
+            printLnCritial("Plan Was Faulty!");
+            return null;
+        }
+        printLn("Implemented filter:");
+        int fgs = reverseSearch.getInitialGoals().size();
+        printLn(GoalBag.toGoalsString(reverseSearch.getFinalGoals(), b, new boolean[fgs], new boolean[fgs], true, true));
+        return code;
+    }
+
+    public List<Result> getResults(){
+        List<Result> results = new ArrayList<>();
+        List<Plan> plans = reverseSearch.getPlans();
+        for (int i = 0; i < plans.size(); i++) {
+            Plan plan = plans.get(i);
+            RegisterAllocator.Mapping mapping = registerAllocator.solve(plan, reverseSearch.getInitialGoals());
+            String code = plan.produceCode(mapping);
+            Bounds b = checkPlan(code, plan);
+            results.add(new Result(
+                    plans.get(i),
+                    reverseSearch.getPlanNodesExplored().get(i),
+                    reverseSearch.getPlanTimes().get(i),
+                    code,
+                    b));
+        }
+        return results;
+    }
+
+    private void configureFinalGoals(List<Goal> finalGoals, int approximationDepth){
+        outputRegisters = new ArrayList<>();
+        for (int i = 0; i < finalGoals.size(); i++) {
+            outputRegisters.add(RegisterAllocator.Register.values()[i]);
+        }
+        this.approximationDepth = approximationDepth;
+        printLn("\tgoals:");
+        printLn(GoalBag.toGoalsString(finalGoals, false, false, true, true));
+        printLn("Depth     : "+ this.approximationDepth);
+    }
+    private List<Goal> makeFinalGoals(JSONObject config){
 
         int maxApproximationDepth = config.getInt("maxApproximationDepth");
         printLn("Max Approximation Depth : "+ maxApproximationDepth);
         double maxApproximationError = config.getDouble("maxApproximationError");
         printLn("Max Approximation Error : "+maxApproximationError);
 
-        goalAprox = new Approximater(maxApproximationDepth, maxApproximationError);
+        Approximater goalAprox = new Approximater(maxApproximationDepth, maxApproximationError);
         outputRegisters = new ArrayList<>();
 
         boolean threeDimentional = config.getBoolean("3d");
@@ -69,69 +208,14 @@ public class FileRun {
         }
 
         List<Goal> finalGoals = goalAprox.solve();
+        this.approximationDepth = goalAprox.getDepth();
         printLn("Output Registers        : " + outputRegisters.toString());
         printLn("\tApproximated goals:");
         printLn(GoalBag.toGoalsString(finalGoals, false, false, true, true));
         printLn("");
         printLn("Approximation Depth     : "+ goalAprox.getDepth());
         printLn("Approximation Error     : "+ goalAprox.getError());
-
-        registerAllocator = makeRegisterAllocator(config);
-        printLn("");
-        ReverseSearch.RunConfig runConfig = makeRunConfig(config.getJSONObject("runConfig"), registerAllocator);
-        printLn("");
-        PairGenFactory pairGenFactory = makePairGenFactory(config.getJSONObject("pairGen"), registerAllocator);
-        printLn("");
-
-        int[] divisions = new int[registerAllocator.getInitRegisters().length];
-        for (int i = 0; i < divisions.length; i++) {
-            divisions[i] = goalAprox.getDepth();
-        }
-
-        printLn("Initialising Reverse Search:");
-        reverseSearch = new ReverseSearch(divisions, finalGoals, pairGenFactory, runConfig);
-
-
-    }
-
-    public void run(){
-        reverseSearch.search();
-        reverseSearch.printStats();
-        List<Plan> plans = reverseSearch.getPlans();
-        if (plans.isEmpty()){
-            printLnCritial("No Plans Found!");
-            System.exit(-1);
-        }
-        double min = Double.MAX_VALUE;
-        int iMin = 0;
-        for (int i = 0; i < plans.size(); i++) {
-            Plan pl = plans.get(i);
-            double c = reverseSearch.costFunction.apply(pl);
-            if (c < min) {
-                iMin = i;
-                min = c;
-            }
-        }
-        printLn("Best Plan: ");
-        Plan p = plans.get(iMin);
-        printLn(p.toString());
-
-        printLnImportant("length: " + p.depth() + " Cost: " + reverseSearch.costFunction.apply(p));
-        printLnImportant("CircuitDepths:" + Arrays.toString(p.circuitDepths()));
-        RegisterAllocator.Mapping mapping = registerAllocator.solve(p, reverseSearch.getInitialGoals());
-        String code = p.produceCode(mapping);
-        printLnCritial(code);
-        Bounds b = checkPlan(code);
-        if(b==null){
-            printLnCritial("Plan Was Faulty!");
-            System.exit(-1);
-        }
-        printLn("Implemented filter:");
-        int fgs = reverseSearch.getInitialGoals().size();
-        printLn(GoalBag.toGoalsString(reverseSearch.getFinalGoals(), b, new boolean[fgs], new boolean[fgs], true, true));
-
-
-
+        return finalGoals;
     }
 
     private RegisterAllocator makeRegisterAllocator(JSONObject config) {
@@ -145,6 +229,10 @@ public class FileRun {
         availableRegisters = available.toArray(availableRegisters);
         RegisterAllocator.Register[] initRegisters = getRegisterArray(config.getJSONArray("initialRegisters"));
         return new RegisterAllocator(initRegisters, availableRegisters);
+    }
+
+    public int getAvailableRegisterCount() {
+        return registerAllocator.getAvailableRegisters();
     }
 
     private PairGenFactory makePairGenFactory(JSONObject json, RegisterAllocator registerAllocator){
@@ -198,6 +286,8 @@ public class FileRun {
         runConfig.setSearchTime(json.getInt("searchTime"));
         printLn("Time Out                    : "+json.getBoolean("timeOut"));
         runConfig.setTimeOut(json.getBoolean("timeOut"));
+        printLn("Max Nodes                   : "+json.getInt("maxNodes"));
+        runConfig.setMaxNodes(json.getInt("maxNodes"));
         printLn("Workers                     : "+json.getInt("workers"));
         runConfig.setWorkers(json.getInt("workers"));
 
@@ -227,7 +317,7 @@ public class FileRun {
                 final int maxDepth2 = json.getInt("initialMaxDepth");
                 costFunction = p -> p.depth()*maxDepth2 + p.maxCircuitDepth();
         }
-        //runConfig.setCostFunction(costFunction);
+        runConfig.setCostFunction(costFunction);
 
         switch (json.getString("traversalAlgorithm")) {
             default:
@@ -288,6 +378,23 @@ public class FileRun {
 
         return runConfig;
     }
+
+    public String getTraversalAlgorithm() {
+        return config.getJSONObject("runConfig").getString("traversalAlgorithm");
+    }
+
+    public String getCostFunction() {
+        return config.getJSONObject("runConfig").getString("costFunction");
+    }
+
+    public int getForcedDepthReduction() {
+        return config.getJSONObject("runConfig").getInt("forcedDepthReduction");
+    }
+
+    public int getForcedCostReduction() {
+        return config.getJSONObject("runConfig").getInt("forcedCostReduction");
+    }
+
 
     private void addGoal(Approximater goalAprox, JSONArray jsonArray, boolean threeDimentional, double scale) {
         int xMax = 0;
@@ -378,11 +485,11 @@ public class FileRun {
     }
 
 
-    private Bounds checkPlan(String code){
+    private Bounds checkPlan(String code, Plan p){
         List<Goal> finalGoals = reverseSearch.getFinalGoals();
         int[] divisions = reverseSearch.getInitialDivisions();
         List<Bounds> bounds = new ArrayList<>();
-        Scamp5Emulator emulator = new Scamp5Emulator(new Bounds(finalGoals).largestMagnitude()*2);
+        Scamp5Emulator emulator = new Scamp5Emulator(new Bounds(finalGoals).largestMagnitude()*3);
         RegisterAllocator.Register[] initRegisters = registerAllocator.getInitRegisters();
         for (int i = 0; i < initRegisters.length; i++) {
             RegisterAllocator.Register r = initRegisters[i];
@@ -406,6 +513,9 @@ public class FileRun {
                     printLnCritial(coordinate.toString());
                     printLnCritial("%s",d==null?"null":d);
                     printLnCritial("%s",expected);
+                    printLnCritial(code);
+                    printLnCritial(GoalBag.toGoalsString(finalGoals));
+                    printLnCritial(p.toGoalsString());
                     return null;
                 }
                 testMap.remove(coordinate);
@@ -420,4 +530,5 @@ public class FileRun {
         }
         return Bounds.combine(bounds);
     }
+
 }
