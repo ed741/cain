@@ -2,6 +2,8 @@ package uk.co.edstow.cain;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class FileRunTest {
@@ -54,8 +56,11 @@ class FileRunTest {
         try {
             FileRun fileRun = new FileRun(json);
             fileRun.run();
-            fileRun.getResults();
-        } catch (Exception ignored){
+            List<FileRun.Result> results = fileRun.getResults();
+            assertTrue(results.stream().mapToInt(r -> r.depth).min().getAsInt()<=5);
+        } catch (Exception e){
+            e.printStackTrace();
+            e.getMessage();
             fail();
         }
 

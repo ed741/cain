@@ -286,8 +286,10 @@ public class FileRun {
         runConfig.setSearchTime(json.getInt("searchTime"));
         printLn("Time Out                    : "+json.getBoolean("timeOut"));
         runConfig.setTimeOut(json.getBoolean("timeOut"));
-        printLn("Max Nodes                   : "+json.getInt("maxNodes"));
-        runConfig.setMaxNodes(json.getInt("maxNodes"));
+        if(json.has("maxNodes")) {
+            printLn("Max Nodes                   : "+json.getInt("maxNodes"));
+            runConfig.setMaxNodes(json.getInt("maxNodes"));
+        }
         printLn("Workers                     : "+json.getInt("workers"));
         runConfig.setWorkers(json.getInt("workers"));
 
