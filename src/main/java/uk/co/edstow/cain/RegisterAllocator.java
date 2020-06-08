@@ -197,8 +197,17 @@ public class RegisterAllocator {
                     int initIdx = jk.getA() - all_r.size();
                     boolean valid = availableRegisters.remove(init[initIdx]);
                     if (!valid) {
-                        // Output is created and requires init Register while init is live!
-                        return null;
+                        boolean initInAv = false;
+                        for (Register register : registers) {
+                            if (init[initIdx] == register){
+                                initInAv = true;
+                                break;
+                            }
+                        }
+                        if(initInAv) {
+                            // Output is created and requires init Register while init is live!
+                            return null;
+                        }
                     }
                     r = init[initIdx];
                 } else {
