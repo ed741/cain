@@ -27,7 +27,7 @@
     "traversalAlgorithm":"SOT",
     "costFunction":"CircuitDepthThenLength",
     "liveCounter":true,
-    "livePrintPlans":2,
+    "livePrintPlans":100,
     "quiet": false,
     "initialMaxDepth":200,
     "forcedDepthReduction":1,

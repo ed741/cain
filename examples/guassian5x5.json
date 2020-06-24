@@ -24,7 +24,7 @@
     "traversalAlgorithm":"DFS",
     "costFunction":"CircuitDepthThenLength",
     "liveCounter":true,
-    "livePrintPlans":2,
+    "livePrintPlans":0,
     "quiet": false,
     "initialMaxDepth":200,
     "forcedDepthReduction":1,
