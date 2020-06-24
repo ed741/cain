@@ -1,10 +1,10 @@
-package uk.co.edstow.cain;
+package uk.co.edstow.cain.structures;
 
-import uk.co.edstow.cain.structures.Goal;
-import uk.co.edstow.cain.structures.GoalBag;
-import uk.co.edstow.cain.structures.GoalPair;
+import uk.co.edstow.cain.RegisterAllocator;
+import uk.co.edstow.cain.Transformation;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
@@ -88,6 +88,7 @@ public class Plan {
     public String produceCode(RegisterAllocator.Mapping registerMap) {
         List<Step> all = getAll();
         StringBuilder sb = new StringBuilder("//Kernel Code!\n");
+        sb.append("//Inputs in: ").append(Arrays.toString(registerMap.initRegisters())).append("\n");
         for (int i = all.size()-1; i >= 0; i--) {
             Step step = all.get(i);
             List<RegisterAllocator.Register> uppers = new ArrayList<>();
@@ -101,7 +102,7 @@ public class Plan {
                 lowers.add(registerMap.get(lowerGoal));
             }
             sb.append(step.code(uppers, lowers, registerMap.getTrash(i)));
-            sb.append("//").append(registerMap.getTrash(i));
+//            sb.append("//").append(registerMap.getTrash(i));
             sb.append("\n");
         }
         return sb.toString();

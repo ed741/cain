@@ -1,6 +1,8 @@
 package uk.co.edstow.cain.scamp5;
 
 import uk.co.edstow.cain.ReverseSearch;
+import uk.co.edstow.cain.pairgen.Config;
+import uk.co.edstow.cain.pairgen.CostHuristic;
 import uk.co.edstow.cain.pairgen.Distance;
 import uk.co.edstow.cain.structures.Atom;
 import uk.co.edstow.cain.structures.Goal;
@@ -9,7 +11,7 @@ import uk.co.edstow.cain.structures.GoalPair;
 
 import java.util.*;
 
-public class PatternHuristic implements CostHuristic<Config>{
+public class PatternHuristic<C extends Config> implements CostHuristic<C> {
 
     private int[] initialDivisions;
     private int initialDivisionsMax;

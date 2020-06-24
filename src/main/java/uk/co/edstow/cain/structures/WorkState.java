@@ -1,6 +1,5 @@
 package uk.co.edstow.cain.structures;
 
-import uk.co.edstow.cain.Plan;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 
 public class WorkState {

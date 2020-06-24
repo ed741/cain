@@ -3,7 +3,6 @@ package uk.co.edstow.cain.pairgen;
 
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
-import uk.co.edstow.cain.util.Bounds;
 import uk.co.edstow.cain.util.Tuple;
 import uk.co.edstow.cain.structures.Atom;
 import uk.co.edstow.cain.structures.Goal;
@@ -21,10 +20,10 @@ public class V1PairGenFactory implements PairGenFactory{
         return SimplePairGenFactory.applyAllUnaryOps(initialGoals.get(0), goal);
     }
 
-    private Bounds bounds;
+    private Atom.Bounds bounds;
     @Override
     public void init(ReverseSearch rs) {
-        bounds = new Bounds(rs.getFinalGoals());
+        bounds = new Atom.Bounds(rs.getFinalGoals());
 
     }
 
@@ -48,7 +47,7 @@ public class V1PairGenFactory implements PairGenFactory{
         return new V1PairGen(out);
     }
 
-    public static double getValue(GoalBag goals, GoalPair pair, Bounds bounds) {
+    public static double getValue(GoalBag goals, GoalPair pair, Atom.Bounds bounds) {
         HashSet<Goal> goalSet = new HashSet<>(goals);
         goalSet.removeAll(pair.getUppers());
 
@@ -114,7 +113,7 @@ public class V1PairGenFactory implements PairGenFactory{
         return pairs;
     }
 
-    private static List<Goal> patternRepeated(Bounds bounds, Collection<Goal> goals, Goal pattern){
+    private static List<Goal> patternRepeated(Atom.Bounds bounds, Collection<Goal> goals, Goal pattern){
         List<Goal> matches = new ArrayList<>();
         int bx = bounds.xMax-bounds.xMin;
         int by = bounds.yMax-bounds.yMin;

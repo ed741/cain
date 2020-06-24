@@ -1,15 +1,12 @@
 package uk.co.edstow.cain.scamp5;
 
+import uk.co.edstow.cain.pairgen.*;
 import uk.co.edstow.cain.structures.Atom;
 import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.ReverseSearch;
 import uk.co.edstow.cain.Transformation;
-import uk.co.edstow.cain.pairgen.Distance;
-import uk.co.edstow.cain.pairgen.PairGenFactory;
-import uk.co.edstow.cain.pairgen.SimpleTransformation;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
-import uk.co.edstow.cain.util.Bounds;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
@@ -19,7 +16,7 @@ import java.util.stream.Stream;
 
 import static uk.co.edstow.cain.scamp5.Scamp5Transformation.*;
 
-public class Scamp5PairGenFactory<T extends Config> implements PairGenFactory {
+public class Scamp5PairGenFactory<T extends Scamp5Config> implements PairGenFactory {
 
 
     @Override
@@ -50,7 +47,7 @@ public class Scamp5PairGenFactory<T extends Config> implements PairGenFactory {
 
     @Override
     public Collection<Tuple<List<GoalPair>, Goal>> applyAllUnaryOpForwards(List<Goal> initialGoals, int depth, Goal goal) {
-        Config conf = confGet.getConfigForDirectSolve(initialGoals, depth);
+        Scamp5Config conf = confGet.getConfigForDirectSolve(initialGoals, depth);
         ArrayList<Tuple<List<GoalPair>, Goal>> list = new ArrayList<>();
 
         if(initialGoals.contains(goal)){
@@ -148,41 +145,14 @@ public class Scamp5PairGenFactory<T extends Config> implements PairGenFactory {
        return conf.strategy;
     }
 
-    public static class ExhaustivePairGen<T extends Config> implements PairGen{
-        private final T conf;
-        private final Iterator<GoalPair> it;
-        private final GoalBag goals;
-        private int count;
+    public static class Scamp5ExhaustivePairGen<T extends Scamp5Config> extends uk.co.edstow.cain.pairgen.ExhaustivePairGen<T>{
 
-        public ExhaustivePairGen(GoalBag goals, T conf, CostHuristic<T> huristic) {
-            this.goals = goals;
-            this.conf = conf;
-            Comparator<Tuple<GoalPair, Double>> comparator = Comparator.comparingDouble(Tuple::getB);
-            this.it = goals.parallelStream()
-                    .flatMap((Goal upper) ->
-                            Stream.concat(
-                                    getNaryOpStream(upper),
-                                    getUnaryOpStream(upper)
-                            )
-                    ).map(pair -> new Tuple<>(pair, huristic.getCost(pair, goals, conf))).filter(t -> t.getB()>=0)
-                    .sorted(comparator)
-                    .map(Tuple::getA)
-                    .iterator();
+
+        public Scamp5ExhaustivePairGen(GoalBag goals, T conf, CostHuristic<T> huristic) {
+            super(goals, conf, huristic);
         }
 
-        @Override
-        public GoalPair next() {
-            count++;
-            return it.hasNext()?it.next():null;
-        }
-
-        @Override
-        public int getNumber() {
-            return count;
-        }
-
-
-        private Stream<GoalPair> getUnaryOpStream(Goal upper) {
+        protected Stream<GoalPair> getUnaryOpStream(Goal upper) {
             ArrayList<GoalPair> pairs = new ArrayList<>();
 
             //Negate
@@ -238,7 +208,7 @@ public class Scamp5PairGenFactory<T extends Config> implements PairGenFactory {
             return pairs.stream();
         }
 
-        private Stream<GoalPair> getNaryOpStream(Goal upper) {
+        protected Stream<GoalPair> getNaryOpStream(Goal upper) {
             ArrayList<GoalPair> pairs = new ArrayList<>();
             List<Goal> splits = upper.allSplits();
             int normal = splits.size();
@@ -378,7 +348,7 @@ public class Scamp5PairGenFactory<T extends Config> implements PairGenFactory {
         }
     }
 
-    private static class AtomDistancePairGen<T extends Config> implements PairGen {
+    private static class AtomDistancePairGen<T extends Scamp5Config> implements PairGen {
         final T conf;
         final GoalBag goals;
         final Iterator<Tuple<Integer, Integer>> ijGetter;
@@ -491,7 +461,7 @@ public class Scamp5PairGenFactory<T extends Config> implements PairGenFactory {
         }
     }
 
-    public static class AtomDistanceSortedPairGen<T extends Config> extends AtomDistancePairGen<T> {
+    public static class AtomDistanceSortedPairGen<T extends Scamp5Config> extends AtomDistancePairGen<T> {
 
         private final CostHuristic<T> huristic;
 
@@ -527,7 +497,7 @@ public class Scamp5PairGenFactory<T extends Config> implements PairGenFactory {
 
     @SuppressWarnings("UnnecessaryLocalVariable")
     private static void addAtomDistanceDiagonalPairs(AtomDistanceListItem item,
-                                              Config conf, List<AtomDistanceListItem> outList) {
+                                                     Scamp5Config conf, List<AtomDistanceListItem> outList) {
         Distance centre = new Distance(item.a.getAveragePos());
         Goal aWithoutTo = item.a.without(item.to);
         //add_2, sub
@@ -609,7 +579,7 @@ public class Scamp5PairGenFactory<T extends Config> implements PairGenFactory {
 
     @SuppressWarnings("UnnecessaryLocalVariable")
     private static void addAtomDistancePairs(AtomDistanceListItem item,
-                                      Config conf, List<AtomDistanceListItem> outList) {
+                                             Scamp5Config conf, List<AtomDistanceListItem> outList) {
         Goal tmpMov = item.distance.inverse().translate(item.to);
         Goal tmp = tmpMov;
         if(item.negate){

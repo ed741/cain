@@ -5,15 +5,15 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
-import uk.co.edstow.cain.scamp5.Config;
+import uk.co.edstow.cain.scamp5.Scamp5Config;
 import uk.co.edstow.cain.scamp5.Scamp5PairGenFactory;
 import uk.co.edstow.cain.scamp5.ThresholdConfigGetter;
 import uk.co.edstow.cain.scamp5.emulator.Scamp5Emulator;
 import uk.co.edstow.cain.structures.Atom;
 import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.structures.GoalBag;
+import uk.co.edstow.cain.structures.Plan;
 import uk.co.edstow.cain.traversal.*;
-import uk.co.edstow.cain.util.Bounds;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.io.FileInputStream;
@@ -34,12 +34,12 @@ public class FileRun {
         public final int[] circuitDepths;
         public final long time;
         public final String code;
-        public final Bounds bounds;
+        public final Atom.Bounds bounds;
         public final List<Goal> initialGoals;
         public final List<Goal> finalGoals;
         public final double error;
 
-        public Result(Plan plan, long nodesExpanded, long time, String code, Bounds b, double error) {
+        public Result(Plan plan, long nodesExpanded, long time, String code, Atom.Bounds b, double error) {
             this.plan = plan;
             this.nodesExpanded = nodesExpanded;
             this.time = time;
@@ -140,7 +140,7 @@ public class FileRun {
         RegisterAllocator.Mapping mapping = registerAllocator.solve(p, reverseSearch.getInitialGoals());
         String code = p.produceCode(mapping);
         printLnCritial(code);
-        Tuple<Bounds,Double> b = checkPlan(code, p);
+        Tuple<Atom.Bounds,Double> b = checkPlan(code, p);
         if(b==null){
             printLnCritial("Plan Was Faulty!");
             return null;
@@ -158,8 +158,8 @@ public class FileRun {
             Plan plan = plans.get(i);
             RegisterAllocator.Mapping mapping = registerAllocator.solve(plan, reverseSearch.getInitialGoals());
             String code = plan.produceCode(mapping);
-            Tuple<Bounds,Double> b = checkPlan(code, plan);
-            Bounds coverage = b.getA();
+            Tuple<Atom.Bounds,Double> b = checkPlan(code, plan);
+            Atom.Bounds coverage = b.getA();
             double noise = b.getB();
             results.add(new Result(
                     plans.get(i),
@@ -272,7 +272,7 @@ public class FileRun {
                 throw new IllegalArgumentException("Unknown Scamp5 ConfigGetter "+ json.getString("configGetter"));
             case "Threshold":
                 printLn("Instruction to use          : "+ json.getString("ops"));
-                Consumer<Config> configConsumer;
+                Consumer<Scamp5Config> configConsumer;
                 switch (json.getString("ops")){
                     default:
                         throw new IllegalArgumentException("Unknown Instuctions option "+  json.getString("ops"));
@@ -516,12 +516,12 @@ public class FileRun {
     }
 
 
-    private Tuple<Bounds, Double> checkPlan(String code, Plan p){
+    private Tuple<Atom.Bounds, Double> checkPlan(String code, Plan p){
         List<Goal> finalGoals = reverseSearch.getFinalGoals();
         int[] divisions = reverseSearch.getInitialDivisions();
-        List<Bounds> coverage = new ArrayList<>();
+        List<Atom.Bounds> coverage = new ArrayList<>();
         double noise =0;
-        Scamp5Emulator emulator = Scamp5Emulator.newWithRegs((new Bounds(finalGoals).largestMagnitude()+1)*3, registerAllocator.getAvailableRegisters()<=6?6:24);
+        Scamp5Emulator emulator = Scamp5Emulator.newWithRegs((new Atom.Bounds(finalGoals).largestMagnitude()+1)*3, registerAllocator.getAvailableRegisters()<=6?6:24);
         RegisterAllocator.Register[] initRegisters = registerAllocator.getInitRegisters();
         for (int i = 0; i < initRegisters.length; i++) {
             RegisterAllocator.Register r = initRegisters[i];
@@ -561,7 +561,7 @@ public class FileRun {
             coverage.add(emulator.getRegCoverge(0,0,reg));
 
         }
-        return new Tuple<>(Bounds.combine(coverage), noise);
+        return new Tuple<>(Atom.Bounds.combine(coverage), noise);
     }
 
 }

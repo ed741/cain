@@ -1,7 +1,5 @@
 package uk.co.edstow.cain.structures;
 
-import uk.co.edstow.cain.util.Bounds;
-
 import java.util.*;
 
 public class GoalBag extends ArrayList<Goal> {
@@ -184,12 +182,12 @@ public class GoalBag extends ArrayList<Goal> {
     }
 
     public static String toGoalsString(List<Goal> goals, boolean[] topBorder, boolean[] bottomBorder, boolean centreDot, boolean colourNeg) {
-        return toGoalsString(goals, new Bounds(goals), topBorder, bottomBorder, centreDot, colourNeg);
+        return toGoalsString(goals, new Atom.Bounds(goals), topBorder, bottomBorder, centreDot, colourNeg);
     }
     @SuppressWarnings("ForLoopReplaceableByForEach")
-    public static String toGoalsString(List<Goal> goals, Bounds inputBounds, boolean[] topBorder, boolean[] bottomBorder, boolean centreDot, boolean colourNeg) {
+    public static String toGoalsString(List<Goal> goals, Atom.Bounds inputBounds, boolean[] topBorder, boolean[] bottomBorder, boolean centreDot, boolean colourNeg) {
 
-        Bounds b = new Bounds(inputBounds, new Atom(0,0,0, true));
+        Atom.Bounds b = new Atom.Bounds(inputBounds, new Atom(0,0,0, true));
         int height = 1 + b.yMax - b.yMin;
         int width = 1 + b.xMax - b.xMin;
         List<String[][]> arrays = new ArrayList<>();

@@ -1,6 +1,7 @@
 package uk.co.edstow.cain;
 
 import uk.co.edstow.cain.structures.Goal;
+import uk.co.edstow.cain.structures.Plan;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
@@ -276,6 +277,10 @@ public class RegisterAllocator {
         Mapping() {
             this.map = new HashMap<>();
             this.trashMap = new HashMap<>();
+        }
+
+        public Register[] initRegisters(){
+            return init;
         }
 
         private void put(Goal goal, Register register){

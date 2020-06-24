@@ -1,10 +1,10 @@
-package uk.co.edstow.cain;
+package uk.co.edstow.cain.scamp5;
 
+import uk.co.edstow.cain.structures.Plan;
+import uk.co.edstow.cain.RegisterAllocator;
+import uk.co.edstow.cain.ReverseSearch;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
-import uk.co.edstow.cain.scamp5.Config;
-import uk.co.edstow.cain.scamp5.ConfigGetter;
-import uk.co.edstow.cain.scamp5.PatternHuristic;
-import uk.co.edstow.cain.scamp5.Scamp5PairGenFactory;
+import uk.co.edstow.cain.pairgen.ConfigGetter;
 import uk.co.edstow.cain.scamp5.emulator.Scamp5Emulator;
 import uk.co.edstow.cain.structures.Atom;
 import uk.co.edstow.cain.structures.Goal;
@@ -13,7 +13,6 @@ import uk.co.edstow.cain.traversal.DFS;
 import uk.co.edstow.cain.traversal.HOS;
 import uk.co.edstow.cain.traversal.SOT;
 import uk.co.edstow.cain.traversal.TraversalSystem;
-import uk.co.edstow.cain.util.Bounds;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
@@ -52,28 +51,28 @@ class DemoSuite {
             RegisterAllocator.Register[] allRegisters = new RegisterAllocator.Register[]{A, B, C, D, E, F};
             final RegisterAllocator.Register[] availableRegisters = Arrays.copyOfRange(allRegisters, 0, registerCount);
             RegisterAllocator ra = new RegisterAllocator(new RegisterAllocator.Register[]{A}, availableRegisters);
-            PairGenFactory pairGenFactory = new Scamp5PairGenFactory<>(rs -> new ConfigGetter<Config>() {
-                PatternHuristic heuristic = new PatternHuristic(rs);
+            PairGenFactory pairGenFactory = new Scamp5PairGenFactory<>(rs -> new ConfigGetter<Scamp5Config>() {
+                PatternHuristic<Scamp5Config> heuristic = new PatternHuristic<>(rs);
                 @Override
-                public Config getConfig(GoalBag goals, int depth) {
+                public Scamp5Config getConfig(GoalBag goals, int depth) {
                     int max = Integer.MIN_VALUE;
                         for (Goal goal : goals) {
                             max = Math.max(max, goal.atomCount());
                         }
-                        Config conf = new Config(availableRegisters.length, depth, rs.getInitialGoals());
+                    Scamp5Config conf = new Scamp5Config(availableRegisters.length, depth, rs.getInitialGoals());
                         if(allOps) {
                             conf.useAll();
                             conf.useSubPowerOf2();
                         }else{
                             conf.useBasicOps();
                         }
-                        conf.setStrategy(max>threshold? new Scamp5PairGenFactory.AtomDistanceSortedPairGen<>(goals, conf, heuristic): new Scamp5PairGenFactory.ExhaustivePairGen<>(goals, conf, heuristic));
+                        conf.setStrategy(max>threshold? new Scamp5PairGenFactory.AtomDistanceSortedPairGen<>(goals, conf, heuristic): new Scamp5PairGenFactory.Scamp5ExhaustivePairGen<>(goals, conf, heuristic));
                         return conf;
                 }
 
                 @Override
-                public Config getConfigForDirectSolve(List<Goal> goals, int depth) {
-                    return new Config(availableRegisters.length, depth, rs.getInitialGoals()).useAll();
+                public Scamp5Config getConfigForDirectSolve(List<Goal> goals, int depth) {
+                    return new Scamp5Config(availableRegisters.length, depth, rs.getInitialGoals()).useAll();
                 }
             });
 
@@ -469,7 +468,7 @@ class DemoSuite {
                 }
             }
             sb.append("& ");
-            if(1 < demo.finalGoals.stream().mapToInt(g -> Bounds.BoundsFromGoal(g).largestMagnitude()).max().getAsInt()){
+            if(1 < demo.finalGoals.stream().mapToInt(g -> Atom.Bounds.BoundsFromGoal(g).largestMagnitude()).max().getAsInt()){
                 sb.append("\\vspace{2.5em}");
             } else {
                 sb.append("\\vspace{1.1em}");
@@ -483,12 +482,12 @@ class DemoSuite {
     }
 
     private static List<String> goalsToLatex(List<Goal> goals){
-        Bounds b = new Bounds(new Bounds(goals), new Atom(0,0,0, true));
+        Atom.Bounds b = new Atom.Bounds(new Atom.Bounds(goals), new Atom(0,0,0, true));
         int xr = Math.max(Math.abs(b.xMax), Math.abs(b.xMin));
         int yr = Math.max(Math.abs(b.yMax), Math.abs(b.yMin));
         int r = Math.max(xr, yr);
-        b = new Bounds(b, new Atom(-r,-r,0, true));
-        b = new Bounds(b, new Atom(r,r,0, true));
+        b = new Atom.Bounds(b, new Atom(-r,-r,0, true));
+        b = new Atom.Bounds(b, new Atom(r,r,0, true));
         List<String> out = new ArrayList<>(goals.size());
         for (Goal goal : goals) {
             String[][] table = goal.getCharTable(b, false, false, false, false);
@@ -507,7 +506,7 @@ class DemoSuite {
     }
 
     private static boolean checkPlan(Test test, TestSetup setup, String code){
-        Scamp5Emulator emulator = new Scamp5Emulator(new Bounds(test.finalGoals).largestMagnitude()*3);
+        Scamp5Emulator emulator = new Scamp5Emulator(new Atom.Bounds(test.finalGoals).largestMagnitude()*3);
 //        Scamp5Emulator.verbose = 100;
         RegisterAllocator.Register[] initRegisters = setup.registerAllocator.getInitRegisters();
         for (int i = 0; i < initRegisters.length; i++) {

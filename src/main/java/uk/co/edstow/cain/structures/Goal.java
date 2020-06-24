@@ -1,6 +1,5 @@
 package uk.co.edstow.cain.structures;
 
-import uk.co.edstow.cain.util.Bounds;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
@@ -311,12 +310,12 @@ public class Goal implements List<Atom>, Comparable<Goal>{
     }
 
     public String[][] getCharTable(boolean topBorder, boolean bottomBorder, boolean centreDot, boolean colourNeg){
-        Bounds b = new Bounds(Bounds.BoundsFromGoal(this), new Atom(0,0,0, true));
+        Atom.Bounds b = new Atom.Bounds(Atom.Bounds.BoundsFromGoal(this), new Atom(0,0,0, true));
         return getCharTable(b, topBorder, bottomBorder, centreDot, colourNeg);
     }
 
 
-    public String[][] getCharTable(Bounds b, boolean topBorder, boolean bottomBorder, boolean centreDot, boolean colourNeg) {
+    public String[][] getCharTable(Atom.Bounds b, boolean topBorder, boolean bottomBorder, boolean centreDot, boolean colourNeg) {
 
         int width = 1+b.xMax - b.xMin;
         int height = 1+b.yMax - b.yMin;

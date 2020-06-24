@@ -1,10 +1,10 @@
 package uk.co.edstow.cain.pairgen;
 
+import uk.co.edstow.cain.structures.Atom;
 import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.ReverseSearch;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
-import uk.co.edstow.cain.util.Bounds;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
@@ -19,10 +19,10 @@ public class V3PairGenFactory extends V2PairGenFactory{
     }
 
 
-    private Bounds bounds;
+    private Atom.Bounds bounds;
     @Override
     public void init(ReverseSearch rs) {
-        bounds = new Bounds(rs.getFinalGoals());
+        bounds = new Atom.Bounds(rs.getFinalGoals());
 
     }
     @Override
