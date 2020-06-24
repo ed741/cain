@@ -168,7 +168,7 @@ public class Plan {
                 tops[i] = out;
                 bottoms[i] = in;
             }
-            return GoalBag.toGoalsString(currentGoals, tops, bottoms, true, true);
+            return Goal.toGoalsString(currentGoals, tops, bottoms, true, true);
         }
 
         @SuppressWarnings("WeakerAccess")

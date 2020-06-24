@@ -248,7 +248,7 @@ public class ReverseSearch {
         this.initialGoals = new ArrayList<>();
         for (int i = 0; i < this.inputs; i++) {
             int division = this.divisions[i];
-            initialGoals.add(new Goal.Factory().add(new Atom(0, 0, i, true), 1 << division).get());
+            initialGoals.add(new Goal.Factory().add(new int[]{0,0,i}, 1 << division).get());
         }
         initialGoalsAtomCount = initialGoals.stream().mapToInt(Goal::atomCount).sum();
 

@@ -347,7 +347,7 @@ class DemoSuite {
 
     private static void runFilter(Test test, List<TestSetup> setups){
         System.out.println("Running: "+ test.name);
-        System.out.println(GoalBag.toGoalsString(test.finalGoals));
+        System.out.println(Goal.toGoalsString(test.finalGoals));
 
         for (TestSetup setup : setups) {
             ReverseSearch rs = new ReverseSearch(test.divisions, test.finalGoals, setup.pairGenFactory, setup.runConfig);
@@ -375,7 +375,7 @@ class DemoSuite {
                 //System.out.println(mapping);
                 String code = p.produceCode(mapping);
                 System.out.println(code);
-                System.out.println(GoalBag.toGoalsString(test.finalGoals));
+                System.out.println(Goal.toGoalsString(test.finalGoals));
 
                 if(checkPlan(test, setup, code)) {
                     System.out.println("Code validated on emulator");
@@ -468,7 +468,7 @@ class DemoSuite {
                 }
             }
             sb.append("& ");
-            if(1 < demo.finalGoals.stream().mapToInt(g -> Atom.Bounds.BoundsFromGoal(g).largestMagnitude()).max().getAsInt()){
+            if(1 < demo.finalGoals.stream().mapToInt(g -> Goal.Bounds.BoundsFromGoal(g).largestMagnitude()).max().getAsInt()){
                 sb.append("\\vspace{2.5em}");
             } else {
                 sb.append("\\vspace{1.1em}");
@@ -482,12 +482,12 @@ class DemoSuite {
     }
 
     private static List<String> goalsToLatex(List<Goal> goals){
-        Atom.Bounds b = new Atom.Bounds(new Atom.Bounds(goals), new Atom(0,0,0, true));
+        Goal.Bounds b = new Goal.Bounds(new Goal.Bounds(goals), new Atom(0,0,0, true));
         int xr = Math.max(Math.abs(b.xMax), Math.abs(b.xMin));
         int yr = Math.max(Math.abs(b.yMax), Math.abs(b.yMin));
         int r = Math.max(xr, yr);
-        b = new Atom.Bounds(b, new Atom(-r,-r,0, true));
-        b = new Atom.Bounds(b, new Atom(r,r,0, true));
+        b = new Goal.Bounds(b, new Atom(-r,-r,0, true));
+        b = new Goal.Bounds(b, new Atom(r,r,0, true));
         List<String> out = new ArrayList<>(goals.size());
         for (Goal goal : goals) {
             String[][] table = goal.getCharTable(b, false, false, false, false);
@@ -506,7 +506,7 @@ class DemoSuite {
     }
 
     private static boolean checkPlan(Test test, TestSetup setup, String code){
-        Scamp5Emulator emulator = new Scamp5Emulator(new Atom.Bounds(test.finalGoals).largestMagnitude()*3);
+        Scamp5Emulator emulator = new Scamp5Emulator(new Goal.Bounds(test.finalGoals).largestMagnitude()*3);
 //        Scamp5Emulator.verbose = 100;
         RegisterAllocator.Register[] initRegisters = setup.registerAllocator.getInitRegisters();
         for (int i = 0; i < initRegisters.length; i++) {

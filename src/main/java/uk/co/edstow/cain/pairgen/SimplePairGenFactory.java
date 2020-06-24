@@ -12,7 +12,7 @@ import java.util.*;
 
 public class SimplePairGenFactory implements PairGenFactory {
 
-    private Atom.Bounds bounds;
+    private Goal.Bounds bounds;
 
 
     public static Collection<Tuple<List<GoalPair>, Goal>> applyAllUnaryOps(Goal goal, Goal upper){
@@ -47,7 +47,7 @@ public class SimplePairGenFactory implements PairGenFactory {
 
     @Override
     public void init(ReverseSearch rs) {
-        bounds = new Atom.Bounds(rs.getFinalGoals());
+        bounds = new Goal.Bounds(rs.getFinalGoals());
     }
 
     @Override

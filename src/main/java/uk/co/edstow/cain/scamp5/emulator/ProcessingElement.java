@@ -1,12 +1,9 @@
 package uk.co.edstow.cain.scamp5.emulator;
 
-import uk.co.edstow.cain.structures.Atom;
 import uk.co.edstow.cain.structures.Goal;
-import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static uk.co.edstow.cain.scamp5.emulator.Scamp5Emulator.*;
 
@@ -160,12 +157,12 @@ class ProcessingElement {
                     Goal.Factory factory = new Goal.Factory();
                     e.getValue().getRawContains().forEach((tuple, d) -> {
                         if(d!=0) {
-                            factory.add(new Atom(tuple.getA(), tuple.getB().getA(), 0, d >= 0), Math.abs(d.intValue()));
+                            factory.add(new int[]{tuple.getA(), tuple.getB().getA(), 0}, d.intValue());
                         }
                     });
                     goals.add(factory.get());
                 });
-        sb.append("\n").append(GoalBag.toGoalsString(goals)).append("\n");
+        sb.append("\n").append(Goal.toGoalsString(goals)).append("\n");
         return sb.toString();
     }
 
@@ -198,12 +195,12 @@ class ProcessingElement {
         return registerState.toString();
     }
 
-    public Atom.Bounds getRegCoverage(Reg r) {
+    public Goal.Bounds getRegCoverage(Reg r) {
         RegisterState registerState = this.registers.get(r);
         if(registerState == null){
             return null;
         }
-        return Atom.Bounds.BoundsFromGoal(registerState.getCoverage());
+        return Goal.Bounds.BoundsFromGoal(registerState.getCoverage());
     }
 
 
@@ -281,7 +278,11 @@ class ProcessingElement {
         }
 
         private Goal getCoverage() {
-            return new Goal.Factory(coverage.stream().map(p -> new Atom(p.x, p.y, 0, true)).collect(Collectors.toList())).get();
+            Goal.Factory factory = new Goal.Factory();
+            for (Pos p: coverage){
+                factory.add(new int[]{p.x, p.y, 0}, 1);
+            }
+            return factory.get();
         }
 
         String getContained(){

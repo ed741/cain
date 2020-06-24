@@ -3,6 +3,7 @@ package uk.co.edstow.cain.structures;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
+import java.util.stream.IntStream;
 
 
 public class Goal implements List<Atom>, Comparable<Goal>{
@@ -306,16 +307,16 @@ public class Goal implements List<Atom>, Comparable<Goal>{
     }
 
     public String getCharTableString(boolean topBorder, boolean bottomBorder, boolean centreDot, boolean colourNeg){
-        return GoalBag.toGoalsString(Collections.singletonList(this), topBorder, bottomBorder, centreDot, colourNeg);
+        return toGoalsString(Collections.singletonList(this), topBorder, bottomBorder, centreDot, colourNeg);
     }
 
     public String[][] getCharTable(boolean topBorder, boolean bottomBorder, boolean centreDot, boolean colourNeg){
-        Atom.Bounds b = new Atom.Bounds(Atom.Bounds.BoundsFromGoal(this), new Atom(0,0,0, true));
+        Bounds b = new Bounds(Bounds.BoundsFromGoal(this), new Atom(0,0,0, true));
         return getCharTable(b, topBorder, bottomBorder, centreDot, colourNeg);
     }
 
 
-    public String[][] getCharTable(Atom.Bounds b, boolean topBorder, boolean bottomBorder, boolean centreDot, boolean colourNeg) {
+    public String[][] getCharTable(Bounds b, boolean topBorder, boolean bottomBorder, boolean centreDot, boolean colourNeg) {
 
         int width = 1+b.xMax - b.xMin;
         int height = 1+b.yMax - b.yMin;
@@ -512,6 +513,16 @@ public class Goal implements List<Atom>, Comparable<Goal>{
 
         public Goal.Factory add(Atom a, int i) {
             for (int j = 0; j < i; j++) {
+                list.add(a);
+            }
+            return this;
+        }
+
+        public Goal.Factory add(int[] position, int i) {
+            assert(position.length==3);
+            int abs = Math.abs(i);
+            Atom a = new Atom(position[0], position[1], position[2], i>=0);
+            for (int j = 0; j < abs; j++) {
                 list.add(a);
             }
             return this;
@@ -720,5 +731,220 @@ public class Goal implements List<Atom>, Comparable<Goal>{
     @Override
     public boolean equals(Object o) {
         return o instanceof Goal && same((Goal) o);
+    }
+
+    @SuppressWarnings("WeakerAccess")
+    public static class Bounds {
+        public final int xMax;
+        public final int xMin;
+        public final int yMax;
+        public final int yMin;
+        public final int zMax;
+        public final int zMin;
+
+        public Bounds(int xMax, int xMin, int yMax, int yMin, int zMax, int zMin) {
+            this.xMax = xMax;
+            this.xMin = xMin;
+            this.yMax = yMax;
+            this.yMin = yMin;
+            this.zMax = zMax;
+            this.zMin = zMin;
+        }
+
+        public Bounds(Collection<? extends Collection<Atom>> cs) {
+            int xMax = Integer.MIN_VALUE;
+            int xMin = Integer.MAX_VALUE;
+            int yMax = Integer.MIN_VALUE;
+            int yMin = Integer.MAX_VALUE;
+            int zMax = Integer.MIN_VALUE;
+            int zMin = Integer.MAX_VALUE;
+
+            boolean found = false;
+            for (Collection<? extends Atom> c: cs){
+                for (Atom a: c){
+                    found = true;
+                    xMax = max(xMax, a.x);
+                    xMin = min(xMin, a.x);
+                    yMax = max(yMax, a.y);
+                    yMin = min(yMin, a.y);
+                    zMax = max(zMax, a.z);
+                    zMin = min(zMin, a.z);
+                }
+            }
+            if(found) {
+                this.xMax = xMax;
+                this.xMin = xMin;
+                this.yMax = yMax;
+                this.yMin = yMin;
+                this.zMax = zMax;
+                this.zMin = zMin;
+            } else {
+                this.xMax = 0;
+                this.xMin = 0;
+                this.yMax = 0;
+                this.yMin = 0;
+                this.zMax = 0;
+                this.zMin = 0;
+            }
+        }
+
+        public static Bounds BoundsFromGoal(Collection<Atom> c) {
+            int xMax = Integer.MIN_VALUE;
+            int xMin = Integer.MAX_VALUE;
+            int yMax = Integer.MIN_VALUE;
+            int yMin = Integer.MAX_VALUE;
+            int zMax = Integer.MIN_VALUE;
+            int zMin = Integer.MAX_VALUE;
+
+            for (Atom a: c){
+                xMax = max(xMax, a.x);
+                xMin = min(xMin, a.x);
+                yMax = max(yMax, a.y);
+                yMin = min(yMin, a.y);
+                zMax = max(zMax, a.z);
+                zMin = min(zMin, a.z);
+            }
+
+            return new Bounds(xMax, xMin, yMax, yMin, zMax, zMin);
+        }
+
+        public static Bounds includeCentre(Bounds b) {
+            return new Bounds(b, new Atom(0, 0, 0, true));
+        }
+        public Bounds(Bounds b, Atom a){
+                xMax = max(b.xMax, a.x);
+                xMin = min(b.xMin, a.x);
+                yMax = max(b.yMax, a.y);
+                yMin = min(b.yMin, a.y);
+                zMax = max(b.zMax, a.z);
+                zMin = min(b.zMin, a.z);
+        }
+
+        public boolean includes(Atom a){
+            return xMin <= a.x && a.x <= xMax &&
+                    yMin <= a.y && a.y <= yMax &&
+                    zMin <= a.z && a.z <= zMax;
+        }
+
+        public boolean excludes(Atom a){
+            return xMin > a.x || a.x > xMax ||
+                    yMin > a.y || a.y > yMax ||
+                    zMin > a.z || a.z > zMax;
+        }
+
+        public int largestMagnitude(){
+            return IntStream.of(xMin, xMax, yMin, yMax, zMin, zMax).map(Math::abs).max().getAsInt();
+        }
+
+        private static int max(int a, int b){
+            return a>b ? a : b;
+        }
+
+        private static int min(int a, int b){
+            return a<b ? a : b;
+        }
+
+
+        @Override
+        public String toString() {
+            return "Bounds{" +
+                    "xMax=" + xMax +
+                    ", xMin=" + xMin +
+                    ", yMax=" + yMax +
+                    ", yMin=" + yMin +
+                    ", zMax=" + zMax +
+                    ", zMin=" + zMin +
+                    '}';
+        }
+
+        public static Bounds combine(Collection<Bounds> bounds) {
+            int xMax = Integer.MIN_VALUE;
+            int xMin = Integer.MAX_VALUE;
+            int yMax = Integer.MIN_VALUE;
+            int yMin = Integer.MAX_VALUE;
+            int zMax = Integer.MIN_VALUE;
+            int zMin = Integer.MAX_VALUE;
+
+            boolean found = false;
+            for (Bounds b: bounds){
+                found = true;
+                xMax = max(xMax, b.xMax);
+                xMin = min(xMin, b.xMin);
+                yMax = max(yMax, b.yMax);
+                yMin = min(yMin, b.yMin);
+                zMax = max(zMax, b.zMax);
+                zMin = min(zMin, b.zMin);
+            }
+            if(found) {
+                return new Bounds(xMax, xMin, yMax, yMin, zMax, zMin);
+            } else {
+                return new Bounds(0,0,0,0,0,0);
+            }
+        }
+    }
+
+
+
+    public static String toGoalsString(List<Goal> goals) {
+        return toGoalsString(goals, false, false, true, true);
+    }
+
+    public static String toGoalsString(List<Goal> goals, boolean topBorder, boolean bottomBorder, boolean centreDot, boolean colourNeg) {
+        boolean[] tops = new boolean[goals.size()];
+        boolean[] bottoms = new boolean[goals.size()];
+        Arrays.fill(tops, topBorder);
+        Arrays.fill(bottoms, bottomBorder);
+        return toGoalsString(goals, tops, bottoms, centreDot, colourNeg);
+    }
+
+    public static String toGoalsString(List<Goal> goals, boolean[] topBorder, boolean[] bottomBorder, boolean centreDot, boolean colourNeg) {
+        return toGoalsString(goals, new Goal.Bounds(goals), topBorder, bottomBorder, centreDot, colourNeg);
+    }
+    @SuppressWarnings("ForLoopReplaceableByForEach")
+    public static String toGoalsString(List<Goal> goals, Goal.Bounds inputBounds, boolean[] topBorder, boolean[] bottomBorder, boolean centreDot, boolean colourNeg) {
+
+        Goal.Bounds b = Goal.Bounds.includeCentre(inputBounds);
+        int height = 1 + b.yMax - b.yMin;
+        int width = 1 + b.xMax - b.xMin;
+        List<String[][]> arrays = new ArrayList<>();
+        List<int[]> widthArrays = new ArrayList<>();
+
+        for (int i = 0; i < goals.size(); i++) {
+            Goal goal = goals.get(i);
+            String[][] tableArray = goal.getCharTable(b, topBorder[i], bottomBorder[i], centreDot, colourNeg);
+            arrays.add(tableArray);
+        }
+        for (String[][] array : arrays) {
+            int[] widths = new int[array[0].length];
+            for (int j = 0; j < array.length; j++) {
+                for (int i = 0; i < array[j].length; i++) {
+                    int len = array[j][i].replaceAll("\u001B\\[[0-9]+m", "").length();
+                    if(len > widths[i]){
+                        widths[i] = len;
+                    }
+                }
+            }
+            widthArrays.add(widths);
+
+        }
+
+
+        StringBuilder sb = new StringBuilder();
+        for (int j = height+1; j >= 0; j--) {
+            for (int i1 = 0; i1 < arrays.size(); i1++) {
+                String[][] array = arrays.get(i1);
+                int[] widths = widthArrays.get(i1);
+                for (int i = 0; i < array[j].length; i++) {
+                    int len = array[j][i].replaceAll("\u001B\\[[0-9]+m", "").length();
+                    sb.append(array[j][i]);
+                    for(int l = len; l < widths[i]; l++){
+                        sb.append("_");
+                    }
+                }
+                sb.append(' ');
+            }
+            sb.append("\n");
+        }
+        return sb.toString();
     }
 }

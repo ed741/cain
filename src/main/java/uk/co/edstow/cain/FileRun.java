@@ -34,12 +34,12 @@ public class FileRun {
         public final int[] circuitDepths;
         public final long time;
         public final String code;
-        public final Atom.Bounds bounds;
+        public final Goal.Bounds bounds;
         public final List<Goal> initialGoals;
         public final List<Goal> finalGoals;
         public final double error;
 
-        public Result(Plan plan, long nodesExpanded, long time, String code, Atom.Bounds b, double error) {
+        public Result(Plan plan, long nodesExpanded, long time, String code, Goal.Bounds b, double error) {
             this.plan = plan;
             this.nodesExpanded = nodesExpanded;
             this.time = time;
@@ -140,14 +140,14 @@ public class FileRun {
         RegisterAllocator.Mapping mapping = registerAllocator.solve(p, reverseSearch.getInitialGoals());
         String code = p.produceCode(mapping);
         printLnCritial(code);
-        Tuple<Atom.Bounds,Double> b = checkPlan(code, p);
+        Tuple<Goal.Bounds,Double> b = checkPlan(code, p);
         if(b==null){
             printLnCritial("Plan Was Faulty!");
             return null;
         }
         printLn("Implemented filter:");
         int fgs = reverseSearch.getInitialGoals().size();
-        printLn(GoalBag.toGoalsString(reverseSearch.getFinalGoals(), b.getA(), new boolean[fgs], new boolean[fgs], true, true));
+        printLn(Goal.toGoalsString(reverseSearch.getFinalGoals(), b.getA(), new boolean[fgs], new boolean[fgs], true, true));
         return code;
     }
 
@@ -158,8 +158,8 @@ public class FileRun {
             Plan plan = plans.get(i);
             RegisterAllocator.Mapping mapping = registerAllocator.solve(plan, reverseSearch.getInitialGoals());
             String code = plan.produceCode(mapping);
-            Tuple<Atom.Bounds,Double> b = checkPlan(code, plan);
-            Atom.Bounds coverage = b.getA();
+            Tuple<Goal.Bounds,Double> b = checkPlan(code, plan);
+            Goal.Bounds coverage = b.getA();
             double noise = b.getB();
             results.add(new Result(
                     plans.get(i),
@@ -180,7 +180,7 @@ public class FileRun {
         }
         this.approximationDepth = approximationDepth;
         printLn("\tgoals:");
-        printLn(GoalBag.toGoalsString(finalGoals, false, false, true, true));
+        printLn(Goal.toGoalsString(finalGoals, false, false, true, true));
         printLn("Depth                   : "+ this.approximationDepth);
         printLn("Output Registers        : " + outputRegisters.toString());
 
@@ -222,7 +222,7 @@ public class FileRun {
         this.approximationDepth = goalAprox.getDepth();
         printLn("Output Registers        : " + outputRegisters.toString());
         printLn("\tApproximated goals:");
-        printLn(GoalBag.toGoalsString(finalGoals, false, false, true, true));
+        printLn(Goal.toGoalsString(finalGoals, false, false, true, true));
         printLn("");
         printLn("Approximation Depth     : "+ goalAprox.getDepth());
         printLn("Approximation Error     : "+ goalAprox.getError());
@@ -516,12 +516,12 @@ public class FileRun {
     }
 
 
-    private Tuple<Atom.Bounds, Double> checkPlan(String code, Plan p){
+    private Tuple<Goal.Bounds, Double> checkPlan(String code, Plan p){
         List<Goal> finalGoals = reverseSearch.getFinalGoals();
         int[] divisions = reverseSearch.getInitialDivisions();
-        List<Atom.Bounds> coverage = new ArrayList<>();
+        List<Goal.Bounds> coverage = new ArrayList<>();
         double noise =0;
-        Scamp5Emulator emulator = Scamp5Emulator.newWithRegs((new Atom.Bounds(finalGoals).largestMagnitude()+1)*3, registerAllocator.getAvailableRegisters()<=6?6:24);
+        Scamp5Emulator emulator = Scamp5Emulator.newWithRegs((new Goal.Bounds(finalGoals).largestMagnitude()+1)*3, registerAllocator.getAvailableRegisters()<=6?6:24);
         RegisterAllocator.Register[] initRegisters = registerAllocator.getInitRegisters();
         for (int i = 0; i < initRegisters.length; i++) {
             RegisterAllocator.Register r = initRegisters[i];
@@ -547,7 +547,7 @@ public class FileRun {
                     printLnCritial("%s",d==null?"null":d);
                     printLnCritial("%s",expected);
                     printLnCritial(code);
-                    printLnCritial(GoalBag.toGoalsString(finalGoals));
+                    printLnCritial(Goal.toGoalsString(finalGoals));
                     printLnCritial(p.toGoalsString());
                     return null;
                 }
@@ -561,7 +561,7 @@ public class FileRun {
             coverage.add(emulator.getRegCoverge(0,0,reg));
 
         }
-        return new Tuple<>(Atom.Bounds.combine(coverage), noise);
+        return new Tuple<>(Goal.Bounds.combine(coverage), noise);
     }
 
 }
