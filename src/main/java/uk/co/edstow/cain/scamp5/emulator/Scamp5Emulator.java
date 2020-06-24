@@ -12,6 +12,7 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class Scamp5Emulator {
     @SuppressWarnings("WeakerAccess")
@@ -30,6 +31,7 @@ public class Scamp5Emulator {
     private final Queue<Instruction> instructionBuffer;
 
 
+
     private static class UndefinedInstructionBehaviour extends RuntimeException{
         UndefinedInstructionBehaviour(String s) {
             super(s);
@@ -45,11 +47,11 @@ public class Scamp5Emulator {
     }
 
     static class NoiseConfig {
-        public final double writeNoiseConstant = 0.02;
-        public final double writeNoiseFactor = 0.02;
-        public final double readNoiseConstant = 0.002;
-        public final double readNoiseFactor = 0.002;
-        private final Random r = new Random(2001);
+        public final double writeNoiseConstant = 0.000;
+        public final double writeNoiseFactor = 0.005;
+        public final double readNoiseConstant = 0;
+        public final double readNoiseFactor = 0;
+        private final Random r = new Random(2002);
         double getValue(double noise){
             return r.nextGaussian() * noise;
         }
@@ -57,7 +59,12 @@ public class Scamp5Emulator {
 
 
     enum Reg {
-        A(0, 0),B(0, 0),C(0, 0),D(0, 0),E(0, 0),F(0, 0),News(0, 0),
+        News(0, 0), A(0, 0),B(0, 0),C(0, 0),D(0, 0),E(0, 0),F(0, 0),
+
+        G(0, 0),H(0, 0),I(0, 0),J(0, 0),K(0, 0),L(0, 0),// Extras
+        M(0, 0),N(0, 0),O(0, 0),P(0, 0),Q(0, 0),R(0, 0),// Extras
+        S(0, 0),T(0, 0),U(0, 0),V(0, 0),W(0, 0),X(0, 0),Y(0, 0),Z(0, 0),// Extras
+
         XNorth(0, 1),XEast(1, 0),XSouth(0, -1),XWest(-1, 0);
 
         private final int realX;
@@ -72,6 +79,7 @@ public class Scamp5Emulator {
             return realX == 0 && realY == 0;
         }
     }
+
     public Scamp5Emulator(BufferedImage img, Reg reg) {
         this(img.getWidth(), img.getHeight());
         for (int i = 0; i < img.getWidth(); i++) {
@@ -94,12 +102,30 @@ public class Scamp5Emulator {
     public Scamp5Emulator(int width, int height) {
         this(0, width, 0, height);
     }
+    public static Scamp5Emulator newWithRegs(int width, int height, int regs){
+        return new Scamp5Emulator(0, width, 0, height, regs);
+    }
+
     public Scamp5Emulator(int rad) {
         this(-rad, rad+1, -rad, rad+1);
     }
+    public static Scamp5Emulator newWithRegs(int rad, int regs){
+        return new Scamp5Emulator(-rad, rad+1, -rad, rad+1, regs);
+    }
+
+    public Scamp5Emulator(int xMin, int xMax, int yMin, int yMax) {
+        this(xMin, xMax, yMin, yMax, 6);
+    }
+    public static Scamp5Emulator newWithRegs(int xMin, int xMax, int yMin, int yMax, int regs){
+        return new Scamp5Emulator(xMin, xMax, yMin, yMax, regs);
+    }
+
+    public Scamp5Emulator(int xMin, int xMax, int yMin, int yMax, int r) {
+        this(xMin, xMax, yMin, yMax, Arrays.asList(Reg.values()).subList(0,r+1));
+    }
 
     @SuppressWarnings("WeakerAccess")
-    public Scamp5Emulator(int xMin, int xMax, int yMin, int yMax) {
+    private Scamp5Emulator(int xMin, int xMax, int yMin, int yMax, List<Reg> realRegs) {
         this.xMin = xMin;
         this.xMax = xMax;
         this.yMin = yMin;
@@ -107,11 +133,10 @@ public class Scamp5Emulator {
         NoiseConfig noiseConfig = new NoiseConfig();
 
         this.tiles = new HashMap<>((xMax-xMin)*(yMax-yMin));
-        Reg[] realRegs = Arrays.stream(Reg.values()).filter(Reg::real).toArray(Reg[]::new);
         for (int i = xMin; i < xMax; i++) {
             for (int j = yMin; j < yMax; j++) {
                 Pos position = new Pos(i, j);
-                ProcessingElement pe = new ProcessingElement(position, noiseConfig, realRegs);
+                ProcessingElement pe = new ProcessingElement(position, noiseConfig, realRegs.toArray(new Reg[0]));
                 this.tiles.put(position, pe);
             }
         }
@@ -136,7 +161,8 @@ public class Scamp5Emulator {
         this.instructionPatten = Pattern.compile("([a-z0-9]*)\\(([^)]*)\\)\\s*");
         this.argPattern = Pattern.compile("([^\\s,]+)\\s*(?:,|$)");
         this.dirPattern = Pattern.compile("north|east|south|west");
-        this.regPattern = Pattern.compile("[A-F]");
+
+        this.regPattern = Pattern.compile(realRegs.stream().filter(r -> r!=Reg.News).map(Enum::toString).collect(Collectors.joining("", "[", "]")));
 
 
         instructionSet = new HashMap<>();
@@ -440,6 +466,15 @@ public class Scamp5Emulator {
     }
 
 
+    public Double readNoise(int x, int y, String reg) {
+        ProcessingElement pe = this.tiles.get(new Pos(x, y));
+        if (pe == null) {
+            return null;
+        }
+        Reg r = Reg.valueOf(reg);
+        return pe.getNoise(r);
+    }
+
 
     private Tuple<InstructionSignature, String[]> parseInput(String instruction) {
         Matcher matcher = this.instructionPatten.matcher(instruction);
@@ -606,7 +641,7 @@ public class Scamp5Emulator {
 //            Scamp5Emulator e = new Scamp5Emulator(img, Reg.A);
             Scamp5Emulator e = new Scamp5Emulator(3);
 
-            e.run("input(A,"+(2*128)+")");
+            e.run("input(A,"+(1*128)+")");
 //            e.run("input(A,"+(1*128)+")");
 
 //            BufferedImage out = e.getImage(Reg.F, false);
@@ -619,28 +654,68 @@ public class Scamp5Emulator {
 //            e.run("add(F,B,C)");
 //            e.run("movx(F,F,north)");
             verbose = 100;
-            e.runCode(
-                    "//Kernel Code!\n" +
-                            "div(D, C, A);//[C, B, E, F]\n" +
-                            "mov2x(A, D, south, south);//[C, B, E, F]\n" +
-                            "mov2x(C, D, south, south);//[B, E, F]\n" +
-                            "add2x(B, A, C, north, east);//[E, F]\n" +
-                            "add2x(E, C, A, north, east);//[F]\n" +
-                            "addx(C, A, C, north);//[F]\n" +
-                            "movx(F, C, west);//[]\n" +
-                            "add2x(A, A, C, north, north);//[]\n" +
-                            "add2x(D, D, E, west, north);//[]\n" +
-                            "add(C, C, A);//[]\n" +
-                            "add(E, B, E, F);//[]\n" +
-                            "addx(A, A, C, west);//[F]\n" +
-                            "add(B, E, B, D);//[F]\n" +
-                            "addx(C, C, A, east);//[D, E, F]\n" +
-                            "add(A, B, A, C);//[D, E, F]\n" +
-                            "//Null Instruction: [null] <- [A]//[B, C, D, E, F]" +
-                            "");
+//            e.runCode(
+//                    "//Kernel Code!\n" +
+//                            "mov2x(F, A, south, west);//[E, C, D, B]\n" +
+//                            "mov2x(E, A, south, west);//[C, D, B]\n" +
+//                            "div(C, D, B, E);//[D, B, A]\n" +
+//                            "movx(D, C, north);//[B, A]\n" +
+//                            "mov2x(B, E, north, east);//[A]\n" +
+//                            "movx(A, D, west);//[]\n" +
+//                            "mov2x(C, C, south, south);//[]\n" +
+//                            "add2x(C, C, D, north, east);//[]\n" +
+//                            "add2x(D, D, C, north, north);//[]\n" +
+//                            "movx(C, A, south);//[]\n" +
+//                            "add2x(D, C, D, east, east);//[]\n" +
+//                            "addx(C, C, A, south);//[]\n" +
+//                            "mov2x(C, C, south, south);//[]\n" +
+//                            "add2x(C, C, A, north, east);//[]\n" +
+//                            "addx(D, A, D, south);//[]\n" +
+//                            "mov2x(D, D, south, south);//[]\n" +
+//                            "add2x(B, E, B, north, east);//[]\n" +
+//                            "mov2x(B, B, north, north);//[]\n" +
+//                            "add2x(E, F, E, west, north);//[]\n" +
+//                            "add2x(C, F, C, north, north);//[]\n" +
+//                            "add(B, F, B);//[]\n" +
+//                            "add2x(B, F, B, east, south);//[]\n" +
+//                            "addx(F, A, F, north);//[]\n" +
+//                            "add2x(F, A, F, south, south);//[]\n" +
+//                            "add2x(F, A, F, east, south);//[]\n" +
+//                            "addx(A, A, E, east);//[]\n" +
+//                            "add2x(D, E, D, north, north);//[]\n" +
+//                            "movx(E, B, west);//[]\n" +
+//                            "add2x(F, A, F, north, east);//[]\n" +
+//                            "add2x(C, A, C, east, south);//[]\n" +
+//                            "addx(A, F, A, east);//[]\n" +
+//                            "add2x(A, A, C, west, west);//[F]\n" +
+//                            "add(B, D, B, E);//[F]\n" +
+//                            "add2x(C, C, A, east, east);//[D, E, F]\n" +
+//                            "add(A, B, A, C);//[D, E, F]\n" +
+//                            "//Null Instruction: [null] <- [A]//[B, C, D, E, F]\n");
+            e.run("mov(B,A)");
+            e.run("add(C,A,B)");
+            e.run("add(D,A,B)");
+            e.run("add(E,C,D)");
+
+            e.run("add(C,A,B)");
+            e.run("add(D,A,B)");
+            e.run("add(F,C,D)");
+
+            e.run("add(F,E,F)");
+
+            e.run("add(C,A,B)");
+            e.run("add(C,C,B)");
+            e.run("add(C,C,B)");
+            e.run("add(C,C,B)");
+            e.run("add(C,C,B)");
+            e.run("add(C,C,B)");
+            e.run("add(C,C,B)");
             e.flushInstructionBuffer();
             System.out.println(e.tiles.get(new Pos(0,0)));
-            System.out.println(e.getRegToString(0,0,"A"));
+            System.out.println(e.getRegToString(0,0,"F"));
+            System.out.println(e.readNoise(0,0,"F"));
+            System.out.println(e.getRegToString(0,0,"C"));
+            System.out.println(e.readNoise(0,0,"C"));
 
 
 //            BufferedImage out1 = e.getImage(Reg.F, true);

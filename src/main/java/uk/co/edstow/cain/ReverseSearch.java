@@ -714,7 +714,7 @@ public class ReverseSearch {
             try {
                 planLock.lock();
                 for (int i = 0; i < planTimes.size(); i++) {
-                    System.out.println("Plan: " + i + " Cost: " + costFunction.apply(plans.get(i)) + " (maxDepth=" + plans.get(i).depth() + ") (circuit-maxDepth=" + Arrays.toString(plans.get(i).circuitDepths()) + ") found at " + planTimes.get(i) + "ms after locally searching " + planNodesExplored.get(i) + " nodes");
+                    System.out.println("Plan: " + i + " Cost: " + costFunction.apply(plans.get(i)) + " (length=" + plans.get(i).depth() + ") (circuit-maxDepth=" + Arrays.toString(plans.get(i).circuitDepths()) + ") found at " + planTimes.get(i) + "ms after locally searching " + planNodesExplored.get(i) + " nodes");
                 }
             } finally {
                 planLock.unlock();

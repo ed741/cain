@@ -266,7 +266,7 @@ public class RegisterAllocator {
 
 
     public enum Register{
-        A,B,C,D,E,F
+        A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z
     }
 
     public class Mapping {
@@ -275,7 +275,7 @@ public class RegisterAllocator {
 
         Mapping() {
             this.map = new HashMap<>();
-            trashMap = new HashMap<>();
+            this.trashMap = new HashMap<>();
         }
 
         private void put(Goal goal, Register register){

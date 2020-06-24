@@ -267,24 +267,27 @@ public class Plan {
                     }
                 }
             }
-            depth[start] = 1;
-            for (int j = start + 1; j < all.size(); j++) {
-                int max = Integer.MIN_VALUE;
-                for(Goal upper: all.get(j).getUppers()){
-                    for (int k = j-1; k >= start ; k--) {
-                        for (int l = 0; l < all.get(k).getLowers().size(); l++) {
-                            if(upper.equivalent(all.get(k).getLowerTrueGoal(l))){
-                                max = Math.max(max, 1+depth[k]);
+            if(start>=0) {
+                depth[start] = 1;
+                for (int j = start + 1; j < all.size(); j++) {
+                    int max = Integer.MIN_VALUE;
+                    for (Goal upper : all.get(j).getUppers()) {
+                        for (int k = j - 1; k >= start; k--) {
+                            for (int l = 0; l < all.get(k).getLowers().size(); l++) {
+                                if (upper.equivalent(all.get(k).getLowerTrueGoal(l))) {
+                                    max = Math.max(max, 1 + depth[k]);
+                                }
                             }
                         }
                     }
+                    depth[j] = max;
                 }
-                depth[j] = max;
-            }
-            for (int j = depth.length - 1; j >= 0; j--) {
-                if(depth[j]>=0){
-                    depths[i] = depth[j];
-                    break;
+
+                for (int j = depth.length - 1; j >= 0; j--) {
+                    if (depth[j] >= 0) {
+                        depths[i] = depth[j];
+                        break;
+                    }
                 }
             }
 //            System.out.println("Depth of filter " + i + " is: " + depths[i]);

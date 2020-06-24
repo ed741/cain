@@ -13,6 +13,7 @@ import static uk.co.edstow.cain.scamp5.emulator.Scamp5Emulator.*;
 
 class ProcessingElement {
 
+
     private static class UndefinedBusBehaviour extends RuntimeException{
         UndefinedBusBehaviour(String s) {
             super(s);
@@ -177,6 +178,11 @@ class ProcessingElement {
         return registers.get(reg).value();
     }
 
+
+    public double getNoise(Reg reg) {
+        return registers.get(reg).getNoise();
+    }
+
     public Map<Tuple<Integer,Tuple<Integer,String>>,Double> getRawRegisterContains(Reg r) {
         RegisterState registerState = this.registers.get(r);
         if(registerState == null){
@@ -260,6 +266,7 @@ class ProcessingElement {
                 }
                 state.readNoise += noiseConfig.readNoiseConstant + (noiseConfig.readNoiseFactor * stateMagnitude);
                 magnitude += stateMagnitude;
+                writeNoise +=state.writeNoise + state.readNoise;
             }
             writeNoise += noiseConfig.writeNoiseConstant + (noiseConfig.writeNoiseFactor *magnitude);
         }
@@ -297,6 +304,9 @@ class ProcessingElement {
 
         String getNoises() {
             return "(Read Noise: " + readNoise + ", Write Noise: " + writeNoise + ")";
+        }
+        double getNoise() {
+            return readNoise + writeNoise;
         }
 
         Map<Tuple<Integer, Tuple<Integer, String>>, Double> getRawContains() {

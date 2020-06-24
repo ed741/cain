@@ -37,8 +37,9 @@ public class FileRun {
         public final Bounds bounds;
         public final List<Goal> initialGoals;
         public final List<Goal> finalGoals;
+        public final double error;
 
-        public Result(Plan plan, long nodesExpanded, long time, String code, Bounds b) {
+        public Result(Plan plan, long nodesExpanded, long time, String code, Bounds b, double error) {
             this.plan = plan;
             this.nodesExpanded = nodesExpanded;
             this.time = time;
@@ -49,6 +50,7 @@ public class FileRun {
             this.bounds = b;
             this.initialGoals = reverseSearch.getInitialGoals();
             this.finalGoals = reverseSearch.getFinalGoals();
+            this.error= error;
 
         }
     }
@@ -83,10 +85,13 @@ public class FileRun {
 
     }
 
+
     public FileRun(String path, List<Goal> finalGoals, int approximationDepth) {
-        this.config = fromJson(path);
+        this(fromJson(path), finalGoals, approximationDepth);
+    }
+    public FileRun(JSONObject config, List<Goal> finalGoals, int approximationDepth) {
+        this.config = config;
         verbose = config.has("verbose")? config.getInt("verbose"):10;
-        printLn("Json config read from   : '"+ path +"'" );
         printLn("Name                    : "+ config.getString("name"));
 
         configureFinalGoals(finalGoals, approximationDepth);
@@ -135,14 +140,14 @@ public class FileRun {
         RegisterAllocator.Mapping mapping = registerAllocator.solve(p, reverseSearch.getInitialGoals());
         String code = p.produceCode(mapping);
         printLnCritial(code);
-        Bounds b = checkPlan(code, p);
+        Tuple<Bounds,Double> b = checkPlan(code, p);
         if(b==null){
             printLnCritial("Plan Was Faulty!");
             return null;
         }
         printLn("Implemented filter:");
         int fgs = reverseSearch.getInitialGoals().size();
-        printLn(GoalBag.toGoalsString(reverseSearch.getFinalGoals(), b, new boolean[fgs], new boolean[fgs], true, true));
+        printLn(GoalBag.toGoalsString(reverseSearch.getFinalGoals(), b.getA(), new boolean[fgs], new boolean[fgs], true, true));
         return code;
     }
 
@@ -153,33 +158,39 @@ public class FileRun {
             Plan plan = plans.get(i);
             RegisterAllocator.Mapping mapping = registerAllocator.solve(plan, reverseSearch.getInitialGoals());
             String code = plan.produceCode(mapping);
-            Bounds b = checkPlan(code, plan);
+            Tuple<Bounds,Double> b = checkPlan(code, plan);
+            Bounds coverage = b.getA();
+            double noise = b.getB();
             results.add(new Result(
                     plans.get(i),
                     reverseSearch.getPlanNodesExplored().get(i),
                     reverseSearch.getPlanTimes().get(i),
                     code,
-                    b));
+                    coverage, noise));
         }
         return results;
     }
 
     private void configureFinalGoals(List<Goal> finalGoals, int approximationDepth){
+
+        RegisterAllocator.Register[] availableRegisters = getRegisterArray(config.getJSONArray("availableRegisters"));
         outputRegisters = new ArrayList<>();
         for (int i = 0; i < finalGoals.size(); i++) {
-            outputRegisters.add(RegisterAllocator.Register.values()[i]);
+            outputRegisters.add(availableRegisters[i]);
         }
         this.approximationDepth = approximationDepth;
         printLn("\tgoals:");
         printLn(GoalBag.toGoalsString(finalGoals, false, false, true, true));
-        printLn("Depth     : "+ this.approximationDepth);
+        printLn("Depth                   : "+ this.approximationDepth);
+        printLn("Output Registers        : " + outputRegisters.toString());
+
     }
     private List<Goal> makeFinalGoals(JSONObject config){
 
         int maxApproximationDepth = config.getInt("maxApproximationDepth");
         printLn("Max Approximation Depth : "+ maxApproximationDepth);
         double maxApproximationError = config.getDouble("maxApproximationError");
-        printLn("Max Approximation Error : "+maxApproximationError);
+        printLn("Max Approximation Error :RegisterAllocator.Register.values() "+maxApproximationError);
 
         Approximater goalAprox = new Approximater(maxApproximationDepth, maxApproximationError);
         outputRegisters = new ArrayList<>();
@@ -219,7 +230,10 @@ public class FileRun {
     }
 
     private RegisterAllocator makeRegisterAllocator(JSONObject config) {
+        printLn("\tMaking Register Allocator:");
         RegisterAllocator.Register[] availableRegisters = getRegisterArray(config.getJSONArray("availableRegisters"));
+        printLn("Available registers  : "+Arrays.toString(availableRegisters));
+
         List<RegisterAllocator.Register> available = new ArrayList<>(outputRegisters);
         for (RegisterAllocator.Register availableRegister : availableRegisters) {
             if (!available.contains(availableRegister)) {
@@ -228,11 +242,16 @@ public class FileRun {
         }
         availableRegisters = available.toArray(availableRegisters);
         RegisterAllocator.Register[] initRegisters = getRegisterArray(config.getJSONArray("initialRegisters"));
+        printLn("Initial registers    : "+Arrays.toString(initRegisters));
         return new RegisterAllocator(initRegisters, availableRegisters);
     }
 
     public int getAvailableRegisterCount() {
         return registerAllocator.getAvailableRegisters();
+    }
+
+    public String getAvailableRegisters() {
+        return Arrays.toString(registerAllocator.getAvailableRegistersArray());
     }
 
     private PairGenFactory makePairGenFactory(JSONObject json, RegisterAllocator registerAllocator){
@@ -439,9 +458,9 @@ public class FileRun {
     }
 
 
-    private JSONObject fromJson(String path){
+    public static JSONObject fromJson(String path){
 
-        InputStream in;
+        InputStream in = null;
         JSONTokener tokeniser = null;
 
         try {
@@ -451,14 +470,24 @@ public class FileRun {
             try {
                 tokeniser = new JSONTokener(path);
             } catch (JSONException ex){
-                printLnCritial("Cannot find file, or interpret as Json directly!");
+                System.out.println("Cannot find file, or interpret as Json directly!");
                 e.printStackTrace();
                 ex.printStackTrace();
                 System.exit(-1);
             }
         }
+        JSONObject config = new JSONObject(tokeniser);
+        int verbose = config.has("verbose")? config.getInt("verbose"):10;
+        if(verbose>5 && in != null) {
+            System.out.println("Json config read from   : '" + path + "'");
+        }
+        if(verbose>10 && in == null) {
+            System.out.println("Json config:\n" + path + "\n");
+        }
 
-        return new JSONObject(tokeniser);
+
+
+        return config;
     }
 
 
@@ -487,11 +516,12 @@ public class FileRun {
     }
 
 
-    private Bounds checkPlan(String code, Plan p){
+    private Tuple<Bounds, Double> checkPlan(String code, Plan p){
         List<Goal> finalGoals = reverseSearch.getFinalGoals();
         int[] divisions = reverseSearch.getInitialDivisions();
-        List<Bounds> bounds = new ArrayList<>();
-        Scamp5Emulator emulator = new Scamp5Emulator(new Bounds(finalGoals).largestMagnitude()*3);
+        List<Bounds> coverage = new ArrayList<>();
+        double noise =0;
+        Scamp5Emulator emulator = Scamp5Emulator.newWithRegs((new Bounds(finalGoals).largestMagnitude()+1)*3, registerAllocator.getAvailableRegisters()<=6?6:24);
         RegisterAllocator.Register[] initRegisters = registerAllocator.getInitRegisters();
         for (int i = 0; i < initRegisters.length; i++) {
             RegisterAllocator.Register r = initRegisters[i];
@@ -503,6 +533,7 @@ public class FileRun {
 
             final String reg = registerAllocator.getAvailableRegistersArray()[i].toString();
             Map<Tuple<Integer, Tuple<Integer, String>>, Double> testMap = emulator.getRawProcessingElementContains(0, 0, reg);
+            noise += emulator.readNoise(0,0,reg);
 
             Iterator<Tuple<Atom, Integer>> iterator = finalGoals.get(i).uniqueCountIterator();
             while (iterator.hasNext()){
@@ -527,10 +558,10 @@ public class FileRun {
                 printLnCritial(testMap.toString());
                 return null;
             }
-            bounds.add(emulator.getRegCoverge(0,0,reg));
+            coverage.add(emulator.getRegCoverge(0,0,reg));
 
         }
-        return Bounds.combine(bounds);
+        return new Tuple<>(Bounds.combine(coverage), noise);
     }
 
 }

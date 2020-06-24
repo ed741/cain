@@ -16,6 +16,8 @@ import static uk.co.edstow.cain.RegisterAllocator.Register.*;
 @SuppressWarnings("unused")
 class Main {
     public static void main(String[] args) {
+        System.out.println(Arrays.toString(args));
+//        DemoSuite.runDemo();
 //        test();
         for (int i = 0; i < args.length; i++) {
             FileRun fileRun = new FileRun(args[i]);
@@ -24,7 +26,6 @@ class Main {
             System.out.println(code);
 
         }
-//        DemoSuite.runDemo();
 
     }
 

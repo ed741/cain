@@ -10,6 +10,7 @@ import uk.co.edstow.cain.structures.Atom;
 import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.traversal.DFS;
+import uk.co.edstow.cain.traversal.HOS;
 import uk.co.edstow.cain.traversal.SOT;
 import uk.co.edstow.cain.traversal.TraversalSystem;
 import uk.co.edstow.cain.util.Bounds;
@@ -23,13 +24,13 @@ import static uk.co.edstow.cain.RegisterAllocator.Register.*;
 @SuppressWarnings("SameParameterValue")
 class DemoSuite {
 
-    private final static boolean SOBEL = false;
-    private final static boolean BOX = false;
-    private final static boolean GUASS = false;
-    private final static boolean CNN_ON_FPSP_ANALOG_NET_2 = false;
-    private final static boolean CNN_ON_FPSP_MAX_POOLED = false;
+    private final static boolean SOBEL = true;
+    private final static boolean BOX = true;
+    private final static boolean GUASS = true;
+    private final static boolean CNN_ON_FPSP_ANALOG_NET_2 = true;
+    private final static boolean CNN_ON_FPSP_MAX_POOLED = true;
     private final static boolean RANDOM_DENSE = true;
-    private final static boolean RANDOM_SPARSE = false;
+    private final static boolean RANDOM_SPARSE = true;
 
 
 
@@ -101,12 +102,15 @@ class DemoSuite {
 
     private static List<TestSetup> initialiseTestSetups() {
         List<TestSetup> setups = new ArrayList<>();
+        setups.add(new TestSetup(4, SOT.SOTFactory(), 6, 10, true, 60));
+        setups.add(new TestSetup(4, SOT.SOTFactory(), 6, 10, false, 60));
+        setups.add(new TestSetup(4, DFS.DFSFactory(), 6, 10, true, 60));
+        setups.add(new TestSetup(4, HOS.HOSFactory(), 6, 10, true, 60));
         setups.add(new TestSetup(4, SOT.SOTFactory(), 6, 0, true, 60));
-//        setups.add(new TestSetup(1, SOT.SOTFactory(), 6, 10, true, 60));
-//        setups.add(new TestSetup(1, SOT.SOTFactory(), 6, 10, false, 60));
-//        setups.add(new TestSetup(4, DFS.DFSFactory(), 6, 10, true, 60));
-//        setups.add(new TestSetup(4, SOT.SOTFactory(), 6, 0, true, 60));
+
 //        setups.add(new TestSetup(1, SOT.SOTFactory(), 6, 10, true, 5));
+//
+//      setups.add(new TestSetup(1, SOT.SOTFactory(), 6, 10, true, 60));
 //        setups.add(new TestSetup(1, BestFirstSearch.BestFirstSearchFactory(ws -> {
 //            int sum = ws.goals.stream().mapToInt(goal -> -1+goal.stream().mapToInt(a -> Math.abs(a.x) + Math.abs(a.y) + Math.abs(a.z) + 1).sum()).sum();
 //            sum += ws.maxDepth;
