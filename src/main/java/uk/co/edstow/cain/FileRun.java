@@ -491,6 +491,14 @@ public class FileRun {
     }
 
 
+    private void printLnVerbose(String s){
+        if(verbose>10) System.out.println(s);
+    }
+
+    private void printLnVerbose(String s, Object... args){
+        if(verbose>10) System.out.println(String.format(s, args));
+    }
+
     private void printLn(String s){
         if(verbose>5) System.out.println(s);
     }
@@ -517,6 +525,7 @@ public class FileRun {
 
 
     private Tuple<Goal.Bounds, Double> checkPlan(String code, Plan p){
+        printLnVerbose(p.toGoalsString());
         List<Goal> finalGoals = reverseSearch.getFinalGoals();
         int[] divisions = reverseSearch.getInitialDivisions();
         List<Goal.Bounds> coverage = new ArrayList<>();
