@@ -199,7 +199,7 @@ public class RegisterAllocator {
                     if (!valid) {
                         boolean initInAv = false;
                         for (Register register : registers) {
-                            if (init[initIdx] == register){
+                            if (init[initIdx].equals(register)){
                                 initInAv = true;
                                 break;
                             }
@@ -215,7 +215,7 @@ public class RegisterAllocator {
                     for (Register availableRegister : availableRegisters) {
                         // Check if reg needs to be saved for init reg
                         for (int lu = 0; lu < initLastUsed.length; lu++) {
-                            if (jk.getA() > initLastUsed[lu] && availableRegister == init[lu]) {
+                            if (jk.getA() > initLastUsed[lu] && availableRegister.equals(init[lu])) {
                                 continue registerPicker;
                             }
                         }
@@ -226,7 +226,7 @@ public class RegisterAllocator {
                             if (trueLower.equivalent(all_r.get(jk.getA()).getUppers().get(jk.getB()))) {
                                 for (int u = 0; u < all_r.get(i).getUppers().size(); u++) {
                                     if (all_r.get(i).getTransformation().inputRegisterOutputInterference(u)[l]) {
-                                        if(lineMap.get(new Tuple<>(i, u)) == availableRegister){
+                                        if(lineMap.get(new Tuple<>(i, u)).equals(availableRegister)){
                                             continue registerPicker;
                                         }
                                     }
