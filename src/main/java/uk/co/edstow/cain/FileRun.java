@@ -146,7 +146,7 @@ public class FileRun {
             return null;
         }
         printLn("Implemented filter:");
-        int fgs = reverseSearch.getInitialGoals().size();
+        int fgs = reverseSearch.getFinalGoals().size();
         printLn(Goal.toGoalsString(reverseSearch.getFinalGoals(), b.getA(), new boolean[fgs], new boolean[fgs], true, true));
         return code;
     }
