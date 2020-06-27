@@ -1,6 +1,9 @@
 # Cain
 ## Convolutional-Filter Code-Generator for Cellular-Processor-Arrays
 
+
+![](https://github.com/ed741/cain/workflows/Java%20CI%20with%20Maven/badge.svg)
+
 ### Installation
  1. `git clone https://github.com/ed741/cain.git`
  2. `cd cain`
