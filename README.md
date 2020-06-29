@@ -66,23 +66,23 @@ Each kernel object has an "array" of the weights, and an optional Doubles "depth
 
 The RunConfig defines the behaviour of the Reverse Search Algorithm, but not any of the Pair Generation or Huristics.
 
-| token id      | valid value   | Default | Description  |
-| ------------- |:-------------:|:-------:| ------------ |
-| searchTime    | Integer       |         | The timeout for searching|
-| timeOut       | Boolean       |         | Whether or not Cain should timeout when searching. If Cain is set to use more than 1 worker it will never stop by itself, even if all nodes have been explored |
-| workers       | Integer       |         | The number for worker threads to use (worker threads search semi-independantly using different instances of the same traversal algorithm). This does not effect multi-threading performed within the pairGeneration inviocation of a worker thread |
-| traversalAlgorithm | "SOT", "BFS", "DFS", "HOS", "BestFirstSearch" | | The traversal Algorithm to use. SOT stands for Stow-Optimised-Traversal, and HOS stands for Heir Ordered Seatch. SOT is recommended. The Huristic used in the BestFirstSearch is the "costFunction". |
+| token id      | valid value   | Description  |
+| ------------- |:-------------:| ------------ |
+| searchTime    | Integer       | The timeout for searching|
+| timeOut       | Boolean       | Whether or not Cain should timeout when searching. If Cain is set to use more than 1 worker it will never stop by itself, even if all nodes have been explored |
+| workers       | Integer       | The number for worker threads to use (worker threads search semi-independantly using different instances of the same traversal algorithm). This does not effect multi-threading performed within the pairGeneration inviocation of a worker thread |
+| traversalAlgorithm | "SOT", "BFS", "DFS", "HOS", "BestFirstSearch" | The traversal Algorithm to use. SOT stands for Stow-Optimised-Traversal, and HOS stands for Heir Ordered Seatch. SOT is recommended. The Huristic used in the BestFirstSearch is the "costFunction". |
 | costFunction  | "CircuitDepth", "PlanLength", "InstructionCost", "CircuitDepthThenLength",  "LengthThenCircuitDepth" | The cost function to use to compare plans, used to decide if a state has been seen before in a shorter plan, and used to determine the best plan found.|
-| liveCounter   | Boolean       |         | If a live indication of search progress should be printed during the search. |
-| livePrintPlans | Integer      |         | If >0 then finding a new plan is announced as the search finds it. If > 1 then that plan's steps are also printed. |
-| quiet         | Boolean       |         | when set to false Cain will not announce the search starting and stopping or print search statistics. |
-| initialMaxDepth | Integer     |         | The initial maximum number of instruction allowed in a plan before giving up on finding a valid plan. |
-| forcedDepthReduction| Integer |         | When a new valid plan is found the MaxDepth is set to the lenght of that plan minus this value. | 
-| initialMaxCost | Integer      |         | The intial MaxCost, the  highest cost a plan is allowed. more costly plans are not searched. |
-| forcedCostReduction | Integer |         | When a new valid plan is found the MaxCost is set to the cost of that plan minus this value. |
-| allowableAtomsCoefficient | Integer |   | States with more atoms than the flter we are generating multiplied by this value, plus the atoms in the inital Goals are rejected and not searched |
-| goalReductionsPerStep | Integer |       | The number of goals that can be removed from the State in one transformation. This allows Cain to prune States with more exess goals in the goal-bag than instructions left before MaxDepth. |
-| goalReductionsTolerance | Integer |     | This value is added to the calculation for pruning by "goalReductionsPerStep" to allow for a lower "goalReductionsPerStep" if only a few instructions might reduce the number of goals by more than "goalReductionsPerStep". | 
+| liveCounter   | Boolean       | If a live indication of search progress should be printed during the search. |
+| livePrintPlans | Integer      | If >0 then finding a new plan is announced as the search finds it. If > 1 then that plan's steps are also printed. |
+| quiet         | Boolean       | when set to false Cain will not announce the search starting and stopping or print search statistics. |
+| initialMaxDepth | Integer     | The initial maximum number of instruction allowed in a plan before giving up on finding a valid plan. |
+| forcedDepthReduction| Integer | When a new valid plan is found the MaxDepth is set to the lenght of that plan minus this value. | 
+| initialMaxCost | Integer      | The intial MaxCost, the  highest cost a plan is allowed. more costly plans are not searched. |
+| forcedCostReduction | Integer | When a new valid plan is found the MaxCost is set to the cost of that plan minus this value. |
+| allowableAtomsCoefficient | Integer | States with more atoms than the flter we are generating multiplied by this value, plus the atoms in the inital Goals are rejected and not searched |
+| goalReductionsPerStep | Integer | The number of goals that can be removed from the State in one transformation. This allows Cain to prune States with more exess goals in the goal-bag than instructions left before MaxDepth. |
+| goalReductionsTolerance | Integer | This value is added to the calculation for pruning by "goalReductionsPerStep" to allow for a lower "goalReductionsPerStep" if only a few instructions might reduce the number of goals by more than "goalReductionsPerStep". | 
 
 #### PairGen
 
