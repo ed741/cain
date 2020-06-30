@@ -18,7 +18,7 @@ public abstract class SimpleTransformation extends Transformation{
         }
     }
 
-    abstract String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers);
+    public abstract String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers);
 
     public abstract Goal applyForwards() throws TransformationApplicationException;
 

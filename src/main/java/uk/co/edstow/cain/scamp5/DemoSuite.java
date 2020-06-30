@@ -1,14 +1,11 @@
 package uk.co.edstow.cain.scamp5;
 
-import uk.co.edstow.cain.structures.Plan;
+import uk.co.edstow.cain.structures.*;
 import uk.co.edstow.cain.RegisterAllocator;
 import uk.co.edstow.cain.ReverseSearch;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.pairgen.ConfigGetter;
 import uk.co.edstow.cain.scamp5.emulator.Scamp5Emulator;
-import uk.co.edstow.cain.structures.Atom;
-import uk.co.edstow.cain.structures.Goal;
-import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.traversal.DFS;
 import uk.co.edstow.cain.traversal.HOS;
 import uk.co.edstow.cain.traversal.SOT;
@@ -40,14 +37,14 @@ class DemoSuite {
         final ReverseSearch.RunConfig runConfig;
 
         final int cores;
-        final Supplier<? extends TraversalSystem> traversalAlgorithm;
+        final Supplier<? extends TraversalSystem<WorkState>> traversalAlgorithm;
         final int registerCount;
         final int threshold;
         final boolean allOps;
         final int seconds;
         final RegisterAllocator registerAllocator;
 
-        private TestSetup(int cores, Supplier<? extends TraversalSystem> traversalAlgorithm, int registerCount, int threshold, boolean allOps, int seconds){
+        private TestSetup(int cores, Supplier<? extends TraversalSystem<WorkState>> traversalAlgorithm, int registerCount, int threshold, boolean allOps, int seconds){
             RegisterAllocator.Register[] allRegisters = new RegisterAllocator.Register[]{A, B, C, D, E, F};
             final RegisterAllocator.Register[] availableRegisters = Arrays.copyOfRange(allRegisters, 0, registerCount);
             RegisterAllocator ra = new RegisterAllocator(new RegisterAllocator.Register[]{A}, availableRegisters);

@@ -461,6 +461,14 @@ public class Goal implements List<Atom>, Comparable<Goal>{
             this.list = new ArrayList<>(Arrays.asList(atoms));
         }
 
+        public Factory(Goal... goals) {
+            this.list = new ArrayList<>();
+            for (Goal goal : goals) {
+                this.list.addAll(goal);
+            }
+        }
+
+
         public Factory(int z, int[][] matrix) {
             this(z, matrix, 1);
         }
@@ -475,6 +483,7 @@ public class Goal implements List<Atom>, Comparable<Goal>{
             this();
             add(z, matrix, multiples);
         }
+
 
         public Goal.Factory add(int z, int[][] matrix, int multiples){
             for (int i = 0; i < matrix.length; i++) {

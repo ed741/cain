@@ -32,7 +32,7 @@ public class ReverseSearch {
         private long maxNodes;
 
         // Search Rules
-        private Supplier<? extends TraversalSystem> traversalAlgorithm;
+        private Supplier<? extends TraversalSystem<WorkState>> traversalAlgorithm;
         private int initialMaxDepth;
         private int forcedDepthReduction; // once a plan is found at maxDepth 10, cull searches at "maxDepth - forcedDepthReduction".
         private int initialMaxCost;
@@ -45,7 +45,7 @@ public class ReverseSearch {
         private int goalReductionsPerStep; // cull plans that have more active goals than steps before max maxDepth to reduce the number to one.
         private int goalReductionsTolerance; // add a tolerance to allow for a "less conservative" (lower) goalReductionsPerStep if larger reductions are unlikely.
 
-        public RunConfig(boolean liveCounter, int livePrintPlans, boolean quiet, int workers, int searchTime, long maxNodes, boolean timeOut, Supplier<TraversalSystem> traversalAlgorithm, Function<Plan, Integer> costFunction, int initialMaxDepth, int forcedDepthReduction, int initialMaxCost, int forcedCostReduction, RegisterAllocator registerAllocator, int allowableAtomsCoefficient, int goalReductionsPerStep, int goalReductionsTolerance) {
+        public RunConfig(boolean liveCounter, int livePrintPlans, boolean quiet, int workers, int searchTime, long maxNodes, boolean timeOut, Supplier<TraversalSystem<WorkState>> traversalAlgorithm, Function<Plan, Integer> costFunction, int initialMaxDepth, int forcedDepthReduction, int initialMaxCost, int forcedCostReduction, RegisterAllocator registerAllocator, int allowableAtomsCoefficient, int goalReductionsPerStep, int goalReductionsTolerance) {
             this.liveCounter = liveCounter;
             this.livePrintPlans = livePrintPlans;
             this.quiet = quiet;
@@ -126,7 +126,7 @@ public class ReverseSearch {
             return this;
         }
 
-        public RunConfig setTraversalAlgorithm(Supplier<? extends TraversalSystem> traversalAlgorithm) {
+        public RunConfig setTraversalAlgorithm(Supplier<? extends TraversalSystem<WorkState>> traversalAlgorithm) {
             this.traversalAlgorithm = traversalAlgorithm;
             return this;
         }
@@ -225,7 +225,7 @@ public class ReverseSearch {
     private final AtomicInteger maxCost;
     private final RegisterAllocator registerAllocator;
     private final int availableRegisters;
-    private final Supplier<? extends TraversalSystem> traversalAlgorithm;
+    private final Supplier<? extends TraversalSystem<WorkState>> traversalAlgorithm;
     public final Function<Plan, Integer> costFunction;
 
     private final int allowableAtomsCoefficent;
@@ -455,7 +455,7 @@ public class ReverseSearch {
         int workerMaxDepth = 0;
         private Worker next;
 
-        final TraversalSystem localTraversalSystem;
+        final TraversalSystem<WorkState> localTraversalSystem;
         int plansFound = 0;
         int cacheChecks = 0;
         int cacheHits = 0;
