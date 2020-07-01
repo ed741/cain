@@ -1,9 +1,9 @@
-package uk.co.edstow.cain.pairgen;
+package uk.co.edstow.cain.atom.pairGen;
 
-import uk.co.edstow.cain.structures.Atom;
-import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.RegisterAllocator;
 import uk.co.edstow.cain.Transformation;
+import uk.co.edstow.cain.atom.Atom;
+import uk.co.edstow.cain.atom.AtomGoal;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
@@ -20,7 +20,7 @@ public abstract class SimpleTransformation extends Transformation{
 
     public abstract String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers);
 
-    public abstract Goal applyForwards() throws TransformationApplicationException;
+    public abstract AtomGoal applyForwards() throws TransformationApplicationException;
 
     @Override
     public int outputCount() {
@@ -51,17 +51,17 @@ public abstract class SimpleTransformation extends Transformation{
         return out;
     }
 
-    public static Collection<Tuple<? extends Transformation, Goal>> applyAllUnaryOpBackwards(Goal goal){
-        ArrayList<Tuple<? extends Transformation, Goal>> list = new ArrayList<>();
+    public static Collection<Tuple<? extends Transformation, AtomGoal>> applyAllUnaryOpBackwards(AtomGoal goal){
+        ArrayList<Tuple<? extends Transformation, AtomGoal>> list = new ArrayList<>();
         for (Direction d: Direction.values()){
             for (int i = 1; i < 2; i++){
-                Goal input = Move.getBackwardsApplication(i, d, goal);
+                AtomGoal input = Move.getBackwardsApplication(i, d, goal);
                 Transformation t = new Move(i, d, input);
                 list.add(new Tuple<>(t, input));
             }
         }
         for (int i = 1; i < 2; i++){
-            Goal input = Div.getBackwardsApplication(i, goal);
+            AtomGoal input = Div.getBackwardsApplication(i, goal);
             Transformation t = new Div(i, input);
             list.add(new Tuple<>(t, input));
         }
@@ -93,10 +93,10 @@ public abstract class SimpleTransformation extends Transformation{
 
     public static class Div extends SimpleTransformation {
         private final int divisions;
-        private final Goal in;
+        private final AtomGoal in;
 
-        private static Goal getForwardsApplication(int divisions, Goal goal) throws TransformationApplicationException {
-            Goal.Factory factory = new Goal.Factory();
+        private static AtomGoal getForwardsApplication(int divisions, AtomGoal goal) throws TransformationApplicationException {
+            AtomGoal.Factory factory = new AtomGoal.Factory();
             Map<Atom, Integer> count = new HashMap<>();
             for (Atom a: goal){
                 Integer i = count.getOrDefault(a, 0);
@@ -115,8 +115,8 @@ public abstract class SimpleTransformation extends Transformation{
             return factory.get();
         }
 
-        private static Goal getBackwardsApplication(int divisions, Goal goal){
-            Goal.Factory factory = new Goal.Factory();
+        private static AtomGoal getBackwardsApplication(int divisions, AtomGoal goal){
+            AtomGoal.Factory factory = new AtomGoal.Factory();
             for (Atom a: goal){
                 for (int j = 0; j < 1<<divisions; j++){
                     factory.add(a);
@@ -125,7 +125,7 @@ public abstract class SimpleTransformation extends Transformation{
             return factory.get();
         }
 
-        public Div(int divisions, Goal in) {
+        public Div(int divisions, AtomGoal in) {
             assert divisions > 0;
             this.divisions = divisions;
             this.in = in;
@@ -154,7 +154,7 @@ public abstract class SimpleTransformation extends Transformation{
         }
 
         @Override
-        public Goal applyForwards() throws TransformationApplicationException {
+        public AtomGoal applyForwards() throws TransformationApplicationException {
             return getForwardsApplication(divisions, in);
 
         }
@@ -168,10 +168,10 @@ public abstract class SimpleTransformation extends Transformation{
     public static class Move extends SimpleTransformation{
         private final int steps;
         private final Direction dir;
-        private final Goal in;
+        private final AtomGoal in;
 
-        private static Goal getForwardsApplication(int steps, Direction dir, Goal goal){
-            Goal.Factory factory = new Goal.Factory();
+        private static AtomGoal getForwardsApplication(int steps, Direction dir, AtomGoal goal){
+            AtomGoal.Factory factory = new AtomGoal.Factory();
             int rx = steps * dir.x;
             int ry = steps * dir.y;
             for (Atom a: goal){
@@ -180,8 +180,8 @@ public abstract class SimpleTransformation extends Transformation{
             return factory.get();
         }
 
-        private static Goal getBackwardsApplication(int steps, Direction dir, Goal goal){
-            Goal.Factory factory = new Goal.Factory();
+        private static AtomGoal getBackwardsApplication(int steps, Direction dir, AtomGoal goal){
+            AtomGoal.Factory factory = new AtomGoal.Factory();
             int rx = steps * dir.x;
             int ry = steps * dir.y;
             for (Atom a: goal){
@@ -190,7 +190,7 @@ public abstract class SimpleTransformation extends Transformation{
             return factory.get();
         }
 
-        public Move(int steps, Direction dir, Goal in) {
+        public Move(int steps, Direction dir, AtomGoal in) {
             this.steps = steps;
             this.dir = dir;
             this.in = in;
@@ -219,7 +219,7 @@ public abstract class SimpleTransformation extends Transformation{
         }
 
         @Override
-        public Goal applyForwards() {
+        public AtomGoal applyForwards() {
             return getForwardsApplication(steps, dir, in);
 
         }
@@ -231,16 +231,16 @@ public abstract class SimpleTransformation extends Transformation{
     }
 
     public static class Add extends SimpleTransformation{
-        private final Goal a;
-        private final Goal b;
+        private final AtomGoal a;
+        private final AtomGoal b;
 
-        private static Goal getForwardsApplication(Goal a, Goal b){
-            Goal.Factory factory = new Goal.Factory(a);
+        private static AtomGoal getForwardsApplication(AtomGoal a, AtomGoal b){
+            AtomGoal.Factory factory = new AtomGoal.Factory(a);
             factory.addAll(b);
             return factory.get();
         }
 
-        public Add(Goal a, Goal b) {
+        public Add(AtomGoal a, AtomGoal b) {
             this.a = a;
             this.b = b;
         }
@@ -275,7 +275,7 @@ public abstract class SimpleTransformation extends Transformation{
         }
 
         @Override
-        public Goal applyForwards() {
+        public AtomGoal applyForwards() {
             return getForwardsApplication(a, b);
         }
 

@@ -1,6 +1,7 @@
 package uk.co.edstow.cain.scamp5.emulator;
 
-import uk.co.edstow.cain.structures.Goal;
+import uk.co.edstow.cain.atom.AtomGoal;
+import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
@@ -139,7 +140,7 @@ class ProcessingElement {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        List<Goal> goals = new ArrayList<>();
+        List<AtomGoal> goals = new ArrayList<>();
         sb.append("PE ").append(position.toString()).append(":\n");
         registers.entrySet().stream()
                 .sorted(Comparator.comparing(e->e.getKey().toString(), Comparator.naturalOrder()))
@@ -154,7 +155,7 @@ class ProcessingElement {
                           .append(e.getValue().value())
                           .append("\n");
                     }
-                    Goal.Factory factory = new Goal.Factory();
+                    AtomGoal.Factory factory = new AtomGoal.Factory();
                     e.getValue().getRawContains().forEach((tuple, d) -> {
                         if(d!=0) {
                             factory.add(new int[]{tuple.getA(), tuple.getB().getA(), 0}, d.intValue());
@@ -162,7 +163,7 @@ class ProcessingElement {
                     });
                     goals.add(factory.get());
                 });
-        sb.append("\n").append(Goal.toGoalsString(goals)).append("\n");
+        sb.append("\n").append(GoalBag.toGoalsString(goals)).append("\n");
         return sb.toString();
     }
 
@@ -195,12 +196,12 @@ class ProcessingElement {
         return registerState.toString();
     }
 
-    public Goal.Bounds getRegCoverage(Reg r) {
+    public AtomGoal.AtomBounds getRegCoverage(Reg r) {
         RegisterState registerState = this.registers.get(r);
         if(registerState == null){
             return null;
         }
-        return Goal.Bounds.BoundsFromGoal(registerState.getCoverage());
+        return AtomGoal.AtomBounds.BoundsFromGoal(registerState.getCoverage());
     }
 
 
@@ -273,12 +274,12 @@ class ProcessingElement {
                     "contains=" + contains +
                     ", writeNoise=" + writeNoise +
                     ", readNoise=" + readNoise +
-                    ", coverage:\n" + getCoverage().getCharTableString(false, false, true, true) +"\n"+
+                    ", coverage:\n" + getCoverage().getTableString(false, false, true, true) +"\n"+
                     '}';
         }
 
-        private Goal getCoverage() {
-            Goal.Factory factory = new Goal.Factory();
+        private AtomGoal getCoverage() {
+            AtomGoal.Factory factory = new AtomGoal.Factory();
             for (Pos p: coverage){
                 factory.add(new int[]{p.x, p.y, 0}, 1);
             }

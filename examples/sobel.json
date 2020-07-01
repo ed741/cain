@@ -1,4 +1,5 @@
 {"name":"Sobel",
+  "goalSystem":"Atom",
   "maxApproximationDepth":3,
   "maxApproximationError":0,
   "3d": false,
@@ -37,6 +38,8 @@
     "configGetter": "Threshold",
     "ops":"all",
     "threshold":10
-  }
+  },
+
+  "verifier":"Scamp5Emulator"
 
 }

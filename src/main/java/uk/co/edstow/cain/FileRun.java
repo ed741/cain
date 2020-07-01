@@ -8,13 +8,13 @@ import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.scamp5.Scamp5Config;
 import uk.co.edstow.cain.scamp5.Scamp5PairGenFactory;
 import uk.co.edstow.cain.scamp5.ThresholdConfigGetter;
-import uk.co.edstow.cain.scamp5.emulator.Scamp5Emulator;
-import uk.co.edstow.cain.structures.Atom;
+import uk.co.edstow.cain.atom.AtomGoal;
+import uk.co.edstow.cain.scamp5.emulator.Scamp5Verifier;
 import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.Plan;
 import uk.co.edstow.cain.traversal.*;
-import uk.co.edstow.cain.util.Tuple;
+
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -22,24 +22,42 @@ import java.io.InputStream;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
-public class FileRun {
+public abstract class FileRun<G extends Goal<G>> {
+    private static int verbose;
+
+    public static FileRun<?> loadFromJson(String path){
+
+        JSONObject config = fromJson(path);
+        verbose = config.has("verbose")? config.getInt("verbose"):10;
+        printLn("Json config read from   : '"+ path +"'" );
+        printLn("Name                    : "+ config.getString("name"));
+
+        String goalSystem = config.getString("goalSystem");
+        switch (goalSystem){
+            case "Atom":
+                return new AtomFileRun(config);
+            default:
+                throw new IllegalArgumentException("GoalSystem Unknown");
+        }
+    }
+
 
 
     public class Result{
-        public final Plan plan;
+        public final Plan<G> plan;
         public final long nodesExpanded;
         public final int cost;
         public final int depth;
         public final int[] circuitDepths;
         public final long time;
         public final String code;
-        public final Goal.Bounds bounds;
-        public final List<Goal> initialGoals;
-        public final List<Goal> finalGoals;
-        public final double error;
+        public final List<G> initialGoals;
+        public final List<G> finalGoals;
+        public final String verificationOutput;
 
-        public Result(Plan plan, long nodesExpanded, long time, String code, Goal.Bounds b, double error) {
+        public Result(Plan<G> plan, long nodesExpanded, long time, String code, String verf) {
             this.plan = plan;
             this.nodesExpanded = nodesExpanded;
             this.time = time;
@@ -47,131 +65,97 @@ public class FileRun {
             this.depth = plan.depth();
             this.circuitDepths = plan.circuitDepths();
             this.code = code;
-            this.bounds = b;
             this.initialGoals = reverseSearch.getInitialGoals();
             this.finalGoals = reverseSearch.getFinalGoals();
-            this.error= error;
+            this.verificationOutput = verf;
 
         }
     }
 
     private List<RegisterAllocator.Register> outputRegisters;
     private int approximationDepth;
-    private int verbose;
-    private final ReverseSearch reverseSearch;
-    private RegisterAllocator registerAllocator;
+
+
+    private final ReverseSearch<G> reverseSearch;
+    private RegisterAllocator<G> registerAllocator;
     private final JSONObject config;
+    private final Verifier<G> verifier;
 
-    public FileRun(String path) {
-        this.config = fromJson(path);
-        verbose = config.has("verbose")? config.getInt("verbose"):10;
-        printLn("Json config read from   : '"+ path +"'" );
-        printLn("Name                    : "+ config.getString("name"));
 
-        List<Goal> finalGoals = makeFinalGoals(config);
+    public FileRun(JSONObject config) {
+        this.config = config;
+
+        List<G> finalGoals = makeFinalGoals(config);
 
         registerAllocator = makeRegisterAllocator(config);
         printLn("");
-        ReverseSearch.RunConfig runConfig = makeRunConfig(config.getJSONObject("runConfig"), registerAllocator);
+        ReverseSearch.RunConfig<G> runConfig = makeRunConfig(config.getJSONObject("runConfig"), registerAllocator);
         printLn("");
-        PairGenFactory pairGenFactory = makePairGenFactory(config.getJSONObject("pairGen"), registerAllocator);
+        PairGenFactory<G> pairGenFactory = makePairGenFactory(config.getJSONObject("pairGen"), registerAllocator);
         printLn("");
 
         int[] divisions = new int[registerAllocator.getInitRegisters().length];
         Arrays.fill(divisions, approximationDepth);
+        List<G> initialGoals = makeInitialGoals(divisions);
 
         printLn("Initialising Reverse Search:");
-        reverseSearch = new ReverseSearch(divisions, finalGoals, pairGenFactory, runConfig);
+        reverseSearch = new ReverseSearch<>(divisions, initialGoals, finalGoals, pairGenFactory, runConfig);
+
+        verifier = makeVerifier(config);
 
     }
 
 
-    public FileRun(String path, List<Goal> finalGoals, int approximationDepth) {
+    public FileRun(String path, List<G> finalGoals, int approximationDepth) {
         this(fromJson(path), finalGoals, approximationDepth);
     }
-    public FileRun(JSONObject config, List<Goal> finalGoals, int approximationDepth) {
+
+    public FileRun(JSONObject config, List<G> finalGoals, int approximationDepth) {
         this.config = config;
-        verbose = config.has("verbose")? config.getInt("verbose"):10;
-        printLn("Name                    : "+ config.getString("name"));
 
         configureFinalGoals(finalGoals, approximationDepth);
 
         registerAllocator = makeRegisterAllocator(config);
         printLn("");
-        ReverseSearch.RunConfig runConfig = makeRunConfig(config.getJSONObject("runConfig"), registerAllocator);
+        ReverseSearch.RunConfig<G> runConfig = makeRunConfig(config.getJSONObject("runConfig"), registerAllocator);
         printLn("");
-        PairGenFactory pairGenFactory = makePairGenFactory(config.getJSONObject("pairGen"), registerAllocator);
+        PairGenFactory<G> pairGenFactory = makePairGenFactory(config.getJSONObject("pairGen"), registerAllocator);
         printLn("");
 
         int[] divisions = new int[registerAllocator.getInitRegisters().length];
         Arrays.fill(divisions, this.approximationDepth);
+        List<G> initialGoals = makeInitialGoals(divisions);
+
 
         printLn("Initialising Reverse Search:");
-        reverseSearch = new ReverseSearch(divisions, finalGoals, pairGenFactory, runConfig);
+        reverseSearch = new ReverseSearch<>(divisions, initialGoals, finalGoals, pairGenFactory, runConfig);
+        verifier = makeVerifier(config);
 
     }
 
-    public void run() {
-        reverseSearch.search();
-        reverseSearch.printStats();
-    }
-    public String getBest(){
-        List<Plan> plans = reverseSearch.getPlans();
-        if (plans.isEmpty()){
-            printLnCritial("No Plans Found!");
-            return null;
-        }
-        double min = Double.MAX_VALUE;
-        int iMin = 0;
-        for (int i = 0; i < plans.size(); i++) {
-            Plan pl = plans.get(i);
-            double c = reverseSearch.costFunction.apply(pl);
-            if (c < min) {
-                iMin = i;
-                min = c;
+    protected abstract List<G> makeFinalGoals(JSONObject config);
+    protected abstract List<G> makeInitialGoals(int[] divisions);
+    protected abstract PairGenFactory<G> makePairGenFactory(JSONObject pairGen, RegisterAllocator<G> registerAllocator);
+    protected abstract Verifier<G> makeVerifier(JSONObject config);
+
+    protected RegisterAllocator<G> makeRegisterAllocator(JSONObject config) {
+        printLn("\tMaking Register Allocator:");
+        RegisterAllocator.Register[] availableRegisters = getRegisterArray(config.getJSONArray("availableRegisters"));
+        printLn("Available registers  : " + Arrays.toString(availableRegisters));
+
+        List<RegisterAllocator.Register> available = new ArrayList<>(getOutputRegisters(config));
+        for (RegisterAllocator.Register availableRegister : availableRegisters) {
+            if (!available.contains(availableRegister)) {
+                available.add(availableRegister);
             }
         }
-        printLn("Best Plan: ");
-        Plan p = plans.get(iMin);
-        printLn(p.toString());
-
-        printLnImportant("length: " + p.depth() + " Cost: " + reverseSearch.costFunction.apply(p));
-        printLnImportant("CircuitDepths:" + Arrays.toString(p.circuitDepths()));
-        RegisterAllocator.Mapping mapping = registerAllocator.solve(p, reverseSearch.getInitialGoals());
-        String code = p.produceCode(mapping);
-        printLnCritial(code);
-        Tuple<Goal.Bounds,Double> b = checkPlan(code, p);
-        if(b==null){
-            printLnCritial("Plan Was Faulty!");
-            return null;
-        }
-        printLn("Implemented filter:");
-        int fgs = reverseSearch.getFinalGoals().size();
-        printLn(Goal.toGoalsString(reverseSearch.getFinalGoals(), b.getA(), new boolean[fgs], new boolean[fgs], true, true));
-        return code;
+        availableRegisters = available.toArray(availableRegisters);
+        RegisterAllocator.Register[] initRegisters = getRegisterArray(config.getJSONArray("initialRegisters"));
+        printLn("Initial registers    : " + Arrays.toString(initRegisters));
+        return new RegisterAllocator<>(initRegisters, availableRegisters);
     }
 
-    public List<Result> getResults(){
-        List<Result> results = new ArrayList<>();
-        List<Plan> plans = reverseSearch.getPlans();
-        for (int i = 0; i < plans.size(); i++) {
-            Plan plan = plans.get(i);
-            RegisterAllocator.Mapping mapping = registerAllocator.solve(plan, reverseSearch.getInitialGoals());
-            String code = plan.produceCode(mapping);
-            Tuple<Goal.Bounds,Double> b = checkPlan(code, plan);
-            Goal.Bounds coverage = b.getA();
-            double noise = b.getB();
-            results.add(new Result(
-                    plans.get(i),
-                    reverseSearch.getPlanNodesExplored().get(i),
-                    reverseSearch.getPlanTimes().get(i),
-                    code,
-                    coverage, noise));
-        }
-        return results;
-    }
-
-    private void configureFinalGoals(List<Goal> finalGoals, int approximationDepth){
+    protected void configureFinalGoals(List<G> finalGoals, int approximationDepth) {
 
         RegisterAllocator.Register[] availableRegisters = getRegisterArray(config.getJSONArray("availableRegisters"));
         outputRegisters = new ArrayList<>();
@@ -180,139 +164,28 @@ public class FileRun {
         }
         this.approximationDepth = approximationDepth;
         printLn("\tgoals:");
-        printLn(Goal.toGoalsString(finalGoals, false, false, true, true));
-        printLn("Depth                   : "+ this.approximationDepth);
+        printLn(GoalBag.toGoalsString(finalGoals, false, false, true, true));
+        printLn("Depth                   : " + this.approximationDepth);
         printLn("Output Registers        : " + outputRegisters.toString());
 
     }
-    private List<Goal> makeFinalGoals(JSONObject config){
 
-        int maxApproximationDepth = config.getInt("maxApproximationDepth");
-        printLn("Max Approximation Depth : "+ maxApproximationDepth);
-        double maxApproximationError = config.getDouble("maxApproximationError");
-        printLn("Max Approximation Error :RegisterAllocator.Register.values() "+maxApproximationError);
-
-        Approximater goalAprox = new Approximater(maxApproximationDepth, maxApproximationError);
-        outputRegisters = new ArrayList<>();
-
-        boolean threeDimentional = config.getBoolean("3d");
-        printLn("Three Dimensional       : "+threeDimentional);
-        JSONObject filter = config.getJSONObject("filter");
-        printLn("Kernels                 : " + filter.length());
-        Iterator<String> filters = filter.keySet().stream().sorted().iterator();
-        while (filters.hasNext()){
-            String reg = filters.next();
-            Object o = filter.get(reg);
-            if(o instanceof JSONArray) {
-                addGoal(goalAprox, (JSONArray) o, threeDimentional, 1);
-            } else {
-                double scale = 1;
-                if (filter.getJSONObject(reg).has("scale")){
-                    scale = filter.getJSONObject(reg).getDouble("scale");
-                }
-                if (filter.getJSONObject(reg).has("depth")){
-                    scale *= Math.pow(2,filter.getJSONObject(reg).getDouble("depth"));
-                }
-                addGoal(goalAprox,filter.getJSONObject(reg).getJSONArray("array"), threeDimentional, scale );
-            }
-            outputRegisters.add(RegisterAllocator.Register.valueOf(reg));
-        }
-
-        List<Goal> finalGoals = goalAprox.solve();
-        this.approximationDepth = goalAprox.getDepth();
-        printLn("Output Registers        : " + outputRegisters.toString());
-        printLn("\tApproximated goals:");
-        printLn(Goal.toGoalsString(finalGoals, false, false, true, true));
-        printLn("");
-        printLn("Approximation Depth     : "+ goalAprox.getDepth());
-        printLn("Approximation Error     : "+ goalAprox.getError());
-        return finalGoals;
-    }
-
-    private RegisterAllocator makeRegisterAllocator(JSONObject config) {
-        printLn("\tMaking Register Allocator:");
-        RegisterAllocator.Register[] availableRegisters = getRegisterArray(config.getJSONArray("availableRegisters"));
-        printLn("Available registers  : "+Arrays.toString(availableRegisters));
-
-        List<RegisterAllocator.Register> available = new ArrayList<>(outputRegisters);
-        for (RegisterAllocator.Register availableRegister : availableRegisters) {
-            if (!available.contains(availableRegister)) {
-                available.add(availableRegister);
-            }
-        }
-        availableRegisters = available.toArray(availableRegisters);
-        RegisterAllocator.Register[] initRegisters = getRegisterArray(config.getJSONArray("initialRegisters"));
-        printLn("Initial registers    : "+Arrays.toString(initRegisters));
-        return new RegisterAllocator(initRegisters, availableRegisters);
-    }
-
-    public int getAvailableRegisterCount() {
-        return registerAllocator.getAvailableRegisters();
-    }
-
-    public String getAvailableRegisters() {
-        return Arrays.toString(registerAllocator.getAvailableRegistersArray());
-    }
-
-    private PairGenFactory makePairGenFactory(JSONObject json, RegisterAllocator registerAllocator){
-        printLn("\t Making Pair Generation Factory:");
-        printLn("Name                        : "+ json.getString("name"));
-        switch (json.getString("name")){
-            default:
-                throw new IllegalArgumentException("Unknown PairGen Factory "+ json.getString("name"));
-            case "Scamp5":
-                return makeScamp5PairGen(json, registerAllocator);
-        }
-    }
-
-    private PairGenFactory makeScamp5PairGen(JSONObject json, RegisterAllocator registerAllocator) {
-        printLn("Config Getter               : "+ json.getString("configGetter"));
-        switch (json.getString("configGetter")){
-            default:
-                throw new IllegalArgumentException("Unknown Scamp5 ConfigGetter "+ json.getString("configGetter"));
-            case "Threshold":
-                printLn("Instruction to use          : "+ json.getString("ops"));
-                Consumer<Scamp5Config> configConsumer;
-                switch (json.getString("ops")){
-                    default:
-                        throw new IllegalArgumentException("Unknown Instuctions option "+  json.getString("ops"));
-                    case "all":
-                        configConsumer = c->c.useAll().useSubPowerOf2();
-                        break;
-                    case "basic":
-                        configConsumer = c->c.useBasicOps().useSubPowerOf2();
-                        break;
-                }
-                printLn("Exhustive Search Threshold  : "+ json.getInt("threshold"));
-                return new Scamp5PairGenFactory<>(rs -> new ThresholdConfigGetter(rs, registerAllocator.getAvailableRegistersArray(), json.getInt("threshold"), configConsumer));
-        }
-
-    }
-
-    private RegisterAllocator.Register[] getRegisterArray(JSONArray availableRegisters) {
-        ArrayList<RegisterAllocator.Register> out = new ArrayList<>(availableRegisters.length());
-        for (int i = 0; i < availableRegisters.length(); i++) {
-            out.add(RegisterAllocator.Register.valueOf(availableRegisters.getString(i)));
-        }
-        return out.toArray(new RegisterAllocator.Register[availableRegisters.length()]);
-    }
-
-    private ReverseSearch.RunConfig makeRunConfig(JSONObject json, RegisterAllocator registerAllocator) {
+    protected ReverseSearch.RunConfig<G> makeRunConfig(JSONObject json, RegisterAllocator<G> registerAllocator) {
         printLn("\tMaking RunConfig:");
-        ReverseSearch.RunConfig runConfig = new ReverseSearch.RunConfig();
+        ReverseSearch.RunConfig<G> runConfig = new ReverseSearch.RunConfig<>();
         //         Name                    :
-        printLn("Search Time                 : "+json.getInt("searchTime"));
+        printLn("Search Time                 : " + json.getInt("searchTime"));
         runConfig.setSearchTime(json.getInt("searchTime"));
-        printLn("Time Out                    : "+json.getBoolean("timeOut"));
+        printLn("Time Out                    : " + json.getBoolean("timeOut"));
         runConfig.setTimeOut(json.getBoolean("timeOut"));
-        if(json.has("maxNodes")) {
-            printLn("Max Nodes                   : "+json.getInt("maxNodes"));
+        if (json.has("maxNodes")) {
+            printLn("Max Nodes                   : " + json.getInt("maxNodes"));
             runConfig.setMaxNodes(json.getInt("maxNodes"));
         }
-        printLn("Workers                     : "+json.getInt("workers"));
+        printLn("Workers                     : " + json.getInt("workers"));
         runConfig.setWorkers(json.getInt("workers"));
 
-        Function<Plan, Integer> costFunction;
+        Function<Plan<G>, Integer> costFunction;
         switch (json.getString("costFunction")) {
             default:
                 throw new IllegalArgumentException("Unknown Cost Function");
@@ -331,12 +204,12 @@ public class FileRun {
             case "CircuitDepthThenLength":
                 printLn("Cost Function               : Maximum CircuitDepth, then Plan Length");
                 final int maxDepth1 = json.getInt("initialMaxDepth");
-                costFunction = p -> p.maxCircuitDepth()* maxDepth1+ p.depth();
+                costFunction = p -> p.maxCircuitDepth() * maxDepth1 + p.depth();
                 break;
             case "LengthThenCircuitDepth":
                 printLn("Cost Function               : Plan Length, then Maximum CircuitDepth");
                 final int maxDepth2 = json.getInt("initialMaxDepth");
-                costFunction = p -> p.depth()*maxDepth2 + p.maxCircuitDepth();
+                costFunction = p -> p.depth() * maxDepth2 + p.maxCircuitDepth();
         }
         runConfig.setCostFunction(costFunction);
 
@@ -361,7 +234,7 @@ public class FileRun {
                 break;
             case "BestFirstSearch":
                 printLn("Traversal Algorithm         : Best-First-Search");
-                runConfig.setTraversalAlgorithm(BestFirstSearch.BestFirstSearchFactory(ws -> (double)costFunction.apply(ws.currentPlan)));
+                runConfig.setTraversalAlgorithm(BestFirstSearch.BestFirstSearchFactory(ws -> (double) costFunction.apply(ws.currentPlan)));
                 break;
         }
 
@@ -389,15 +262,241 @@ public class FileRun {
         printLn("Allowable Atoms Coefficient : " + json.getInt("allowableAtomsCoefficient"));
         runConfig.setAllowableAtomsCoefficient(json.getInt("allowableAtomsCoefficient"));
 
-        printLn("Goal Reductions Per Step    : " + json.getInt("goalReductionsPerStep"));
+        printLn("AtomGoal Reductions Per Step    : " + json.getInt("goalReductionsPerStep"));
         runConfig.setGoalReductionsPerStep(json.getInt("goalReductionsPerStep"));
 
-        printLn("Goal Reductions Tolerance   : " + json.getInt("goalReductionsTolerance"));
+        printLn("AtomGoal Reductions Tolerance   : " + json.getInt("goalReductionsTolerance"));
         runConfig.setGoalReductionsTolerance(json.getInt("goalReductionsTolerance"));
 
         runConfig.setRegisterAllocator(registerAllocator);
 
         return runConfig;
+    }
+
+
+
+
+
+
+    public void run() {
+        reverseSearch.search();
+        reverseSearch.printStats();
+    }
+
+
+    public String getBest() {
+        List<Plan<G>> plans = reverseSearch.getPlans();
+        if (plans.isEmpty()) {
+            printLnCritial("No Plans Found!");
+            return null;
+        }
+        double min = Double.MAX_VALUE;
+        int iMin = 0;
+        for (int i = 0; i < plans.size(); i++) {
+            Plan<G> pl = plans.get(i);
+            double c = reverseSearch.costFunction.apply(pl);
+            if (c < min) {
+                iMin = i;
+                min = c;
+            }
+        }
+        printLn("Best Plan: ");
+        Plan<G> p = plans.get(iMin);
+        printLn(p.toString());
+
+        printLnImportant("length: " + p.depth() + " Cost: " + reverseSearch.costFunction.apply(p));
+        printLnImportant("CircuitDepths:" + Arrays.toString(p.circuitDepths()));
+        RegisterAllocator<G>.Mapping mapping = registerAllocator.solve(p, reverseSearch.getInitialGoals());
+        String code = p.produceCode(mapping);
+        printLnCritial(code);
+        String verf = verifier.verify(code, reverseSearch, p, registerAllocator);
+        if (verf == null) {
+            printLnCritial("Plan Was Faulty!");
+            return null;
+        } else {
+            printLn(verf);
+        }
+        return code;
+    }
+
+    public List<Result> getResults() {
+        List<Result> results = new ArrayList<>();
+        List<Plan<G>> plans = reverseSearch.getPlans();
+        for (int i = 0; i < plans.size(); i++) {
+            Plan<G> plan = plans.get(i);
+            RegisterAllocator<G>.Mapping mapping = registerAllocator.solve(plan, reverseSearch.getInitialGoals());
+            String code = plan.produceCode(mapping);
+            String verf = verifier.verify(code, reverseSearch, plan, registerAllocator);
+            results.add(new Result(
+                    plans.get(i),
+                    reverseSearch.getPlanNodesExplored().get(i),
+                    reverseSearch.getPlanTimes().get(i),
+                    code,
+                    verf));
+        }
+        return results;
+    }
+
+
+    private static class AtomFileRun extends FileRun<AtomGoal> {
+
+        public AtomFileRun(JSONObject config) {
+            super(config);
+        }
+
+        @Override
+        protected List<AtomGoal> makeFinalGoals(JSONObject config) {
+
+            int maxApproximationDepth = config.getInt("maxApproximationDepth");
+            printLn("Max Approximation Depth : " + maxApproximationDepth);
+            double maxApproximationError = config.getDouble("maxApproximationError");
+            printLn("Max Approximation Error :RegisterAllocator.Register.values() " + maxApproximationError);
+
+            Approximater goalAprox = new Approximater(maxApproximationDepth, maxApproximationError);
+
+
+            boolean threeDimentional = config.getBoolean("3d");
+            printLn("Three Dimensional       : " + threeDimentional);
+            JSONObject filter = config.getJSONObject("filter");
+            printLn("Kernels                 : " + filter.length());
+            Iterator<String> filters = filter.keySet().stream().sorted().iterator();
+            while (filters.hasNext()) {
+                String reg = filters.next();
+                Object o = filter.get(reg);
+                if (o instanceof JSONArray) {
+                    addGoal(goalAprox, (JSONArray) o, threeDimentional, 1);
+                } else {
+                    double scale = 1;
+                    if (filter.getJSONObject(reg).has("scale")) {
+                        scale = filter.getJSONObject(reg).getDouble("scale");
+                    }
+                    if (filter.getJSONObject(reg).has("depth")) {
+                        scale *= Math.pow(2, filter.getJSONObject(reg).getDouble("depth"));
+                    }
+                    addGoal(goalAprox, filter.getJSONObject(reg).getJSONArray("array"), threeDimentional, scale);
+                }
+            }
+
+            List<AtomGoal> finalGoals = goalAprox.solve();
+            int approximationDepth = goalAprox.getDepth();
+            printLn("Output Registers        : " + getOutputRegisters(config).toString());
+            printLn("\tApproximated goals:");
+            printLn(GoalBag.toGoalsString(finalGoals, false, false, true, true));
+            printLn("");
+            printLn("Approximation Depth     : " + goalAprox.getDepth());
+            printLn("Approximation Error     : " + goalAprox.getError());
+            return finalGoals;
+        }
+
+        @Override
+        protected List<AtomGoal> makeInitialGoals(int[] divisions) {
+            List<AtomGoal> initialGoals = new ArrayList<>();
+            for (int i = 0; i < divisions.length; i++) {
+                int division = divisions[i];
+                initialGoals.add(new AtomGoal.Factory().add(new int[]{0,0,i}, 1 << division).get());
+            }
+            return initialGoals;
+        }
+
+        @Override
+        protected PairGenFactory<AtomGoal> makePairGenFactory(JSONObject json, RegisterAllocator<AtomGoal> registerAllocator) {
+            printLn("\t Making Pair Generation Factory:");
+            printLn("Name                        : " + json.getString("name"));
+            switch (json.getString("name")) {
+                default:
+                    throw new IllegalArgumentException("Unknown PairGen Factory " + json.getString("name"));
+                case "Scamp5":
+                    return makeScamp5PairGen(json, registerAllocator);
+            }
+        }
+
+        private PairGenFactory<AtomGoal> makeScamp5PairGen(JSONObject json, RegisterAllocator<AtomGoal> registerAllocator) {
+            printLn("Config Getter               : " + json.getString("configGetter"));
+            switch (json.getString("configGetter")) {
+                default:
+                    throw new IllegalArgumentException("Unknown Scamp5 ConfigGetter " + json.getString("configGetter"));
+                case "Threshold":
+                    printLn("Instruction to use          : " + json.getString("ops"));
+                    Consumer<Scamp5Config> configConsumer;
+                    switch (json.getString("ops")) {
+                        default:
+                            throw new IllegalArgumentException("Unknown Instuctions option " + json.getString("ops"));
+                        case "all":
+                            configConsumer = c -> c.useAll().useSubPowerOf2();
+                            break;
+                        case "basic":
+                            configConsumer = c -> c.useBasicOps().useSubPowerOf2();
+                            break;
+                    }
+                    printLn("Exhustive Search Threshold  : " + json.getInt("threshold"));
+                    return new Scamp5PairGenFactory<>(rs -> new ThresholdConfigGetter(rs, registerAllocator.getAvailableRegistersArray(), json.getInt("threshold"), configConsumer));
+            }
+
+        }
+
+        protected Verifier<AtomGoal> makeVerifier(JSONObject config){
+            String verf = config.getString("verifier");
+            switch (verf){
+                case "Scamp5Emulator":
+                    Verifier<AtomGoal> v =  new Scamp5Verifier();
+                    v.verbose(verbose);
+                    return v;
+                case "None":
+                    return Verifier.SkipVerify();
+                default:
+                    throw new IllegalArgumentException("Verifier Unknown");
+            }
+        }
+
+        private static void addGoal(Approximater goalAprox, JSONArray jsonArray, boolean threeDimentional, double scale) {
+            int xMax = 0;
+            int yMax = jsonArray.length();
+            int zMax = 0;
+            for (int i = 0; i < jsonArray.length(); i++) {
+                JSONArray row = jsonArray.getJSONArray(i);
+                xMax = Math.max(xMax, row.length());
+                if (threeDimentional) {
+                    for (int j = 0; j < row.length(); j++) {
+                        zMax = Math.max(zMax, row.getJSONArray(j).length());
+                    }
+                }
+            }
+
+            int xOffset = xMax / 2;
+            int yOffset = yMax / 2;
+            int zOffset = zMax / 2;
+
+            goalAprox.newGoal();
+            for (int i = 0; i < jsonArray.length(); i++) {
+                JSONArray row = jsonArray.getJSONArray(i);
+                for (int j = 0; j < row.length(); j++) {
+                    Object o = row.get(j);
+                    if (o instanceof JSONArray) {
+                        JSONArray array = (JSONArray) o;
+                        for (int k = 0; k < array.length(); k++) {
+                            double coefficant = array.getDouble(k);
+                            int z = k;
+                            goalAprox.put(j - xOffset, -(i - yOffset), z - zOffset, coefficant * scale);
+                        }
+                    } else if (!threeDimentional) {
+                        double coefficant = row.getDouble(j);
+                        goalAprox.put(j - xOffset, -(i - yOffset), 0, coefficant * scale);
+                    } else {
+                        throw new IllegalArgumentException("Cannot parse kernel: " + jsonArray);
+                    }
+                }
+            }
+        }
+
+    }
+
+
+    public int getAvailableRegisterCount() {
+        return registerAllocator.getAvailableRegisters();
+    }
+
+    public String getAvailableRegisters() {
+        return Arrays.toString(registerAllocator.getAvailableRegistersArray());
     }
 
     public String getTraversalAlgorithm() {
@@ -417,48 +516,20 @@ public class FileRun {
     }
 
 
-    private void addGoal(Approximater goalAprox, JSONArray jsonArray, boolean threeDimentional, double scale) {
-        int xMax = 0;
-        int yMax = jsonArray.length();
-        int zMax = 0;
-        for (int i = 0; i < jsonArray.length(); i++) {
-            JSONArray row = jsonArray.getJSONArray(i);
-            xMax = Math.max(xMax, row.length());
-            if(threeDimentional) {
-                for (int j = 0; j < row.length(); j++) {
-                    zMax = Math.max(zMax, row.getJSONArray(j).length());
-                }
-            }
+    private static RegisterAllocator.Register[] getRegisterArray(JSONArray availableRegisters) {
+        ArrayList<RegisterAllocator.Register> out = new ArrayList<>(availableRegisters.length());
+        for (int i = 0; i < availableRegisters.length(); i++) {
+            out.add(RegisterAllocator.Register.valueOf(availableRegisters.getString(i)));
         }
-
-        int xOffset = xMax/2;
-        int yOffset = yMax/2;
-        int zOffset = zMax/2;
-
-        goalAprox.newGoal();
-        for (int i = 0; i < jsonArray.length(); i++) {
-            JSONArray row = jsonArray.getJSONArray(i);
-            for (int j = 0; j < row.length(); j++) {
-                Object o = row.get(j);
-                if(o instanceof JSONArray){
-                    JSONArray array = (JSONArray) o;
-                    for (int k = 0; k < array.length(); k++) {
-                        double coefficant = array.getDouble(k);
-                        int z = k;
-                        goalAprox.put(j-xOffset, -(i-yOffset), z-zOffset, coefficant*scale);
-                    }
-                } else if(!threeDimentional){
-                    double coefficant = row.getDouble(j);
-                    goalAprox.put(j-xOffset, -(i-yOffset), 0, coefficant*scale);
-                } else {
-                    throw new IllegalArgumentException("Cannot parse kernel: "+jsonArray);
-                }
-            }
-        }
+        return out.toArray(new RegisterAllocator.Register[availableRegisters.length()]);
     }
 
+    private static List<RegisterAllocator.Register> getOutputRegisters(JSONObject config) {
+        JSONObject filter = config.getJSONObject("filter");
+        return filter.keySet().stream().map(RegisterAllocator.Register::valueOf).collect(Collectors.toList());
+    }
 
-    public static JSONObject fromJson(String path){
+    public static JSONObject fromJson(String path) {
 
         InputStream in = null;
         JSONTokener tokeniser = null;
@@ -469,7 +540,7 @@ public class FileRun {
         } catch (FileNotFoundException e) {
             try {
                 tokeniser = new JSONTokener(path);
-            } catch (JSONException ex){
+            } catch (JSONException ex) {
                 System.out.println("Cannot find file, or interpret as Json directly!");
                 e.printStackTrace();
                 ex.printStackTrace();
@@ -477,100 +548,48 @@ public class FileRun {
             }
         }
         JSONObject config = new JSONObject(tokeniser);
-        int verbose = config.has("verbose")? config.getInt("verbose"):10;
-        if(verbose>5 && in != null) {
+        int verbose = config.has("verbose") ? config.getInt("verbose") : 10;
+        if (verbose > 5 && in != null) {
             System.out.println("Json config read from   : '" + path + "'");
         }
-        if(verbose>10 && in == null) {
+        if (verbose > 10 && in == null) {
             System.out.println("Json config:\n" + path + "\n");
         }
-
 
 
         return config;
     }
 
 
-    private void printLnVerbose(String s){
-        if(verbose>10) System.out.println(s);
+    private static void printLnVerbose(String s) {
+        if (verbose > 10) System.out.println(s);
     }
 
-    private void printLnVerbose(String s, Object... args){
-        if(verbose>10) System.out.println(String.format(s, args));
+    private static void printLnVerbose(String s, Object... args) {
+        if (verbose > 10) System.out.println(String.format(s, args));
     }
 
-    private void printLn(String s){
-        if(verbose>5) System.out.println(s);
+    private static void printLn(String s) {
+        if (verbose > 5) System.out.println(s);
     }
 
-    private void printLn(String s, Object... args){
-        if(verbose>5) System.out.println(String.format(s, args));
+    private static void printLn(String s, Object... args) {
+        if (verbose > 5) System.out.println(String.format(s, args));
     }
 
-    private void printLnImportant(String s){
-        if(verbose>0) System.out.println(s);
+    private static void printLnImportant(String s) {
+        if (verbose > 0) System.out.println(s);
     }
 
-    private void printLnImportant(String s, Object... args){
-        if(verbose>0) System.out.println(String.format(s, args));
+    private static void printLnImportant(String s, Object... args) {
+        if (verbose > 0) System.out.println(String.format(s, args));
     }
 
-    private void printLnCritial(String s){
-        if(verbose>=0) System.out.println(s);
+    private static void printLnCritial(String s) {
+        if (verbose >= 0) System.out.println(s);
     }
 
-    private void printLnCritial(String s, Object... args){
-        if(verbose>=0) System.out.println(String.format(s, args));
+    private static void printLnCritial(String s, Object... args) {
+        if (verbose >= 0) System.out.println(String.format(s, args));
     }
-
-
-    private Tuple<Goal.Bounds, Double> checkPlan(String code, Plan p){
-        printLnVerbose(p.toGoalsString());
-        List<Goal> finalGoals = reverseSearch.getFinalGoals();
-        int[] divisions = reverseSearch.getInitialDivisions();
-        List<Goal.Bounds> coverage = new ArrayList<>();
-        double noise =0;
-        Scamp5Emulator emulator = Scamp5Emulator.newWithRegs((new Goal.Bounds(finalGoals).largestMagnitude()+1)*3, registerAllocator.getAvailableRegisters()<=6?6:24);
-        RegisterAllocator.Register[] initRegisters = registerAllocator.getInitRegisters();
-        for (int i = 0; i < initRegisters.length; i++) {
-            RegisterAllocator.Register r = initRegisters[i];
-            emulator.run(String.format("input(%s,%d)", r, (1 << divisions[i]) * 128));
-        }
-        emulator.pushCode(code);
-        emulator.flushInstructionBuffer();
-        for (int i = 0; i < finalGoals.size(); i++) {
-
-            final String reg = registerAllocator.getAvailableRegistersArray()[i].toString();
-            Map<Tuple<Integer, Tuple<Integer, String>>, Double> testMap = emulator.getRawProcessingElementContains(0, 0, reg);
-            noise += emulator.readNoise(0,0,reg);
-
-            Iterator<Tuple<Atom, Integer>> iterator = finalGoals.get(i).uniqueCountIterator();
-            while (iterator.hasNext()){
-                Tuple<Atom, Integer> t = iterator.next();
-                Tuple<Integer, Tuple<Integer, String>> coordinate = Tuple.triple(t.getA().x, t.getA().y, RegisterAllocator.Register.values()[t.getA().z].toString());
-                Double d = testMap.get(coordinate);
-                int expected = t.getA().positive? t.getB(): -t.getB();
-                if(d == null || Double.compare(expected, d) != 0){
-                    printLnCritial("INTEGRITY CHECK ERROR");
-                    printLnCritial(coordinate.toString());
-                    printLnCritial("%s",d==null?"null":d);
-                    printLnCritial("%s",expected);
-                    printLnCritial(code);
-                    printLnCritial(Goal.toGoalsString(finalGoals));
-                    printLnCritial(p.toGoalsString());
-                    return null;
-                }
-                testMap.remove(coordinate);
-            }
-            if(!testMap.isEmpty()){
-                printLnCritial("INTEGRITY CHECK ERROR!");
-                printLnCritial(testMap.toString());
-                return null;
-            }
-            coverage.add(emulator.getRegCoverge(0,0,reg));
-
-        }
-        return new Tuple<>(Goal.Bounds.combine(coverage), noise);
-    }
-
 }

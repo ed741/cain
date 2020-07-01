@@ -6,16 +6,16 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class GoalPair {
-    private final List<Goal> uppers;
-    private final List<Goal> lowers;
+public class GoalPair<G extends Goal> {
+    private final List<G> uppers;
+    private final List<G> lowers;
     private final Transformation transformation;
 
-    public List<Goal> getUppers() {
+    public List<G> getUppers() {
         return uppers;
     }
 
-    public List<Goal> getLowers() {
+    public List<G> getLowers() {
         return lowers;
     }
 
@@ -23,23 +23,23 @@ public class GoalPair {
         return transformation;
     }
 
-    public GoalPair(Goal u, Goal l, Transformation t) {
+    public GoalPair(G u, G l, Transformation t) {
         uppers = Collections.singletonList(u);
         lowers = Collections.singletonList(l);
         transformation = t;
     }
 
-    public GoalPair(Goal u, List<Goal> ls, Transformation t) {
+    public GoalPair(G u, List<G> ls, Transformation t) {
         uppers = Collections.singletonList(u);
-        ArrayList<Goal> list = new ArrayList<>(ls);
+        ArrayList<G> list = new ArrayList<>(ls);
         lowers = Collections.unmodifiableList(list);
         transformation = t;
     }
 
-    public GoalPair(List<Goal> us, List<Goal> ls, Transformation t) {
-        ArrayList<Goal> ulist = new ArrayList<>(us);
+    public GoalPair(List<G> us, List<G> ls, Transformation t) {
+        ArrayList<G> ulist = new ArrayList<>(us);
         uppers = Collections.unmodifiableList(ulist);
-        ArrayList<Goal> llist = new ArrayList<>(ls);
+        ArrayList<G> llist = new ArrayList<>(ls);
         lowers = Collections.unmodifiableList(llist);
         transformation = t;
     }
@@ -51,8 +51,8 @@ public class GoalPair {
     }
     public String toStringN() {
         StringBuilder sLowers  = new StringBuilder("[");
-        for (Goal g: lowers){
-            sLowers.append(Goal.goalStringN(g));
+        for (G g: lowers){
+            sLowers.append(g.toString());
             if (g != lowers.get(lowers.size()-1)) {
                 sLowers.append(",");
             }
@@ -60,8 +60,8 @@ public class GoalPair {
         sLowers.append("]");
 
         StringBuilder sUppers  = new StringBuilder("[");
-        for (Goal g: uppers){
-            sUppers.append(Goal.goalStringN(g));
+        for (G g: uppers){
+            sUppers.append(g.toString());
             if (g != uppers.get(uppers.size()-1)) {
                 sUppers.append(",");
             }

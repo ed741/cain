@@ -11,31 +11,27 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-public class Plan {
+public class Plan<G extends Goal<G>> {
     private static final ReentrantLock linkLock = new ReentrantLock();
     private static Plan linked = null;
 
-    private final Step step;
-    private final Plan previous;
-    private final List<Goal> initialGoals;
+    private final Step<G> step;
+    private final Plan<G> previous;
+    private final List<G> initialGoals;
     private final int depth;
     private final int[] depths;
 
-    public Plan(List<Goal> finalGoals, List<Goal> initialGoals){
-        GoalPair p = new GoalPair((Goal) null, finalGoals, new Transformation.Null(finalGoals.size(), 0));
-        Goal[] translation  = new Goal[finalGoals.size()];
-        for (int i = 0; i < translation.length; i++) {
-            translation[i] = finalGoals.get(i);
-        }
+    public Plan(List<G> finalGoals, List<G> initialGoals){
+        GoalPair<G> p = new GoalPair<>((G) null, finalGoals, new Transformation.Null(finalGoals.size(), 0));
 
-        this.step = new Step(p, new GoalBag(finalGoals), translation, -1);
+        this.step = new Step<>(p, new GoalBag<>(finalGoals), finalGoals, -1);
         this.previous = null;
         this.initialGoals = initialGoals;
         this.depth = 0;
         this.depths = new int[finalGoals.size()];
     }
 
-    private Plan(Plan previous, List<Goal> initialGoals, Step step){
+    private Plan(Plan<G> previous, List<G> initialGoals, Step<G> step){
         this.previous = previous;
         this.initialGoals = initialGoals;
         this.step = step;
@@ -43,7 +39,7 @@ public class Plan {
         this.depths = new int[step.currentGoals.size()];
 
         int d = 0;
-        for (Goal upper : step.getUppers()) {
+        for (G upper : step.getUppers()) {
             for (int i = 0; i < previous.step.currentGoals.size(); i++) {
                 if(upper.equivalent(previous.step.currentGoals.get(i))){
                     d = Math.max(d, previous.depths[i]+1);
@@ -51,7 +47,7 @@ public class Plan {
             }
         }
         for (int i = 0; i < step.currentGoals.size(); i++) {
-            Goal g = step.currentGoals.get(i);
+            G g = step.currentGoals.get(i);
             for (int j = 0; j < previous.step.currentGoals.size(); j++) {
                 if(g.equivalent(previous.step.currentGoals.get(j))){
                     this.depths[i] = previous.depths[j];
@@ -59,7 +55,7 @@ public class Plan {
                 }
             }
             for (int j = 0; j < step.getLowers().size(); j++) {
-                Goal l = step.getLowerTrueGoal(j);
+                G l = step.getLowerTrueGoal(j);
                 if(g.equivalent(l)){
                     this.depths[i] = Math.max(this.depths[i], d);
                 }
@@ -69,14 +65,14 @@ public class Plan {
 
     }
 
-    public Plan newAdd(GoalPair newPair, GoalBag currentGoals, Goal[] translation, int child) {
-        Step newStep = new Step(newPair, currentGoals, translation, child);
-        return new Plan(this, this.initialGoals, newStep);
+    public Plan<G> newAdd(GoalPair<G> newPair, GoalBag<G> currentGoals, List<G> translation, int child) {
+        Step<G> newStep = new Step<>(newPair, currentGoals, translation, child);
+        return new Plan<>(this, this.initialGoals, newStep);
     }
 
-    public List<Step> getAll() {
-        List<Step> steps = new ArrayList<>();
-        Plan c = this;
+    public List<Step<G>> getAll() {
+        List<Step<G>> steps = new ArrayList<>();
+        Plan<G> c = this;
         while (c != null){
             steps.add(c.step);
             c = c.previous;
@@ -86,19 +82,19 @@ public class Plan {
     }
 
     public String produceCode(RegisterAllocator.Mapping registerMap) {
-        List<Step> all = getAll();
+        List<Step<G>> all = getAll();
         StringBuilder sb = new StringBuilder("//Kernel Code!\n");
         sb.append("//Inputs in: ").append(Arrays.toString(registerMap.initRegisters())).append("\n");
         for (int i = all.size()-1; i >= 0; i--) {
-            Step step = all.get(i);
+            Step<G> step = all.get(i);
             List<RegisterAllocator.Register> uppers = new ArrayList<>();
             for (int j = 0; j < step.getUppers().size(); j++) {
-                Goal upperGoal = step.getUppers().get(j);
+                G upperGoal = step.getUppers().get(j);
                 uppers.add(registerMap.get(upperGoal));
             }
             List<RegisterAllocator.Register> lowers = new ArrayList<>();
             for (int j = 0; j < step.getLowers().size(); j++) {
-                Goal lowerGoal = step.getLowerTrueGoal(j);
+                G lowerGoal = step.getLowerTrueGoal(j);
                 lowers.add(registerMap.get(lowerGoal));
             }
             sb.append(step.code(uppers, lowers, registerMap.getTrash(i)));
@@ -108,18 +104,18 @@ public class Plan {
         return sb.toString();
     }
 
-    public static class Step {
-        private final GoalPair goalPair;
-        private final GoalBag currentGoals;
-        private final Goal[] translation;
+    public static class Step<G extends Goal<G>> {
+        private final GoalPair<G> goalPair;
+        private final GoalBag<G> currentGoals;
+        private final List<G> translation;
         private final int child;
         private int idx;
         private List<Step> forwardsLinks;
         private List<Step> backwardsLinks;
 
-        private Step(GoalPair t, GoalBag currentGoals, Goal[] translation, int child) {
+        private Step(GoalPair<G> t, GoalBag<G> currentGoals, List<G> translation, int child) {
             goalPair = t;
-            this.currentGoals = new GoalBag(currentGoals);
+            this.currentGoals = new GoalBag<>(currentGoals);
             this.translation = translation;
             this.child = child;
 
@@ -129,10 +125,10 @@ public class Plan {
         public GoalBag liveGoals(){
             return currentGoals;
         }
-        public List<Goal> getUppers(){
+        public List<G> getUppers(){
             return goalPair.getUppers();
         }
-        public List<Goal> getLowers(){
+        public List<G> getLowers(){
             return goalPair.getLowers();
         }
         public Transformation getTransformation(){
@@ -157,18 +153,18 @@ public class Plan {
                     "\n";
         }
 
-        private String toGoalsString(List<Goal> input) {
+        private String toGoalsString(List<G> input) {
 
             boolean[] tops = new boolean[currentGoals.size()];
             boolean[] bottoms = new boolean[currentGoals.size()];
             for (int i = 0; i < currentGoals.size(); i++) {
-                Goal currentGoal = currentGoals.get(i);
+                G currentGoal = currentGoals.get(i);
                 boolean in = input.contains(currentGoal);
                 boolean out = this.goalPair.getLowers().contains(currentGoal);
                 tops[i] = out;
                 bottoms[i] = in;
             }
-            return Goal.toGoalsString(currentGoals, tops, bottoms, true, true);
+            return currentGoals.toGoalsString(tops, bottoms, true, true);
         }
 
         @SuppressWarnings("WeakerAccess")
@@ -176,8 +172,8 @@ public class Plan {
             return goalPair.getTransformation().code(uppers, lowers, trash);
         }
 
-        public Goal getLowerTrueGoal(int i) {
-            return translation[i];
+        public G getLowerTrueGoal(int i) {
+            return translation.get(i);
         }
     }
 
@@ -221,7 +217,7 @@ public class Plan {
         if(linked == this){
             return;
         }
-        List<Step> all = getAll();
+        List<Step<G>> all = getAll();
         for (int i = 0; i < all.size(); i++) {
             Step s = all.get(i);
             s.backwardsLinks = new ArrayList<>();
@@ -229,14 +225,14 @@ public class Plan {
             s.idx = i;
         }
         for (int i = 0; i < all.size(); i++) {
-            Step step = all.get(i);
-            List<Goal> lowers = step.getLowers();
+            Step<G> step = all.get(i);
+            List<G> lowers = step.getLowers();
             for (int l = 0; l < lowers.size(); l++) {
-                Goal lower = step.getLowerTrueGoal(l);
+                G lower = step.getLowerTrueGoal(l);
                 int j = i + 1;
                 jloop:
                 for (; j < all.size(); j++) {
-                    for (Goal upper : all.get(j).getUppers()) {
+                    for (G upper : all.get(j).getUppers()) {
                         if (upper.equivalent(lower)) {
                             step.backwardsLinks.add(all.get(j));
                             all.get(j).forwardsLinks.add(step);
@@ -254,14 +250,14 @@ public class Plan {
     }
 
     public int[] circuitDepths(){
-        List<Step> all = getAll();
+        List<Step<G>> all = getAll();
         int[] depths = new int[all.get(0).getLowers().size()];
         for (int i = 0; i < depths.length; i++) {
             int[] depth = new int[all.size()];
             int start = -1;
-            Goal lower = all.get(0).getLowerTrueGoal(i);
+            G lower = all.get(0).getLowerTrueGoal(i);
             for (int j = 1; start < 0 && j < all.size(); j++){
-                for (Goal upper : all.get(j).getUppers()) {
+                for (G upper : all.get(j).getUppers()) {
                     if(lower.equivalent(upper)){
                         start = j;
                         break;
@@ -272,7 +268,7 @@ public class Plan {
                 depth[start] = 1;
                 for (int j = start + 1; j < all.size(); j++) {
                     int max = Integer.MIN_VALUE;
-                    for (Goal upper : all.get(j).getUppers()) {
+                    for (G upper : all.get(j).getUppers()) {
                         for (int k = j - 1; k >= start; k--) {
                             for (int l = 0; l < all.get(k).getLowers().size(); l++) {
                                 if (upper.equivalent(all.get(k).getLowerTrueGoal(l))) {
@@ -299,7 +295,7 @@ public class Plan {
 
     @Override
     public String toString() {
-        List<Step> all = getAll();
+        List<Step<G>> all = getAll();
         StringBuilder sb = new StringBuilder("plan:\n");
         for (int i = 0; i<all.size(); i++) {
             sb.append(i);
@@ -311,14 +307,14 @@ public class Plan {
     }
 
     public String toGoalsString(){
-        List<Step> all = getAll();
+        List<Step<G>> all = getAll();
         StringBuilder sb = new StringBuilder("plan:\n");
         for (int i = 0; i<all.size(); i++) {
             sb.append(i);
             sb.append(": ");
             sb.append(all.get(i).toStringN());
             sb.append("\n");
-            List<Goal> input = new ArrayList<>();
+            List<G> input = new ArrayList<>();
             if(i+1<all.size()){
                 input.addAll(all.get(i+1).getUppers());
             }

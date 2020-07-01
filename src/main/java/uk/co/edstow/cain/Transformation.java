@@ -32,7 +32,6 @@ public abstract class Transformation {
     }
     public abstract int[] inputRegisterIntraInterference();
     public abstract boolean clobbersInput(int i);
-    //public abstract List<Goal> applyBackwards()throws TransformationApplicationException;
     public abstract double cost();
     public abstract String toStringN();
 

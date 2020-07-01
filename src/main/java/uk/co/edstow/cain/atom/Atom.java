@@ -1,4 +1,4 @@
-package uk.co.edstow.cain.structures;
+package uk.co.edstow.cain.atom;
 
 import java.util.Comparator;
 

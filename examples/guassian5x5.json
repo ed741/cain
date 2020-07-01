@@ -1,4 +1,5 @@
 {"name":"Guassian5x5",
+  "goalSystem":"Atom",
   "maxApproximationDepth":6,
   "maxApproximationError":0,
   "3d": false,
@@ -40,6 +41,8 @@
     "configGetter": "Threshold",
     "ops":"all",
     "threshold":10
-  }
+  },
+
+  "verifier":"Scamp5Emulator"
 
 }

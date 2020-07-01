@@ -12,6 +12,7 @@ class FileRunTest {
         String json =
                 "{\"name\":\"Sobel\",\n" +
                 "  \"verbose\":-1,\n" +
+                "  \"goalSystem\":Atom,\n" +
                 "  \"maxApproximationDepth\":3,\n" +
                 "  \"maxApproximationError\":0,\n" +
                 "  \"3d\": false,\n" +
@@ -50,13 +51,14 @@ class FileRunTest {
                 "    \"configGetter\": \"Threshold\",\n" +
                 "    \"ops\":\"all\",\n" +
                 "    \"threshold\":10\n" +
-                "  }\n" +
+                "  },\n" +
+                "  \"verifier\":\"Scamp5Emulator\"\n" +
                 "\n" +
                 "}";
         try {
-            FileRun fileRun = new FileRun(json);
+            FileRun<?> fileRun = FileRun.loadFromJson(json);
             fileRun.run();
-            List<FileRun.Result> results = fileRun.getResults();
+            List<? extends FileRun<?>.Result> results = fileRun.getResults();
             assertTrue(results.stream().mapToInt(r -> r.depth).min().getAsInt()<=5);
         } catch (Exception e){
             e.printStackTrace();

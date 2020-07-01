@@ -1,5 +1,7 @@
 package uk.co.edstow.cain.scamp5;
 
+import uk.co.edstow.cain.atom.Atom;
+import uk.co.edstow.cain.atom.AtomGoal;
 import uk.co.edstow.cain.structures.*;
 import uk.co.edstow.cain.RegisterAllocator;
 import uk.co.edstow.cain.ReverseSearch;
@@ -33,30 +35,30 @@ class DemoSuite {
     private static class TestSetup {
         final String name;
         final RegisterAllocator.Register[] availableRegisters;
-        final PairGenFactory pairGenFactory;
-        final ReverseSearch.RunConfig runConfig;
+        final PairGenFactory<AtomGoal> pairGenFactory;
+        final ReverseSearch.RunConfig<AtomGoal> runConfig;
 
         final int cores;
-        final Supplier<? extends TraversalSystem<WorkState>> traversalAlgorithm;
+        final Supplier<? extends TraversalSystem<WorkState<AtomGoal>>> traversalAlgorithm;
         final int registerCount;
         final int threshold;
         final boolean allOps;
         final int seconds;
-        final RegisterAllocator registerAllocator;
+        final RegisterAllocator<AtomGoal> registerAllocator;
 
-        private TestSetup(int cores, Supplier<? extends TraversalSystem<WorkState>> traversalAlgorithm, int registerCount, int threshold, boolean allOps, int seconds){
+        private TestSetup(int cores, Supplier<? extends TraversalSystem<WorkState<AtomGoal>>> traversalAlgorithm, int registerCount, int threshold, boolean allOps, int seconds){
             RegisterAllocator.Register[] allRegisters = new RegisterAllocator.Register[]{A, B, C, D, E, F};
             final RegisterAllocator.Register[] availableRegisters = Arrays.copyOfRange(allRegisters, 0, registerCount);
-            RegisterAllocator ra = new RegisterAllocator(new RegisterAllocator.Register[]{A}, availableRegisters);
-            PairGenFactory pairGenFactory = new Scamp5PairGenFactory<>(rs -> new ConfigGetter<Scamp5Config>() {
-                PatternHuristic<Scamp5Config> heuristic = new PatternHuristic<>(rs);
+            RegisterAllocator<AtomGoal> ra = new RegisterAllocator<>(new RegisterAllocator.Register[]{A}, availableRegisters);
+            PairGenFactory<AtomGoal> pairGenFactory = new Scamp5PairGenFactory<>(rs -> new ConfigGetter<AtomGoal, Scamp5Config<AtomGoal>>() {
+                PatternHuristic<Scamp5Config<AtomGoal>> heuristic = new PatternHuristic<>(rs);
                 @Override
-                public Scamp5Config getConfig(GoalBag goals, int depth) {
+                public Scamp5Config<AtomGoal> getConfig(GoalBag<AtomGoal> goals, int depth) {
                     int max = Integer.MIN_VALUE;
-                        for (Goal goal : goals) {
+                        for (AtomGoal goal : goals) {
                             max = Math.max(max, goal.atomCount());
                         }
-                    Scamp5Config conf = new Scamp5Config(availableRegisters.length, depth, rs.getInitialGoals());
+                    Scamp5Config<AtomGoal> conf = new Scamp5Config<>(availableRegisters.length, depth, rs.getInitialGoals());
                         if(allOps) {
                             conf.useAll();
                             conf.useSubPowerOf2();
@@ -68,14 +70,14 @@ class DemoSuite {
                 }
 
                 @Override
-                public Scamp5Config getConfigForDirectSolve(List<Goal> goals, int depth) {
-                    return new Scamp5Config(availableRegisters.length, depth, rs.getInitialGoals()).useAll();
+                public Scamp5Config<AtomGoal> getConfigForDirectSolve(List<AtomGoal> goals, int depth) {
+                    return new Scamp5Config<>(availableRegisters.length, depth, rs.getInitialGoals()).useAll();
                 }
             });
 
-            ReverseSearch.RunConfig config = new ReverseSearch.RunConfig();
-            config.setSearchTime(seconds*1000).setWorkers(cores).setRegisterAllocator(ra).setTimeOut(true)
-                    .setTraversalAlgorithm(traversalAlgorithm).setLivePrintPlans(1);
+            ReverseSearch.RunConfig<AtomGoal> config = new ReverseSearch.RunConfig<>();
+            config.setSearchTime(seconds*1000).setWorkers(cores).setRegisterAllocator(ra).setTimeOut(true);
+            config.setTraversalAlgorithm(traversalAlgorithm).setLivePrintPlans(1);
             config.setCostFunction(Plan::depth);
 
 
@@ -118,12 +120,12 @@ class DemoSuite {
 
     private static class Test{
         final String name;
-        final List<Goal> finalGoals;
+        final List<AtomGoal> finalGoals;
         final int[] divisions;
         final Map<TestSetup, Plan> results;
         final String aukeScore;
 
-        Test(String name, List<Goal> finalGoals, int divisions, String aukeScore) {
+        Test(String name, List<AtomGoal> finalGoals, int divisions, String aukeScore) {
             this.name = name;
             this.finalGoals = finalGoals;
             this.divisions = new int[]{divisions};
@@ -166,8 +168,8 @@ class DemoSuite {
                     {0, 0, 0, 0, 0}
             };
 
-            demos.add(new Test("Vertical Sobel", Collections.singletonList(new Goal.Factory(SobelV).get()), 0, "7"));
-            demos.add(new Test("Vertical and Horizontal Sobel", Arrays.asList(new Goal.Factory(SobelV).get(), new Goal.Factory(SobelH).get()), 0, "(7+7)"));
+            demos.add(new Test("Vertical Sobel", Collections.singletonList(new AtomGoal.Factory(SobelV).get()), 0, "7"));
+            demos.add(new Test("Vertical and Horizontal Sobel", Arrays.asList(new AtomGoal.Factory(SobelV).get(), new AtomGoal.Factory(SobelH).get()), 0, "(7+7)"));
         }
         if (BOX) {
             final int[][] Box2x2 = new int[][]{
@@ -178,7 +180,7 @@ class DemoSuite {
                     {0, 0, 0, 0, 0}
             };
 
-            demos.add(new Test("2x2 Box", Collections.singletonList(new Goal.Factory(Box2x2).get()), 0, "4"));
+            demos.add(new Test("2x2 Box", Collections.singletonList(new AtomGoal.Factory(Box2x2).get()), 0, "4"));
 
             final int[][] Box3x3 = new int[][]{
                     {0, 0, 0, 0, 0},
@@ -188,7 +190,7 @@ class DemoSuite {
                     {0, 0, 0, 0, 0}
             };
 
-            demos.add(new Test("3x3 Box", Collections.singletonList(new Goal.Factory(Box3x3).get()), 0, "8"));
+            demos.add(new Test("3x3 Box", Collections.singletonList(new AtomGoal.Factory(Box3x3).get()), 0, "8"));
 
             final int[][] Box5x5 = new int[][]{
                     {1, 1, 1, 1, 1},
@@ -197,8 +199,8 @@ class DemoSuite {
                     {1, 1, 1, 1, 1},
                     {1, 1, 1, 1, 1}
             };
-            demos.add(new Test("5x5 Box", Collections.singletonList(new Goal.Factory(Box5x5).get()), 0, "15"));
-            demos.add(new Test("5x5 and 3x3 Box", Arrays.asList(new Goal.Factory(Box3x3).get(), new Goal.Factory(Box5x5).get()), 0, "(8+15)"));
+            demos.add(new Test("5x5 Box", Collections.singletonList(new AtomGoal.Factory(Box5x5).get()), 0, "15"));
+            demos.add(new Test("5x5 and 3x3 Box", Arrays.asList(new AtomGoal.Factory(Box3x3).get(), new AtomGoal.Factory(Box5x5).get()), 0, "(8+15)"));
         }
         if (GUASS) {
             int[][] Guass3x3 = new int[][]{
@@ -208,7 +210,7 @@ class DemoSuite {
                     {0, 1, 2, 1, 0},
                     {0, 0, 0, 0, 0}
             };
-            demos.add(new Test("3x3 Guass", Collections.singletonList(new Goal.Factory(Guass3x3).get()), 4, "12"));
+            demos.add(new Test("3x3 Guass", Collections.singletonList(new AtomGoal.Factory(Guass3x3).get()), 4, "12"));
 
             int[][] Guass5x5 = new int[][]{
                     {0, 1, 2, 1, 0},
@@ -217,8 +219,8 @@ class DemoSuite {
                     {1, 4, 6, 4, 1},
                     {0, 1, 2, 1, 0}
             };
-            demos.add(new Test("5x5 Guass", Collections.singletonList(new Goal.Factory(Guass5x5).get()), 6, "50 (44?)"));
-            demos.add(new Test("5x5 and 3x3 Guass", Arrays.asList(new Goal.Factory(Guass5x5).get(), new Goal.Factory(Guass3x3, 4).get()), 6, "(50+12)"));
+            demos.add(new Test("5x5 Guass", Collections.singletonList(new AtomGoal.Factory(Guass5x5).get()), 6, "50 (44?)"));
+            demos.add(new Test("5x5 and 3x3 Guass", Arrays.asList(new AtomGoal.Factory(Guass5x5).get(), new AtomGoal.Factory(Guass3x3, 4).get()), 6, "(50+12)"));
         }
         if (CNN_ON_FPSP_ANALOG_NET_2) {// AnalogNet2, https://github.com/brouwa/CNNs-on-FPSPs/tree/master/1%20-%20AnalogNet2
              final int[][] kernel1 = new int[][]{
@@ -245,7 +247,7 @@ class DemoSuite {
                     {0, 0, 0, 0, 0}
             };
 
-            demos.add(new Test("AnalogNet2", Arrays.asList(new Goal.Factory(kernel1).get(), new Goal.Factory(kernel2).get(), new Goal.Factory(kernel3).get()), 2, "UNKNOWN"));
+            demos.add(new Test("AnalogNet2", Arrays.asList(new AtomGoal.Factory(kernel1).get(), new AtomGoal.Factory(kernel2).get(), new AtomGoal.Factory(kernel3).get()), 2, "UNKNOWN"));
         }
         if (CNN_ON_FPSP_MAX_POOLED) {//https://github.com/brouwa/CNNs-on-FPSPs/
             final int[][] kernel1 = new int[][]{
@@ -280,15 +282,15 @@ class DemoSuite {
                     {0, 0, 0, 0, 0}
             };
 
-            demos.add(new Test("MaxPooled", Arrays.asList(new Goal.Factory(kernel1).get(), new Goal.Factory(kernel2).get(), new Goal.Factory(kernel3).get(), new Goal.Factory(kernel4).get()), 2, "UNKNOWN"));
+            demos.add(new Test("MaxPooled", Arrays.asList(new AtomGoal.Factory(kernel1).get(), new AtomGoal.Factory(kernel2).get(), new AtomGoal.Factory(kernel3).get(), new AtomGoal.Factory(kernel4).get()), 2, "UNKNOWN"));
         }
         {
 
             if (RANDOM_DENSE) {
                 Random rand = new Random(2001);
-                Goal[] r = new Goal[4];
+                AtomGoal[] r = new AtomGoal[4];
                 for (int i = 0; i < r.length; i++) {
-                    r[i] = new Goal.Factory(makeRandom(rand, 3, 0, 8, 0)).get();
+                    r[i] = new AtomGoal.Factory(makeRandom(rand, 3, 0, 8, 0)).get();
                 }
                 demos.add(new Test("Random0 3x3 [0-8] 0%", Collections.singletonList(r[0]), 3, "30"));
                 demos.add(new Test("Random1 3x3 [0-8] 0%", Collections.singletonList(r[1]), 3, "35"));
@@ -301,9 +303,9 @@ class DemoSuite {
             }
             if (RANDOM_SPARSE) {
                 Random rand = new Random(2002);
-                Goal[] r = new Goal[4];
+                AtomGoal[] r = new AtomGoal[4];
                 for (int i = 0; i < r.length; i++) {
-                    r[i] = new Goal.Factory(makeRandom(rand, 3, 1, 8, 0.5)).get();
+                    r[i] = new AtomGoal.Factory(makeRandom(rand, 3, 1, 8, 0.5)).get();
                 }
                 demos.add(new Test("Random0 3x3 [1-8] 50%", Collections.singletonList(r[0]), 3, "22"));
                 demos.add(new Test("Random1 3x3 [1-8] 50%", Collections.singletonList(r[1]), 3, "15"));
@@ -344,16 +346,21 @@ class DemoSuite {
 
     private static void runFilter(Test test, List<TestSetup> setups){
         System.out.println("Running: "+ test.name);
-        System.out.println(Goal.toGoalsString(test.finalGoals));
+        System.out.println(GoalBag.toGoalsString(test.finalGoals));
 
         for (TestSetup setup : setups) {
-            ReverseSearch rs = new ReverseSearch(test.divisions, test.finalGoals, setup.pairGenFactory, setup.runConfig);
+            List<AtomGoal> initialGoals = new ArrayList<>();
+            for (int i = 0; i < test.divisions.length; i++) {
+                int division = test.divisions[i];
+                initialGoals.add(new AtomGoal.Factory().add(new int[]{0,0,i}, 1 << division).get());
+            }
+            ReverseSearch<AtomGoal> rs = new ReverseSearch<>(test.divisions, initialGoals, test.finalGoals, setup.pairGenFactory, setup.runConfig);
             rs.search();
 
             double min = Double.MAX_VALUE;
             int iMin = 0;
             for (int i = 0; i < rs.getPlans().size(); i++) {
-                Plan pl = rs.getPlans().get(i);
+                Plan<AtomGoal> pl = rs.getPlans().get(i);
                 if (rs.costFunction.apply(pl) < min) {
                     iMin = i;
                     min = rs.costFunction.apply(pl);
@@ -363,7 +370,7 @@ class DemoSuite {
 
             System.out.println("Best: "+ iMin);
             if(iMin < rs.getPlans().size()) {
-                Plan p = rs.getPlans().get(iMin);
+                Plan<AtomGoal> p = rs.getPlans().get(iMin);
                 System.out.println("length: " + p.depth() + " Cost: " + rs.costFunction.apply(p));
                 System.out.println(p);
                 System.out.println("CircuitDepths:" + Arrays.toString(p.circuitDepths()));
@@ -372,7 +379,7 @@ class DemoSuite {
                 //System.out.println(mapping);
                 String code = p.produceCode(mapping);
                 System.out.println(code);
-                System.out.println(Goal.toGoalsString(test.finalGoals));
+                System.out.println(GoalBag.toGoalsString(test.finalGoals));
 
                 if(checkPlan(test, setup, code)) {
                     System.out.println("Code validated on emulator");
@@ -465,7 +472,7 @@ class DemoSuite {
                 }
             }
             sb.append("& ");
-            if(1 < demo.finalGoals.stream().mapToInt(g -> Goal.Bounds.BoundsFromGoal(g).largestMagnitude()).max().getAsInt()){
+            if(1 < demo.finalGoals.stream().mapToInt(g -> AtomGoal.AtomBounds.BoundsFromGoal(g).largestMagnitude()).max().getAsInt()){
                 sb.append("\\vspace{2.5em}");
             } else {
                 sb.append("\\vspace{1.1em}");
@@ -478,15 +485,15 @@ class DemoSuite {
         return sb.toString();
     }
 
-    private static List<String> goalsToLatex(List<Goal> goals){
-        Goal.Bounds b = new Goal.Bounds(new Goal.Bounds(goals), new Atom(0,0,0, true));
+    private static List<String> goalsToLatex(List<AtomGoal> goals){
+        AtomGoal.AtomBounds b = new AtomGoal.AtomBounds(new AtomGoal.AtomBounds(goals), new Atom(0,0,0, true));
         int xr = Math.max(Math.abs(b.xMax), Math.abs(b.xMin));
         int yr = Math.max(Math.abs(b.yMax), Math.abs(b.yMin));
         int r = Math.max(xr, yr);
-        b = new Goal.Bounds(b, new Atom(-r,-r,0, true));
-        b = new Goal.Bounds(b, new Atom(r,r,0, true));
+        b = new AtomGoal.AtomBounds(b, new Atom(-r,-r,0, true));
+        b = new AtomGoal.AtomBounds(b, new Atom(r,r,0, true));
         List<String> out = new ArrayList<>(goals.size());
-        for (Goal goal : goals) {
+        for (AtomGoal goal : goals) {
             String[][] table = goal.getCharTable(b, false, false, false, false);
             StringBuilder sb = new StringBuilder("$\\begin{bsmallmatrix} ");
 
@@ -503,7 +510,7 @@ class DemoSuite {
     }
 
     private static boolean checkPlan(Test test, TestSetup setup, String code){
-        Scamp5Emulator emulator = new Scamp5Emulator(new Goal.Bounds(test.finalGoals).largestMagnitude()*3);
+        Scamp5Emulator emulator = new Scamp5Emulator(new AtomGoal.AtomBounds(test.finalGoals).largestMagnitude()*3);
 //        Scamp5Emulator.verbose = 100;
         RegisterAllocator.Register[] initRegisters = setup.registerAllocator.getInitRegisters();
         for (int i = 0; i < initRegisters.length; i++) {
