@@ -7,7 +7,7 @@ import uk.co.edstow.cain.util.Tuple;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class RegisterAllocator {
+public class RegisterAllocator<G extends Goal<G>> {
     private final Register[] registers;
     private final Register[] init;
 
@@ -29,23 +29,23 @@ public class RegisterAllocator {
         return init;
     }
 
-    public Mapping solve(Plan plan, List<Goal> initialGoals){
-        List<Plan.Step> all_r = plan.getAll();
+    public RegisterAllocator<G>.Mapping solve(Plan<G> plan, List<G> initialGoals){
+        List<Plan.Step<G>> all_r = plan.getAll();
         List<Set<Integer>> requiresInit = new ArrayList<>(init.length);
         for (Register i : init) {
             requiresInit.add(new HashSet<>());
         }
 
-        Goal[] initialTrueGoals = new Goal[init.length];
+        List<G> initialTrueGoals = new ArrayList<>(init.length);
 
         for (int j = 0; j < init.length; j++) {
             inits:
             for (int i = all_r.size() - 1; i >= 0; i--) {
-                Plan.Step step = all_r.get(i);
+                Plan.Step<G> step = all_r.get(i);
                 for (int l = 0; l < step.getLowers().size(); l++) {
-                    Goal g = step.getLowerTrueGoal(l);
+                    G g = step.getLowerTrueGoal(l);
                     if(g.same(initialGoals.get(j))){
-                        initialTrueGoals[j] = g;
+                        initialTrueGoals.add(g);
                         break inits;
                     }
                 }
@@ -65,7 +65,7 @@ public class RegisterAllocator {
         for (int i = 0; i < all_r.size() + initialGoals.size(); i++) {
             List<Integer> l = new ArrayList<>();
             if(i < all_r.size()) {
-                for (Goal U : all_r.get(i).getUppers()) {
+                for (G U : all_r.get(i).getUppers()) {
                     l.add(i);
                 }
             }else{
@@ -75,18 +75,18 @@ public class RegisterAllocator {
         }
 
         for (int i = 0; i < all_r.size(); i++) {
-            Plan.Step step = all_r.get(i);
+            Plan.Step<G> step = all_r.get(i);
 
-            List<Goal> lowers = step.getLowers();
+            List<G> lowers = step.getLowers();
             for (int lowerIdx = 0; lowerIdx < lowers.size(); lowerIdx++) {
-                Goal trueGoal = step.getLowerTrueGoal(lowerIdx);
+                G trueGoal = step.getLowerTrueGoal(lowerIdx);
                 int j = i + 1;
                 int k = -1;
                 jloop:
                 while (j < all_r.size()) {
-                    List<Goal> uppers = all_r.get(j).getUppers();
+                    List<G> uppers = all_r.get(j).getUppers();
                     for (int upperIdx = 0; upperIdx < uppers.size(); upperIdx++) {
-                        Goal upper = uppers.get(upperIdx);
+                        G upper = uppers.get(upperIdx);
                         if (upper.equivalent(trueGoal)) {
                             k = upperIdx;
                             break jloop;
@@ -164,7 +164,7 @@ public class RegisterAllocator {
                                 boolean addFirst = false;
 
                                 for (int l = 0; !addFirst && l < all_r.get(i).getLowers().size(); l++) {
-                                    Goal trueLower = all_r.get(i).getLowerTrueGoal(l);
+                                    G trueLower = all_r.get(i).getLowerTrueGoal(l);
                                     if (j < all_r.size() && trueLower.equivalent(all_r.get(j).getUppers().get(k))) {
                                         for (int u = 0; !addFirst && u < all_r.get(i).getUppers().size(); u++) {
                                             if (all_r.get(i).getTransformation().inputRegisterOutputInterference(u)[l]) {
@@ -223,7 +223,7 @@ public class RegisterAllocator {
                         // Check if there are any constraints on other uses of proposed jk register
 
                         for (int l = 0; l < all_r.get(i).getLowers().size(); l++) {
-                            Goal trueLower = all_r.get(i).getLowerTrueGoal(l);
+                            G trueLower = all_r.get(i).getLowerTrueGoal(l);
                             if (trueLower.equivalent(all_r.get(jk.getA()).getUppers().get(jk.getB()))) {
                                 for (int u = 0; u < all_r.get(i).getUppers().size(); u++) {
                                     if (all_r.get(i).getTransformation().inputRegisterOutputInterference(u)[l]) {
@@ -250,7 +250,7 @@ public class RegisterAllocator {
                 } else {
                     // Initial cases
                     int initIdx = jk.getA() - all_r.size();
-                    Goal trueGoal = initialTrueGoals[initIdx];
+                    G trueGoal = initialTrueGoals.get(initIdx);
                     map.put(trueGoal, r);
                     lineMap.put(jk, r);
 
@@ -283,7 +283,7 @@ public class RegisterAllocator {
             return init;
         }
 
-        private void put(Goal goal, Register register){
+        private void put(G goal, Register register){
             Register r = this.map.put(new Wrapper(goal), register);
             assert r == null;
         }
@@ -296,20 +296,20 @@ public class RegisterAllocator {
             return trashMap.get(i);
         }
 
-        public Register get(Goal goal){
+        public Register get(G goal){
             return map.get(new Wrapper(goal));
         }
 
         @Override
         public String toString() {
-            return map.entrySet().stream().map(e -> e.getKey().goal.getCharTableString(false, false, true, true) + "\n@" + Integer.toHexString(e.getKey().goal.hashCode()) + " -> " +e.getValue().toString()).collect(Collectors.joining("\n\n", "{\n", "\n}\n")) +
+            return map.entrySet().stream().map(e -> e.getKey().goal.getTableString(false, false, true, true) + "\n@" + Integer.toHexString(e.getKey().goal.hashCode()) + " -> " +e.getValue().toString()).collect(Collectors.joining("\n\n", "{\n", "\n}\n")) +
                     trashMap.entrySet().stream().map(e -> Integer.toString(e.getKey()) + " -> " +e.getValue()).collect(Collectors.joining(",\n ", "[\n", "\n]"));
         }
 
         private class Wrapper {
-            private final Goal goal;
+            private final G goal;
 
-            private Wrapper(Goal goal) {
+            private Wrapper(G goal) {
                 this.goal = goal;
             }
 

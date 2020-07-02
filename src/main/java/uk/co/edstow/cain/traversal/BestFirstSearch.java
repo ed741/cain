@@ -1,21 +1,19 @@
 package uk.co.edstow.cain.traversal;
 
-import uk.co.edstow.cain.structures.WorkState;
-
 import java.util.Objects;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-public class BestFirstSearch implements TraversalSystem {
-    public static Supplier<BestFirstSearch> BestFirstSearchFactory(Function<WorkState, Double> f){return () -> new BestFirstSearch(f);}
+public class BestFirstSearch<T> implements TraversalSystem<T> {
+    public static <E> Supplier<BestFirstSearch<E>> BestFirstSearchFactory(Function<E, Double> f){return () -> new BestFirstSearch<E>(f);}
 
-    private static class Entry implements Comparable<Entry> {
-        final WorkState ws;
+    private static class Entry<T> implements Comparable<Entry<T>> {
+        final T ws;
         final double f;
 
-        private Entry(WorkState ws, double f) {
+        private Entry(T ws, double f) {
             this.ws = ws;
             this.f = f;
         }
@@ -40,34 +38,34 @@ public class BestFirstSearch implements TraversalSystem {
             return Objects.hash(ws, f);
         }
     }
-    private final PriorityBlockingQueue<Entry> workQueue = new PriorityBlockingQueue<>();
-    private final Function<WorkState, Double> f;
-    private WorkState next = null;
+    private final PriorityBlockingQueue<Entry<T>> workQueue = new PriorityBlockingQueue<>();
+    private final Function<T, Double> f;
+    private T next = null;
 
-    BestFirstSearch(Function<WorkState, Double> f) {
+    private BestFirstSearch(Function<T, Double> f) {
         this.f = f;
     }
 
     @Override
-    public void add(WorkState child, WorkState next) {
-        if(child!=null)workQueue.add(new Entry(child, f.apply(child)));
+    public void add(T child, T next) {
+        if(child!=null)workQueue.add(new Entry<>(child, f.apply(child)));
         this.next = next;
-        if(next!=null)workQueue.add(new Entry(next, f.apply(next)));
+        if(next!=null)workQueue.add(new Entry<>(next, f.apply(next)));
     }
 
     @Override
-    public void add(WorkState child) {
-        if(child!=null)workQueue.add(new Entry(child, f.apply(child)));
+    public void add(T child) {
+        if(child!=null)workQueue.add(new Entry<>(child, f.apply(child)));
     }
 
     @Override
-    public WorkState poll() {
+    public T poll() {
         if(this.next!=null){
-            WorkState out = next;
+            T out = next;
             this.next = null;
             return out;
         }
-        Entry e = workQueue.poll();
+        Entry<T> e = workQueue.poll();
         if(e == null){
             return null;
         }
@@ -75,9 +73,9 @@ public class BestFirstSearch implements TraversalSystem {
     }
 
     @Override
-    public WorkState steal(TraversalSystem system) throws InterruptedException {
+    public T steal(TraversalSystem<T> system) throws InterruptedException {
         if(system instanceof BestFirstSearch) {
-            Entry e = ((BestFirstSearch) system).workQueue.poll(100, TimeUnit.MILLISECONDS);
+            Entry<T> e = ((BestFirstSearch<T>) system).workQueue.poll(100, TimeUnit.MILLISECONDS);
             if (e == null) {
                 return null;
             }

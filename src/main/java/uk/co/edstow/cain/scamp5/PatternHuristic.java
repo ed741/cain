@@ -3,36 +3,37 @@ package uk.co.edstow.cain.scamp5;
 import uk.co.edstow.cain.ReverseSearch;
 import uk.co.edstow.cain.pairgen.Config;
 import uk.co.edstow.cain.pairgen.CostHuristic;
-import uk.co.edstow.cain.pairgen.Distance;
-import uk.co.edstow.cain.structures.Atom;
-import uk.co.edstow.cain.structures.Goal;
+import uk.co.edstow.cain.atom.pairGen.Distance;
+import uk.co.edstow.cain.atom.Atom;
+import uk.co.edstow.cain.atom.AtomGoal;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
 
 import java.util.*;
 
-public class PatternHuristic<C extends Config> implements CostHuristic<C> {
+public class PatternHuristic<C extends Config> implements CostHuristic<AtomGoal, C> {
 
     private int[] initialDivisions;
     private int initialDivisionsMax;
     private int initialDivisionsMin;
 
-    public PatternHuristic(ReverseSearch rs) {
+    public PatternHuristic(ReverseSearch<AtomGoal> rs) {
         this.initialDivisions = rs.getInitialDivisions();
         this.initialDivisionsMax = Arrays.stream(this.initialDivisions).max().getAsInt();
         this.initialDivisionsMin = Arrays.stream(this.initialDivisions).min().getAsInt();
     }
 
+
     @Override
-    public double getCost(GoalPair pair, GoalBag goals, Config config) {
-        GoalBag proposedGoals = new GoalBag(goals);
-        for (Goal upper : pair.getUppers()) {
+    public double getCost(GoalPair<AtomGoal> pair, GoalBag<AtomGoal> goals, C config) {
+        GoalBag<AtomGoal> proposedGoals = new GoalBag<>(goals);
+        for (AtomGoal upper : pair.getUppers()) {
             proposedGoals.remove(upper);
         }
 
 
-        List<Goal> toAdd = new ArrayList<>();
-        for (Goal goal : pair.getLowers()) {
+        List<AtomGoal> toAdd = new ArrayList<>();
+        for (AtomGoal goal : pair.getLowers()) {
             proposedGoals.remove(goal);
             toAdd.add(goal);
         }
@@ -42,9 +43,9 @@ public class PatternHuristic<C extends Config> implements CostHuristic<C> {
         }
         double cost = 0;
 //        cost += Math.pow(proposedGoals.size(), (5-Math.min(5, config.availableRegisters-proposedGoals.size())));
-        for (Goal g : proposedGoals) {
+        for (AtomGoal g : proposedGoals) {
             int subset = 0;
-            for(Goal g2 : proposedGoals){
+            for(AtomGoal g2 : proposedGoals){
                 if(g2.hasSubGoal(g)){
                     subset++;
                 }
@@ -63,15 +64,15 @@ public class PatternHuristic<C extends Config> implements CostHuristic<C> {
         int min = Integer.MAX_VALUE;
         int max = 0;
 
-        List<Goal> goalList = new ArrayList<>(proposedGoals);
+        List<AtomGoal> goalList = new ArrayList<>(proposedGoals.asList());
         for (int i = 0; i < goalList.size(); i++) {
-            Goal goal = goalList.get(i);
-            List<Goal> toRemove = patternRepeated(goalList, goal);
+            AtomGoal goal = goalList.get(i);
+            List<AtomGoal> toRemove = patternRepeated(goalList, goal);
             goalList.removeAll(toRemove);
             if(i > goalList.size()){
                 System.out.println("I " + i);
-                System.out.println("Goal " + goal);
-                System.out.println("Goal List " + goalList);
+                System.out.println("AtomGoal " + goal);
+                System.out.println("AtomGoal List " + goalList);
                 System.out.println("toRemove " + toRemove);
                 System.out.println("GoalSet " + proposedGoals);
                 System.exit(-1);
@@ -96,9 +97,9 @@ public class PatternHuristic<C extends Config> implements CostHuristic<C> {
         return cost;
     }
 
-    private static List<Goal> patternRepeated(Collection<Goal> goals, Goal pattern){
-        List<Goal> matches = new ArrayList<>();
-        for (Goal goal : goals) {
+    private static List<AtomGoal> patternRepeated(Collection<AtomGoal> goals, AtomGoal pattern){
+        List<AtomGoal> matches = new ArrayList<>();
+        for (AtomGoal goal : goals) {
             if (pattern.equivalent(goal)) {
                 matches.add(goal);
             } else if (goal.atomCount() == pattern.atomCount()){
@@ -123,4 +124,6 @@ public class PatternHuristic<C extends Config> implements CostHuristic<C> {
         }
         return matches;
     }
+
+
 }

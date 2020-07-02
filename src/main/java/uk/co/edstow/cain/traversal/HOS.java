@@ -1,19 +1,17 @@
 package uk.co.edstow.cain.traversal;
 
-import uk.co.edstow.cain.structures.WorkState;
-
 import java.util.Objects;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
-public class HOS implements TraversalSystem {
-    public static Supplier<HOS> HOSFactory(){return HOS::new;}
+public class HOS<T> implements TraversalSystem<T> {
+    public static <E> Supplier<HOS<E>> HOSFactory(){return HOS::new;}
 
-    private static class Entry implements Comparable<Entry> {
-        final WorkState ws;
+    private static class Entry<T> implements Comparable<Entry<T>> {
+        final T ws;
         final int f;
-        private Entry(WorkState ws, int f) {
+        private Entry(T ws, int f) {
             this.ws = ws;
             this.f = f;
         }
@@ -34,22 +32,23 @@ public class HOS implements TraversalSystem {
             return Objects.hash(ws, f);
         }
     }
-    private final PriorityBlockingQueue<Entry> workQueue = new PriorityBlockingQueue<>();
-    int last = 0;
+
+    private final PriorityBlockingQueue<Entry<T>> workQueue = new PriorityBlockingQueue<>();
+    private int last = 0;
     @Override
-    public void add(WorkState child, WorkState next) {
-        if(child!=null)workQueue.add(new Entry(child, 0));
-        if(next!=null)workQueue.add(new Entry(next, last+1));
+    public void add(T child, T next) {
+        if(child!=null)workQueue.add(new Entry<>(child, 0));
+        if(next!=null)workQueue.add(new Entry<>(next, last+1));
     }
 
     @Override
-    public void add(WorkState child) {
-        if(child!=null)workQueue.add(new Entry(child, 0));
+    public void add(T child) {
+        if(child!=null)workQueue.add(new Entry<>(child, 0));
     }
 
     @Override
-    public WorkState poll() {
-        Entry e = workQueue.poll();
+    public T poll() {
+        Entry<T> e = workQueue.poll();
         if(e != null) {
             last = e.f;
             return e.ws;
@@ -59,10 +58,10 @@ public class HOS implements TraversalSystem {
     }
 
     @Override
-    public WorkState steal(TraversalSystem system) throws InterruptedException {
+    public T steal(TraversalSystem<T> system) throws InterruptedException {
         if(system instanceof HOS){
-            HOS s = (HOS) system;
-            Entry e = s.workQueue.poll(100, TimeUnit.MILLISECONDS);
+            HOS<T> s = (HOS<T>) system;
+            Entry<T> e = s.workQueue.poll(100, TimeUnit.MILLISECONDS);
             if(e == null){
                 return null;
             }

@@ -1,7 +1,7 @@
-package uk.co.edstow.cain.pairgen;
+package uk.co.edstow.cain.atom.pairGen;
 
-import uk.co.edstow.cain.structures.Atom;
-import uk.co.edstow.cain.structures.Goal;
+import uk.co.edstow.cain.atom.Atom;
+import uk.co.edstow.cain.atom.AtomGoal;
 
 @SuppressWarnings("WeakerAccess")
 public class Distance {
@@ -19,7 +19,7 @@ public class Distance {
         this.z = b.z-a.z;
     }
 
-    public Distance(Goal.AveragePosition position){
+    public Distance(AtomGoal.AveragePosition position){
         this.x = (int) Math.round(position.x);
         this.y = (int) Math.round(position.y);
         this.z = (int) Math.round(position.z);
@@ -62,8 +62,8 @@ public class Distance {
         return new Distance(-x, -y, -z);
     }
 
-    public Goal translate(Goal goal){
-        Goal.Factory factory = new Goal.Factory();
+    public AtomGoal translate(AtomGoal goal){
+        AtomGoal.Factory factory = new AtomGoal.Factory();
         for (Atom a: goal) {
             factory.add(a.moved(x, y, z));
         }

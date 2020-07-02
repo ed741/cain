@@ -8,18 +8,18 @@ import uk.co.edstow.cain.util.Tuple;
 import java.util.*;
 import java.util.stream.Stream;
 
-public abstract class ExhaustivePairGen<T extends Config> implements PairGenFactory.PairGen {
-    private final Iterator<GoalPair> it;
+public abstract class ExhaustivePairGen<G extends Goal<G>, T extends Config> implements PairGenFactory.PairGen<G> {
+    private final Iterator<GoalPair<G>> it;
     private int count;
     protected final T conf;
-    protected final GoalBag goals;
+    protected final GoalBag<G> goals;
 
-    public ExhaustivePairGen(GoalBag goals, T conf, CostHuristic<T> huristic) {
+    public ExhaustivePairGen(GoalBag<G> goals, T conf, CostHuristic<G, T> huristic) {
         this.goals = goals;
         this.conf = conf;
-        Comparator<Tuple<GoalPair, Double>> comparator = Comparator.comparingDouble(Tuple::getB);
-        this.it = goals.parallelStream()
-                .flatMap((Goal upper) ->
+        Comparator<Tuple<GoalPair<G>, Double>> comparator = Comparator.comparingDouble(Tuple::getB);
+        this.it = goals.asList().parallelStream()
+                .flatMap((G upper) ->
                         Stream.concat(
                                 getNaryOpStream(upper),
                                 getUnaryOpStream(upper)
@@ -31,7 +31,7 @@ public abstract class ExhaustivePairGen<T extends Config> implements PairGenFact
     }
 
     @Override
-    public GoalPair next() {
+    public GoalPair<G> next() {
         count++;
         return it.hasNext()?it.next():null;
     }
@@ -42,7 +42,7 @@ public abstract class ExhaustivePairGen<T extends Config> implements PairGenFact
     }
 
 
-    protected abstract Stream<GoalPair> getUnaryOpStream(Goal upper);
+    protected abstract Stream<GoalPair<G>> getUnaryOpStream(G upper);
 
-    protected abstract Stream<GoalPair> getNaryOpStream(Goal upper);
+    protected abstract Stream<GoalPair<G>> getNaryOpStream(G upper);
 }

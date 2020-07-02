@@ -6,8 +6,8 @@ import uk.co.edstow.cain.structures.Goal;
 
 import java.util.List;
 
-public class Scamp5Config extends Config {
-    PairGenFactory.PairGen strategy;
+public class Scamp5Config<G extends Goal<G>> extends Config<G> {
+    PairGenFactory.PairGen<G> strategy;
 
     boolean useMov2x;
     boolean useAdd3;
@@ -19,11 +19,11 @@ public class Scamp5Config extends Config {
 
     boolean subPowerOf2;
 
-    public Scamp5Config(int availableRegisters, int depth, List<Goal> initialGoals) {
+    public Scamp5Config(int availableRegisters, int depth, List<G> initialGoals) {
         super(availableRegisters, depth, initialGoals);
     }
 
-    public Scamp5Config(PairGenFactory.PairGen strategy, boolean useMov2x, boolean useAdd3, boolean useAddx, boolean useAdd2x, boolean useSubx, boolean useSub2x, int availableRegisters, int depth, List<Goal> initialGoals) {
+    public Scamp5Config(PairGenFactory.PairGen<G> strategy, boolean useMov2x, boolean useAdd3, boolean useAddx, boolean useAdd2x, boolean useSubx, boolean useSub2x, int availableRegisters, int depth, List<G> initialGoals) {
         super(availableRegisters, depth, initialGoals);
 
         this.strategy = strategy;
@@ -36,7 +36,7 @@ public class Scamp5Config extends Config {
         this.useSub2x = useSub2x;
     }
 
-    public Scamp5Config useAll(){
+    public Scamp5Config<G> useAll(){
         this.useMov2x = true;
         this.useAdd3 = true;
         this.useAddx = true;
@@ -46,7 +46,7 @@ public class Scamp5Config extends Config {
         return this;
     }
 
-    public Scamp5Config useBasicOps(){
+    public Scamp5Config<G> useBasicOps(){
         this.useMov2x = false;
         this.useAdd3 = false;
         this.useAddx = false;
@@ -56,12 +56,12 @@ public class Scamp5Config extends Config {
         return this;
     }
 
-    public Scamp5Config useSubPowerOf2(){
+    public Scamp5Config<G> useSubPowerOf2(){
         this.subPowerOf2 = true;
         return this;
     }
 
-    public Scamp5Config setStrategy(PairGenFactory.PairGen strategy){
+    public Scamp5Config<G> setStrategy(PairGenFactory.PairGen<G> strategy){
         this.strategy = strategy;
         return this;
     }

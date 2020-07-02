@@ -1,39 +1,40 @@
-package uk.co.edstow.cain.pairgen;
+package uk.co.edstow.cain.atom.pairGen;
 
-import uk.co.edstow.cain.structures.Atom;
-import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.ReverseSearch;
+import uk.co.edstow.cain.atom.Atom;
+import uk.co.edstow.cain.atom.AtomGoal;
+import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 
-public class V2PairGenFactory implements PairGenFactory{
+public class V2PairGenFactory implements PairGenFactory<AtomGoal> {
 
-    private static final Comparator<Tuple<Distance, Goal>> entryComparator = Comparator.comparingInt((Tuple<Distance, Goal> t) -> t.getB().size()).thenComparingInt(t -> -t.getA().manhattanXY());
+    private static final Comparator<Tuple<Distance, AtomGoal>> entryComparator = Comparator.comparingInt((Tuple<Distance, AtomGoal> t) -> t.getB().size()).thenComparingInt(t -> -t.getA().manhattanXY());
 
 
     @Override
-    public Collection<Tuple<List<GoalPair>, Goal>> applyAllUnaryOpForwards(List<Goal> initialGoals, int depth, Goal goal) {
+    public Collection<Tuple<List<GoalPair<AtomGoal>>, AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, int depth, AtomGoal goal) {
         return SimplePairGenFactory.applyAllUnaryOps(initialGoals.get(0), goal);
     }
 
     @Override
-    public void init(ReverseSearch rs) {
+    public void init(ReverseSearch<AtomGoal> rs) {
     }
 
     @Override
-    public PairGen generatePairs(GoalBag goals, int depth) {
+    public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals, int depth) {
         return new V2PairGen(goals);
     }
 
-    protected class V2PairGen implements PairGen {
-        final GoalBag goals;
+    protected class V2PairGen implements PairGen<AtomGoal> {
+        final GoalBag<AtomGoal> goals;
         int ii;
         int jj;
         int dia = -1;
-        final List<GoalPair> currentList = new ArrayList<>();
+        final List<GoalPair<AtomGoal>> currentList = new ArrayList<>();
         private int count;
 
         V2PairGen(GoalBag goals) {
@@ -80,7 +81,7 @@ public class V2PairGenFactory implements PairGenFactory{
         }
 
         @Override
-        public GoalPair next() {
+        public GoalPair<AtomGoal> next() {
             count++;
             while(currentList.isEmpty()) {
                 updateIJ();
@@ -88,34 +89,34 @@ public class V2PairGenFactory implements PairGenFactory{
                     return null;
                 }
 
-                Goal a = goals.get(getI());
-                Goal b = goals.get(getJ());
+                AtomGoal a = goals.get(getI());
+                AtomGoal b = goals.get(getJ());
                 boolean diagonal = getI()== getJ();
 
-                List<Tuple<Distance, Goal>> list = getAtomDistanceList(a, b, diagonal);
+                List<Tuple<Distance, AtomGoal>> list = getAtomDistanceList(a, b, diagonal);
                 list.sort(entryComparator);
                 if (!diagonal) {
-                    for (Tuple<Distance, Goal> tuple : list) {
-                        Goal tmp = tuple.getA().inverse().translate(tuple.getB());
+                    for (Tuple<Distance, AtomGoal> tuple : list) {
+                        AtomGoal tmp = tuple.getA().inverse().translate(tuple.getB());
                         if (tmp.equals(a)) {
                             SimpleTransformation.Move mov = new SimpleTransformation.Move(1, tuple.getA().majorXYDirection().opposite(), a);
-                            currentList.add(new GoalPair(a, mov.applyForwards(), mov));
+                            currentList.add(new GoalPair<>(a, mov.applyForwards(), mov));
                         } else {
-                            Goal split2 = a.without(tmp);
-                            List<Goal> lowers = Arrays.asList(tmp, split2);
-                            currentList.add(new GoalPair(a, lowers, new SimpleTransformation.Add(tmp, split2)));
+                            AtomGoal split2 = a.without(tmp);
+                            List<AtomGoal> lowers = Arrays.asList(tmp, split2);
+                            currentList.add(new GoalPair<>(a, lowers, new SimpleTransformation.Add(tmp, split2)));
                         }
 
                     }
                 } else {
-//                    System.out.println(a.getCharTableString(false));
-                    for (Tuple<Distance, Goal> tuple : list) {
-                        Goal split1 = a.without(tuple.getB());
-                        Goal split2 = tuple.getB();
+//                    System.out.println(a.getTableString(false));
+                    for (Tuple<Distance, AtomGoal> tuple : list) {
+                        AtomGoal split1 = a.without(tuple.getB());
+                        AtomGoal split2 = tuple.getB();
 //                        System.out.println(tuple.getA());
-//                        System.out.println(split1.getCharTableString(true));
-//                        System.out.println(split2.getCharTableString(true));
-                        currentList.add(new GoalPair(a, Arrays.asList(split1, split2), new SimpleTransformation.Add(split1, split2)));
+//                        System.out.println(split1.getTableString(true));
+//                        System.out.println(split2.getTableString(true));
+                        currentList.add(new GoalPair<>(a, Arrays.asList(split1, split2), new SimpleTransformation.Add(split1, split2)));
                     }
 
 
@@ -133,8 +134,8 @@ public class V2PairGenFactory implements PairGenFactory{
 
     }
 
-    static List<Tuple<Distance, Goal>> getAtomDistanceList(Goal a, Goal b, boolean diagonal) {
-        Map<Distance, Goal.Factory> distanceMap = new HashMap<>();
+    static List<Tuple<Distance, AtomGoal>> getAtomDistanceList(AtomGoal a, AtomGoal b, boolean diagonal) {
+        Map<Distance, AtomGoal.Factory> distanceMap = new HashMap<>();
         for (Iterator<Tuple<Atom, Integer>> ita = a.uniqueCountIterator(); ita.hasNext(); ) {
             Tuple<Atom, Integer> ta = ita.next();
             Atom atomA = ta.getA();
@@ -143,7 +144,7 @@ public class V2PairGenFactory implements PairGenFactory{
                 Atom atomB = tb.getA();
 
                 Distance d = new Distance(atomA, atomB);
-                Goal.Factory goalFactory = distanceMap.getOrDefault(d, new Goal.Factory());
+                AtomGoal.Factory goalFactory = distanceMap.getOrDefault(d, new AtomGoal.Factory());
                 int count = Math.min(ta.getB(), tb.getB());
                 if (diagonal && d.isZero()){
                     count /= 2;
@@ -155,7 +156,7 @@ public class V2PairGenFactory implements PairGenFactory{
 
             }
         }
-        List<Tuple<Distance, Goal>> list = new ArrayList<>(distanceMap.size());
+        List<Tuple<Distance, AtomGoal>> list = new ArrayList<>(distanceMap.size());
         distanceMap.forEach((key, value) -> list.add(new Tuple<>(key, value.get())));
         if (!diagonal) {
             list.removeIf(t -> !(b.equals(t.getB())));

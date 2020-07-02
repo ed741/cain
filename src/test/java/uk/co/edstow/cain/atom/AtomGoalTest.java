@@ -1,5 +1,7 @@
-package uk.co.edstow.cain.structures;
+package uk.co.edstow.cain.atom;
 
+import uk.co.edstow.cain.atom.Atom;
+import uk.co.edstow.cain.atom.AtomGoal;
 import uk.co.edstow.cain.util.Tuple;
 import org.junit.jupiter.api.Test;
 
@@ -8,29 +10,29 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SuppressWarnings({"CollectionAddedToSelf", "EqualsWithItself", "MismatchedQueryAndUpdateOfCollection"})
-class GoalTest {
+class AtomGoalTest {
 
     @Test
     void testWithout() {
-        Goal g1 = new Goal(
+        AtomGoal g1 = new AtomGoal(
                 new Atom(0,0,0, true),
                 new Atom(0,0,0, true),
                 new Atom(1,0,0, false));
-        Goal ge = new Goal(
+        AtomGoal ge = new AtomGoal(
                 new Atom(0,0,0, true),
                 new Atom(1,0,0, false));
-        Goal ga = g1.without(new Goal(new Atom(0,0,0, true)));
+        AtomGoal ga = g1.without(new AtomGoal(new Atom(0,0,0, true)));
 
         assertEquals(ge, ga);
     }
 
     @Test
     void testSame() {
-        Goal g1 = new Goal(
+        AtomGoal g1 = new AtomGoal(
                 new Atom(0,0,0, true),
                 new Atom(0,0,0, true),
                 new Atom(1,0,0, false));
-        Goal g2 = new Goal(
+        AtomGoal g2 = new AtomGoal(
                 new Atom(0,0,0, true),
                 new Atom(1,0,0, false));
 
@@ -41,12 +43,12 @@ class GoalTest {
 
     @Test
     void testNegative() {
-        Goal g1 = new Goal(
+        AtomGoal g1 = new AtomGoal(
                 new Atom(0,0,0, true),
                 new Atom(0,0,0, true),
                 new Atom(1,0,0, false));
 
-        Goal ge = new Goal(
+        AtomGoal ge = new AtomGoal(
                 new Atom(0,0,0, false),
                 new Atom(0,0,0, false),
                 new Atom(1,0,0, true));
@@ -56,12 +58,12 @@ class GoalTest {
 
     @Test
     void testTranslated() {
-        Goal g1 = new Goal(
+        AtomGoal g1 = new AtomGoal(
                 new Atom(0,1,0, true),
                 new Atom(0,1,0, true),
                 new Atom(1,1,0, false));
 
-        Goal ge = new Goal(
+        AtomGoal ge = new AtomGoal(
                 new Atom(0,2,0, true),
                 new Atom(0,2,0, true),
                 new Atom(1,2,0, false));
@@ -71,19 +73,19 @@ class GoalTest {
 
     @Test
     void testAllSplitsRecursive() {
-        Goal g1 = new Goal(
+        AtomGoal g1 = new AtomGoal(
                 new Atom(0,1,0, true),
                 new Atom(1,1,0, false));
 
-        Goal ge1 = new Goal(
+        AtomGoal ge1 = new AtomGoal(
                 new Atom(0,1,0, true),
                 new Atom(1,1,0, false));
-        Goal ge2 = new Goal(
+        AtomGoal ge2 = new AtomGoal(
                 new Atom(0,1,0, true));
-        Goal ge3 = new Goal(
+        AtomGoal ge3 = new AtomGoal(
                 new Atom(1,1,0, false));
 
-        Collection<Goal> allSplits = g1.allSplitsRecursive();
+        Collection<AtomGoal> allSplits = g1.allSplitsRecursive();
         assertTrue(allSplits.contains(ge1));
         assertTrue(allSplits.contains(ge2));
         assertTrue(allSplits.contains(ge3));
@@ -92,13 +94,13 @@ class GoalTest {
 
     @Test
     void testDivide() {
-        Goal g1 = new Goal(
+        AtomGoal g1 = new AtomGoal(
                 new Atom(0,1,0, true),
                 new Atom(0,1,0, true),
                 new Atom(1,1,0, false),
                 new Atom(1,1,0, false));
 
-        Goal g2 = new Goal(
+        AtomGoal g2 = new AtomGoal(
                 new Atom(0,1,0, true),
                 new Atom(1,1,0, false));
 
@@ -107,7 +109,7 @@ class GoalTest {
 
     @Test
     void testMinimumCount() {
-        Goal g1 = new Goal(
+        AtomGoal g1 = new AtomGoal(
                 new Atom(0,1,0, true),
                 new Atom(0,1,0, true),
                 new Atom(1,1,0, false),
@@ -118,11 +120,11 @@ class GoalTest {
 
     @Test
     void testCompareTo() {
-        Goal g1 = new Goal(
+        AtomGoal g1 = new AtomGoal(
                 new Atom(1,1,0, true),
                 new Atom(0,1,0, true),
                 new Atom(1,1,0, false));
-        Goal g2 = new Goal(
+        AtomGoal g2 = new AtomGoal(
                 new Atom(0,1,0, true),
                 new Atom(1,1,0, false));
 
@@ -132,7 +134,7 @@ class GoalTest {
 
     @Test
     void testAtomCount() {
-        Goal g1 = new Goal(
+        AtomGoal g1 = new AtomGoal(
                 new Atom(0,1,0, true),
                 new Atom(1,1,0, false),
                 new Atom(0,1,0, true),
@@ -143,12 +145,12 @@ class GoalTest {
 
     @Test
     void testHasSubGoal() {
-        Goal g1 = new Goal(
+        AtomGoal g1 = new AtomGoal(
                 new Atom(1,-1,0, true),
                 new Atom(1,-1,0, true),
                 new Atom(1,1,0, false));
 
-        Goal g2 = new Goal(
+        AtomGoal g2 = new AtomGoal(
                 new Atom(1,-1,0, true),
                 new Atom(1,1,0, false));
 
@@ -158,7 +160,7 @@ class GoalTest {
 
     @Test
     void testUniqueIterator() {
-        Goal g1 = new Goal(
+        AtomGoal g1 = new AtomGoal(
                 new Atom(1,-1,0, true),
                 new Atom(1,-1,0, true),
                 new Atom(1,1,0, false));
@@ -175,7 +177,7 @@ class GoalTest {
 
     @Test
     void testUniqueCountIterator() {
-        Goal g1 = new Goal(
+        AtomGoal g1 = new AtomGoal(
                 new Atom(1,-1,0, true),
                 new Atom(1,-1,0, true),
                 new Atom(1,1,0, false));
@@ -193,7 +195,7 @@ class GoalTest {
 
     @Test
     void testCount() {
-        Goal g1 = new Goal(
+        AtomGoal g1 = new AtomGoal(
                 new Atom(0,1,0, true),
                 new Atom(0,1,0, true),
                 new Atom(1,1,0, false),
@@ -206,14 +208,14 @@ class GoalTest {
 
     @Test
     void testHashCode() {
-        Goal g1 = new Goal(
+        AtomGoal g1 = new AtomGoal(
                 new Atom(0,1,0, true),
                 new Atom(0,1,0, true),
                 new Atom(1,1,0, false),
                 new Atom(1,1,0, false),
                 new Atom(1,1,0, false));
 
-        Goal g2 = new Goal(
+        AtomGoal g2 = new AtomGoal(
                 new Atom(0,1,0, true),
                 new Atom(0,1,0, true),
                 new Atom(1,1,0, false),
@@ -226,14 +228,14 @@ class GoalTest {
     @Test
     void testEquals() {
 
-        Goal g1 = new Goal(
+        AtomGoal g1 = new AtomGoal(
                 new Atom(0,1,0, true),
                 new Atom(0,1,0, true),
                 new Atom(1,1,0, false),
                 new Atom(1,1,0, false),
                 new Atom(1,1,0, false));
 
-        Goal g2 = new Goal(
+        AtomGoal g2 = new AtomGoal(
                 new Atom(0,1,0, true),
                 new Atom(0,1,0, true),
                 new Atom(1,1,0, true),
@@ -248,14 +250,14 @@ class GoalTest {
 
     @Test
     void testEquivalent() {
-        Goal g1 = new Goal(
+        AtomGoal g1 = new AtomGoal(
                 new Atom(0,1,0, true),
                 new Atom(0,1,0, true),
                 new Atom(1,1,0, false),
                 new Atom(1,1,0, false),
                 new Atom(1,1,0, false));
 
-        Goal g2 = new Goal(g1);
+        AtomGoal g2 = new AtomGoal(g1);
 
         assertTrue(g1.equivalent(g1));
         assertTrue(g2.equivalent(g2));
@@ -265,40 +267,40 @@ class GoalTest {
 
     @Test
     void testAllSplits() {
-        Goal g1 = new Goal(
+        AtomGoal g1 = new AtomGoal(
                 new Atom(1,1,0, true),
                 new Atom(2,1,0, true),
                 new Atom(3,1,0, true),
                 new Atom(4,1,0, true));
-        List<Goal> lists = g1.allSplits();
+        List<AtomGoal> lists = g1.allSplits();
 
-        assertTrue(lists.contains(new Goal(new Atom(1,1,0,true))));
-        assertTrue(lists.contains(new Goal(new Atom(2,1,0,true))));
-        assertTrue(lists.contains(new Goal(new Atom(3,1,0,true))));
-        assertTrue(lists.contains(new Goal(new Atom(4,1,0,true))));
+        assertTrue(lists.contains(new AtomGoal(new Atom(1,1,0,true))));
+        assertTrue(lists.contains(new AtomGoal(new Atom(2,1,0,true))));
+        assertTrue(lists.contains(new AtomGoal(new Atom(3,1,0,true))));
+        assertTrue(lists.contains(new AtomGoal(new Atom(4,1,0,true))));
 
-        assertTrue(lists.contains(new Goal(new Atom(1,1,0,true), new Atom(2,1,0,true))));
-        assertTrue(lists.contains(new Goal(new Atom(1,1,0,true), new Atom(3,1,0,true))));
-        assertTrue(lists.contains(new Goal(new Atom(1,1,0,true), new Atom(4,1,0,true))));
+        assertTrue(lists.contains(new AtomGoal(new Atom(1,1,0,true), new Atom(2,1,0,true))));
+        assertTrue(lists.contains(new AtomGoal(new Atom(1,1,0,true), new Atom(3,1,0,true))));
+        assertTrue(lists.contains(new AtomGoal(new Atom(1,1,0,true), new Atom(4,1,0,true))));
 
-        assertTrue(lists.contains(new Goal(new Atom(2,1,0,true), new Atom(3,1,0,true))));
-        assertTrue(lists.contains(new Goal(new Atom(2,1,0,true), new Atom(4,1,0,true))));
+        assertTrue(lists.contains(new AtomGoal(new Atom(2,1,0,true), new Atom(3,1,0,true))));
+        assertTrue(lists.contains(new AtomGoal(new Atom(2,1,0,true), new Atom(4,1,0,true))));
 
-        assertTrue(lists.contains(new Goal(new Atom(3,1,0,true), new Atom(4,1,0,true))));
+        assertTrue(lists.contains(new AtomGoal(new Atom(3,1,0,true), new Atom(4,1,0,true))));
 
-        assertTrue(lists.contains(new Goal(new Atom(2,1,0,true), new Atom(3,1,0,true), new Atom(4,1,0,true))));
-        assertTrue(lists.contains(new Goal(new Atom(1,1,0,true), new Atom(3,1,0,true), new Atom(4,1,0,true))));
-        assertTrue(lists.contains(new Goal(new Atom(1,1,0,true), new Atom(2,1,0,true), new Atom(4,1,0,true))));
-        assertTrue(lists.contains(new Goal(new Atom(1,1,0,true), new Atom(2,1,0,true), new Atom(3,1,0,true))));
+        assertTrue(lists.contains(new AtomGoal(new Atom(2,1,0,true), new Atom(3,1,0,true), new Atom(4,1,0,true))));
+        assertTrue(lists.contains(new AtomGoal(new Atom(1,1,0,true), new Atom(3,1,0,true), new Atom(4,1,0,true))));
+        assertTrue(lists.contains(new AtomGoal(new Atom(1,1,0,true), new Atom(2,1,0,true), new Atom(4,1,0,true))));
+        assertTrue(lists.contains(new AtomGoal(new Atom(1,1,0,true), new Atom(2,1,0,true), new Atom(3,1,0,true))));
 
-        assertTrue(lists.contains(new Goal(new Atom(1,1,0,true), new Atom(2,1,0,true), new Atom(3,1,0,true), new Atom(4,1,0,true))));
+        assertTrue(lists.contains(new AtomGoal(new Atom(1,1,0,true), new Atom(2,1,0,true), new Atom(3,1,0,true), new Atom(4,1,0,true))));
 
         assertEquals(15, lists.size());
     }
 
     @Test
     void testMaximumCount() {
-        Goal g1 = new Goal(
+        AtomGoal g1 = new AtomGoal(
                 new Atom(0,1,0, true),
                 new Atom(0,1,0, true),
                 new Atom(1,1,0, false),
@@ -306,7 +308,7 @@ class GoalTest {
                 new Atom(1,1,0, false));
 
         assertEquals(3, g1.maximumCount());
-        Goal g2 = new Goal(
+        AtomGoal g2 = new AtomGoal(
                 new Atom(0,1,0, true),
                 new Atom(0,1,0, true),
                 new Atom(1,1,0, false),
@@ -318,7 +320,7 @@ class GoalTest {
 
     @Test
     void testGetAveragePos() {
-        Goal g1 = new Goal(
+        AtomGoal g1 = new AtomGoal(
                 new Atom(0,1,0, true),
                 new Atom(0,1,0, true),
                 new Atom(1,1,0, false),
@@ -333,14 +335,14 @@ class GoalTest {
 
     @Test
     void testAllSame() {
-        Goal g1 = new Goal(
+        AtomGoal g1 = new AtomGoal(
                 new Atom(0,1,0, true),
                 new Atom(0,1,0, true),
                 new Atom(1,1,0, false),
                 new Atom(0,1,0, true),
                 new Atom(0,1,0, false));
         assertFalse(g1.allSame());
-        Goal g2 = new Goal(
+        AtomGoal g2 = new AtomGoal(
                 new Atom(0,1,0, true),
                 new Atom(0,1,0, true),
                 new Atom(0,1,0, false),
@@ -350,17 +352,17 @@ class GoalTest {
 
     @Test
     void testSubtract() {
-        Goal g1 = new Goal(
+        AtomGoal g1 = new AtomGoal(
                 new Atom(0,1,0, true),
                 new Atom(0,1,0, true),
                 new Atom(0,1,0, false),
                 new Atom(0,1,0, true),
                 new Atom(1,1,0, false));
-        Goal g2 = new Goal(
+        AtomGoal g2 = new AtomGoal(
                 new Atom(0,1,0, true),
                 new Atom(0,1,0, true),
                 new Atom(0,1,0, true),
                 new Atom(0,1,0, true));
-        assertEquals(new Goal(new Atom(1,1,0, false), new Atom(0,1,0, false), new Atom(0,1,0, false)), g1.subtract(g2));
+        assertEquals(new AtomGoal(new Atom(1,1,0, false), new Atom(0,1,0, false), new Atom(0,1,0, false)), g1.subtract(g2));
     }
 }

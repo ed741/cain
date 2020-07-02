@@ -1,13 +1,11 @@
 package uk.co.edstow.cain.pairgen;
 
-import uk.co.edstow.cain.ReverseSearch;
-import uk.co.edstow.cain.pairgen.Config;
 import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.structures.GoalBag;
 
 import java.util.List;
 
-public interface ConfigGetter<T extends Config> {
-    T getConfig(GoalBag goals, int depth);
-    T getConfigForDirectSolve(List<Goal> goals, int depth);
+public interface ConfigGetter<G extends Goal<G>, T extends Config> {
+    T getConfig(GoalBag<G> goals, int depth);
+    T getConfigForDirectSolve(List<G> goals, int depth);
 }

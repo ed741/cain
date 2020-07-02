@@ -1,6 +1,6 @@
 package uk.co.edstow.cain;
 
-import uk.co.edstow.cain.structures.Goal;
+import uk.co.edstow.cain.atom.AtomGoal;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -39,7 +39,7 @@ public class Approximater {
         minCoefficient = Math.min(minCoefficient, Math.abs(coefficient));
     }
 
-    public List<Goal> solve(){
+    public List<AtomGoal> solve(){
         depth = maxDepth;
         double totalError = 0;
         for (int i = -10; i <= maxDepth; i++) {
@@ -58,9 +58,9 @@ public class Approximater {
         }
         error = totalError;
 
-        List<Goal> out = new ArrayList<>(input.size());
+        List<AtomGoal> out = new ArrayList<>(input.size());
         for (Map<Vector, Double> vecDoubleMap : input) {
-            Goal.Factory factory = new Goal.Factory();
+            AtomGoal.Factory factory = new AtomGoal.Factory();
             for (Map.Entry<Vector, Double> entry : vecDoubleMap.entrySet()) {
                 if(entry.getValue()>=0){
                     factory.add(entry.getKey().val, getCount(depth, entry.getValue()));
@@ -68,7 +68,7 @@ public class Approximater {
                     factory.add(entry.getKey().val, -getCount(depth, entry.getValue()));
                 }
             }
-            Goal g = factory.get();
+            AtomGoal g = factory.get();
             out.add(g);
         }
         input.clear();

@@ -2,56 +2,40 @@ package uk.co.edstow.cain.structures;
 
 import java.util.*;
 
-public class GoalBag extends ArrayList<Goal> {
+public class GoalBag<G extends Goal<G>> implements Iterable<G>{
+    private final ArrayList<G> arrayList;
     private boolean immutable = false;
     private int atomCount = -1;
-    private static final Comparator<Goal> fullComp = (a, b) -> {
-        if(a==b){
-            return 0;
-        }
-        if(a.size() < b.size()){
-            return 1;
-        }
-        if(a.size() > b.size()){
-            return -1;
-        }
-        for (int i = 0; i < a.size(); i++) {
-            int c = a.get(i).compareTo(b.get(i));
-            if(c != 0){
-                return c;
-            }
-        }
-        return 0;
-    };
     private static final Comparator<Goal> halfComp = (a, b) -> {
         if(a==b){
             return 0;
         }
-        return Integer.compare(b.size(), a.size());
+        return Double.compare(b.total(), a.total());
     };
 
-    public GoalBag(GoalBag b) {
-        super(b);
+    public GoalBag(GoalBag<G> b) {
+        arrayList = new ArrayList<>(b.arrayList);
     }
 
     public GoalBag() {
-        super();
+        arrayList = new ArrayList<>();
     }
 
-    public GoalBag(Goal goal) {
-        super(goal.size());
+    public GoalBag(G goal) {
+        this();
         add(goal);
     }
 
-    public GoalBag(GoalBag b, boolean fullSort) {
-        super(b);
+    public GoalBag(GoalBag<G> b, boolean fullSort) {
+        this(b);
         if(fullSort) {
-            sort(fullComp);
+            arrayList.sort(G::compareTo);
+            immutable = true;
         }
     }
 
-    public GoalBag(Collection<Goal> goals) {
-        super(goals.size());
+    public GoalBag(Collection<G> goals) {
+        this();
         this.addAll(goals);
     }
 
@@ -64,71 +48,65 @@ public class GoalBag extends ArrayList<Goal> {
         return immutable;
     }
 
+    @Deprecated
     public int atomCount(){
         if (isImmutable() && atomCount >=0){
             return atomCount;
         }
         int a = 0;
-        for(Goal g: this){
-            a += g.size();
+        for(G g: arrayList){
+            a += g.total();
         }
         atomCount = a;
         return a;
     }
 
 
-    @Override
-    public boolean add(Goal goal) {
+    public boolean add(G goal) {
         assert !immutable;
-        for (int i = 0; i < size(); i++) {
-            if(halfComp.compare(get(i), goal) >= 0){
-                super.add(i, goal);
+        for (int i = 0; i < arrayList.size(); i++) {
+            if(halfComp.compare(arrayList.get(i), goal) >= 0){
+                arrayList.add(i, goal);
                 return true;
             }
         }
-        super.add(goal);
+        arrayList.add(goal);
         return true;
     }
 
-    @Override
-    public boolean addAll(Collection<? extends Goal> collection) {
+    public boolean addAll(Collection<? extends G> collection) {
         assert !immutable;
         boolean c = false;
-        for (Goal g:collection) {
+        for (G g: collection) {
             add(g);
             c = true;
         }
         return c;
     }
 
-    public boolean addIfUnique(Goal goal){
+    @Deprecated
+    public boolean addIfUnique(G goal){
         assert !immutable;
-        for (int i = 0; i < size(); i++) {
-            int c = halfComp.compare(get(i),goal);
+        for (int i = 0; i < arrayList.size(); i++) {
+            int c = halfComp.compare(arrayList.get(i),goal);
             if(c > 0){
-                super.add(i, goal);
+                arrayList.add(i, goal);
                 return true;
             } else if(c==0){
-                if(get(i).same(goal)){
-                    return false;
-                }
+                return false;
             }
         }
-        super.add(goal);
+        arrayList.add(goal);
         return true;
     }
 
-    @Override
-    public boolean remove(Object g){
+    public boolean remove(G goal){
         assert !immutable;
-        if(!(g instanceof Goal)){
-            return false;
-        }
-        Goal goal = (Goal) g;
-        for (int i = 0; i < this.size(); i++) {
-            Goal goalI = this.get(i);
+
+        for (int i = 0; i < arrayList.size(); i++) {
+            G goalI = arrayList.get(i);
             if(goalI.same(goal)){
-                super.remove(i);
+                arrayList.remove(i);
                 return true;
             }
             if(halfComp.compare(goalI,goal) > 0){
@@ -138,12 +116,30 @@ public class GoalBag extends ArrayList<Goal> {
         return false;
     }
 
-    public boolean removeEquivalent(Goal g){
+    public G remove(int i){
         assert !immutable;
-        for (int i = 0; i < this.size(); i++) {
-            Goal goalI = this.get(i);
+        return arrayList.remove(i);
+    }
+
+    @Override
+    public int hashCode() {
+        return arrayList.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        GoalBag<?> goalBag = (GoalBag<?>) o;
+        return Objects.equals(arrayList, goalBag.arrayList);
+    }
+
+    public boolean removeEquivalent(G g){
+        assert !immutable;
+        for (int i = 0; i < arrayList.size(); i++) {
+            G goalI = arrayList.get(i);
             if(goalI.equivalent(g)){
-                super.remove(i);
+                arrayList.remove(i);
                 return true;
             }
             if(halfComp.compare(goalI,g) > 0){
@@ -153,20 +149,100 @@ public class GoalBag extends ArrayList<Goal> {
         return false;
     }
 
-    @Override
-    public boolean addAll(int i, Collection<? extends Goal> collection) {
-        throw new UnsupportedOperationException("Cannot add Goals at index");
+    public int size(){
+        return arrayList.size();
     }
 
     @Override
-    public Goal set(int i, Goal goal) {
-        throw new UnsupportedOperationException("Cannot set Goals at index");
+    public Iterator<G> iterator() {
+        return arrayList.iterator();
     }
 
-    @Override
-    public void add(int i, Goal goal) {
-        throw new UnsupportedOperationException("Cannot add Goals at index");
+    public G get(int i) {
+        return arrayList.get(i);
     }
 
 
+    public String toGoalsString(boolean[] topBorder, boolean[] bottomBorder, boolean centreDot, boolean colourNeg){
+        assert immutable;
+        return toGoalsString(arrayList, topBorder, bottomBorder, centreDot, colourNeg);
+    }
+
+    public static <E extends Goal>  String toGoalsString(List<E> goals) {
+        return toGoalsString(goals, false, false, true, true);
+    }
+
+    public static <E extends Goal>  String toGoalsString(List<E> goals, boolean topBorder, boolean bottomBorder, boolean centreDot, boolean colourNeg) {
+        boolean[] tops = new boolean[goals.size()];
+        boolean[] bottoms = new boolean[goals.size()];
+        Arrays.fill(tops, topBorder);
+        Arrays.fill(bottoms, bottomBorder);
+        return toGoalsString(goals, tops, bottoms, centreDot, colourNeg);
+    }
+
+    public static <E extends Goal>  String toGoalsString(List<E> goals, boolean[] topBorder, boolean[] bottomBorder, boolean centreDot, boolean colourNeg) {
+        List<Bounds> b = new ArrayList<>();
+        for (Goal goal : goals) {
+            b.add(goal.bounds());
+        }
+        return GoalBag.toGoalsString(goals, new Bounds.SimpleBounds(b), topBorder, bottomBorder, centreDot, colourNeg);
+    }
+
+    public static <E extends Goal> String toGoalsString(List<E> goals, Bounds inputBounds, boolean[] topBorder, boolean[] bottomBorder, boolean centreDot, boolean colourNeg){
+        Bounds b = inputBounds.includeCentre();
+        int height = 1 + b.getYMax() - b.getYMin();
+        int width = 1 + b.getXMax() - b.getXMin();
+        List<String[][]> arrays = new ArrayList<>();
+        List<int[]> widthArrays = new ArrayList<>();
+
+        for (int i = 0; i < goals.size(); i++) {
+            Goal goal = goals.get(i);
+            String[][] tableArray = goal.getCharTable(b, topBorder[i], bottomBorder[i], centreDot, colourNeg);
+            arrays.add(tableArray);
+        }
+        for (String[][] array : arrays) {
+            int[] widths = new int[array[0].length];
+            for (int j = 0; j < array.length; j++) {
+                for (int i = 0; i < array[j].length; i++) {
+                    int len = array[j][i].replaceAll("\u001B\\[[0-9]+m", "").length();
+                    if(len > widths[i]){
+                        widths[i] = len;
+                    }
+                }
+            }
+            widthArrays.add(widths);
+
+        }
+
+
+        StringBuilder sb = new StringBuilder();
+        for (int j = height+1; j >= 0; j--) {
+            for (int i1 = 0; i1 < arrays.size(); i1++) {
+                String[][] array = arrays.get(i1);
+                int[] widths = widthArrays.get(i1);
+                for (int i = 0; i < array[j].length; i++) {
+                    int len = array[j][i].replaceAll("\u001B\\[[0-9]+m", "").length();
+                    sb.append(array[j][i]);
+                    for(int l = len; l < widths[i]; l++){
+                        sb.append("_");
+                    }
+                }
+                sb.append(' ');
+            }
+            sb.append("\n");
+        }
+        return sb.toString();
+    }
+
+    public boolean isEmpty() {
+        return arrayList.isEmpty();
+    }
+
+    public boolean containsAll(List<G> goals) {
+        return arrayList.containsAll(goals);
+    }
+
+    public List<G> asList(){
+        return Collections.unmodifiableList(arrayList);
+    }
 }
