@@ -23,20 +23,27 @@ Cain uses a JSON input format to define the filter and search parameters to use.
 
 | token id      | valid value   | Default | Description  |
 | ------------- |:-------------:|:-------:| ------------ |
-| id            | Any String    |         | The arbitary name of this search configuration |
-| verbose       | Integer       | 10      | This value controls the verbosity of the setup and checking of the search, not the search itself (see 'runConfig' for search verbosity rules) less than 0 means no output, 0 means critical only, and so on, more than 10 will print debug information.|
-| maxApproximationDepth | Integer |       | The maximum number of divisions by 2 that we allow when approximating the the filter for binary encoding. AKa the resolution of the appoimation, a value of 5 would mean the filter weights are approimated no closer than to the closest 1/32nd |
-| maxApproximationError | Double |        | The allowable cumaltive error of the approximation of a filter. A lower error means higher acuuracy of results but if the weights are not simple fractions with binary number denominators then program length will increase significantly. |
-| 3d            | Boolean       |         | whether the filter should be concidered 3-dimentional or if the 3rd dimention is for input channels. This effectivly defines if the inner most array of the kernel should be centered or 0 indexed. |
-| filter        | Filter (see below) |    | The mapping from Registers to the kernels to be compiled. 
+| id            | Any String    |         | The arbitary name of this search configuration. |
+| verbose       | Integer       | 10      | This value controls the verbosity of the setup and checking of the search, not the search itself (see 'runConfig' for search verbosity rules) less than 0 means no output, 0 means critical only, and so on, more than 10 will print debug information. |
+| goalSystem    | "Atom"        |         | This determines the representation of a Goal in Cain. |
+| filter        | Filter (see below) |    | The mapping from Registers to the kernels to be compiled. |
 | availableRegisters | Array of Strings | | The available Registers to use in computation (registers in the 'filter' mapping are added automaticly if not present' Registers must be Strings containing only the characters 'A' to 'Z', for example `"availableRegisters":["A","B","C","D","E","F"],` |
-| initialRegisters | Array of Strings |   | In the same format as 'availableRegisters' this defines the input registers. For single channel inputs use a singleton array, for 2d-multichannel filters the order of registers order of channels described in the innermost array of the kernel |
-| runConfig     | RunConfig (see below) | | The run configutation for Cain, including parameters for search time, traversal algorithm, and cost function |
-| pairGen       | PairGen (see below) |   | The pair generation configuration, including what archatecture to target and any configuration parameters to give the pairGenerator for that archatecture |
+| initialRegisters | Array of Strings |   | In the same format as 'availableRegisters' this defines the input registers. For single channel inputs use a singleton array, for 2d-multichannel filters the order of registers order of channels described in the innermost array of the kernel. |
+| runConfig     | RunConfig (see below) | | The run configutation for Cain, including parameters for search time, traversal algorithm, and cost function. |
+| pairGen       | PairGen (see below) |   | The pair generation configuration, including what archatecture to target and any configuration parameters to give the pairGenerator for that archatecture. |
+
+#### Atom Goal Approximation
+When using the Atom Goal-System kernels must be approximated using the following parameters:
+
+| token id      | valid value     | Description  |
+| ------------- |:---------------:| ------------ |
+| 3d            | Boolean         | whether the filter should be concidered 3-dimentional or if the 3rd dimention is for input channels. This effectivly defines if the inner most array of the kernel should be centered or 0 indexed. |
+| maxApproximationDepth | Integer | The maximum number of divisions by 2 that we allow when approximating the the filter for binary encoding. AKa the resolution of the appoimation, a value of 5 would mean the filter weights are approimated no closer than to the closest 1/32nd. |
+| maxApproximationError | Double  | The allowable cumaltive error of the approximation of a filter. A lower error means higher acuuracy of results but if the weights are not simple fractions with binary number denominators then program length will increase significantly. |
 
 #### Filter 
 The Filter JSON object is a mapping from Reguster to the kernel to generate in that register.
-Each kernel object has an "array" of the weights, and an optional Doubles "depth" and "scale". Every weight in the kernel is multiplied by scale * 2^depth. Defualt values for scale and depth are 1 and 0 respectivly.
+Each kernel object has an "array" of the weights, and an optional Doubles "depth" and "scale". Every weight in the kernel is multiplied by scale * 2^depth. Defualt values for scale and depth are 1 and 0 respectively. Weights are interpreted as Doubles; scale and depth are just used to make reading kernels easier.
 
 ###### Example:
 ```
@@ -86,7 +93,7 @@ The RunConfig defines the behaviour of the Reverse Search Algorithm, but not any
 
 #### PairGen
 
-This defines what PairGeneration to use and so what archatecture to target and what huristics to use. Currently only Scamp5 is supported.
+This defines what PairGeneration to use and so what archatecture to target and what huristics to use. Pair Generation is dependant on the Goal-System and currently only Scamp5 (for Atom goals) is supported.
 ```
 "pairGen":{
     "name": "Scamp5",
