@@ -235,7 +235,7 @@ public class ReverseSearch<G extends Goal<G>> {
     private final int goalReductionsTolerance;
 
 
-    public ReverseSearch(int[] divisions, List<G> initialGoals, List<G> finalGoals, PairGenFactory pairGenFactory, RunConfig<G> runConfig) {
+    public ReverseSearch(int[] divisions, List<G> initialGoals, List<G> finalGoals, PairGenFactory<G> pairGenFactory, RunConfig<G> runConfig) {
         this.liveCounter = runConfig.liveCounter;
         this.livePrintPlans = runConfig.livePrintPlans;
         this.quiet = runConfig.quiet;
@@ -286,7 +286,7 @@ public class ReverseSearch<G extends Goal<G>> {
 
         // Init PairGen with complete Object
         this.pairGenFactory = pairGenFactory;
-        this.pairGenFactory.init(this);
+//        this.pairGenFactory.init(initialGoals, finalGoals);
 
     }
 

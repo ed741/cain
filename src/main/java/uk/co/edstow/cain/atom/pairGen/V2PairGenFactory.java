@@ -21,10 +21,6 @@ public class V2PairGenFactory implements PairGenFactory<AtomGoal> {
     }
 
     @Override
-    public void init(ReverseSearch<AtomGoal> rs) {
-    }
-
-    @Override
     public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals, int depth) {
         return new V2PairGen(goals);
     }

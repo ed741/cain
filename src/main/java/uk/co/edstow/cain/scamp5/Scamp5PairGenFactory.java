@@ -125,19 +125,12 @@ public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements P
     }
 
 
-    private ReverseSearch<AtomGoal> rs;
-    private final Function<ReverseSearch<AtomGoal>, ConfigGetter<AtomGoal, T>> confGetterGetter;
-    private ConfigGetter<AtomGoal, T> confGet;
+    private final ConfigGetter<AtomGoal, T> confGet;
 
-    public Scamp5PairGenFactory(Function<ReverseSearch<AtomGoal>, ConfigGetter<AtomGoal, T>> confGetterGetter) {
-        this.confGetterGetter = confGetterGetter;
+    public Scamp5PairGenFactory(ConfigGetter<AtomGoal, T> confGetter) {
+        this.confGet = confGetter;
     }
 
-    @Override
-    public void init(ReverseSearch<AtomGoal> rs) {
-        confGet = confGetterGetter.apply(rs);
-        this.rs =rs;
-    }
 
 
 

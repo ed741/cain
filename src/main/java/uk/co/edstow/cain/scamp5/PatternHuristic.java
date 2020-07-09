@@ -13,12 +13,21 @@ import java.util.*;
 
 public class PatternHuristic<C extends Config> implements CostHuristic<AtomGoal, C> {
 
-    private int[] initialDivisions;
-    private int initialDivisionsMax;
-    private int initialDivisionsMin;
+    private final int[] initialDivisions;
+    private final int initialDivisionsMax;
+    private final int initialDivisionsMin;
 
-    public PatternHuristic(ReverseSearch<AtomGoal> rs) {
-        this.initialDivisions = rs.getInitialDivisions();
+    public PatternHuristic(int[] initialDivisions) {
+        this.initialDivisions = initialDivisions;
+        this.initialDivisionsMax = Arrays.stream(this.initialDivisions).max().getAsInt();
+        this.initialDivisionsMin = Arrays.stream(this.initialDivisions).min().getAsInt();
+    }
+    public PatternHuristic(List<AtomGoal> initialGoals) {
+        int[] initialDivisions = new int[initialGoals.size()];
+        for (int i = 0; i < initialDivisions.length; i++) {
+            initialDivisions[i] = 31 - Integer.numberOfLeadingZeros( initialGoals.get(i).atomCount() );
+        }
+        this.initialDivisions = initialDivisions;
         this.initialDivisionsMax = Arrays.stream(this.initialDivisions).max().getAsInt();
         this.initialDivisionsMin = Arrays.stream(this.initialDivisions).min().getAsInt();
     }

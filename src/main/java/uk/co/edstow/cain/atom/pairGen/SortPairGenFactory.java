@@ -11,6 +11,10 @@ import java.util.stream.Collectors;
 
 public class SortPairGenFactory extends SimplePairGenFactory {
 
+    public SortPairGenFactory(AtomGoal.AtomBounds bounds) {
+        super(bounds);
+    }
+
     @Override
     public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals) {
         return new AddSortPairGen(goals);

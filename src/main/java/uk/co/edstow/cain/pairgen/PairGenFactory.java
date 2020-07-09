@@ -1,6 +1,5 @@
 package uk.co.edstow.cain.pairgen;
 
-import uk.co.edstow.cain.ReverseSearch;
 import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
@@ -33,8 +32,6 @@ public interface PairGenFactory<G extends Goal<G>> {
         GoalPair<G> next();
         int getNumber();
     }
-
-    void init(ReverseSearch<G> rs);
 
     PairGen<G> generatePairs(GoalBag<G> goals, int depth);
 

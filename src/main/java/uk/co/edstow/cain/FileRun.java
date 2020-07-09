@@ -76,10 +76,11 @@ public abstract class FileRun<G extends Goal<G>> {
     private int approximationDepth;
 
 
-    private final ReverseSearch<G> reverseSearch;
-    private RegisterAllocator<G> registerAllocator;
-    private final JSONObject config;
-    private final Verifier<G> verifier;
+    protected final ReverseSearch<G> reverseSearch;
+    protected final List<G> initialGoals;
+    protected RegisterAllocator<G> registerAllocator;
+    protected final JSONObject config;
+    protected final Verifier<G> verifier;
 
 
     public FileRun(JSONObject config) {
@@ -88,15 +89,15 @@ public abstract class FileRun<G extends Goal<G>> {
         List<G> finalGoals = makeFinalGoals(config);
 
         registerAllocator = makeRegisterAllocator(config);
+        int[] divisions = new int[registerAllocator.getInitRegisters().length];
+        Arrays.fill(divisions, approximationDepth);
+        initialGoals = makeInitialGoals(divisions);
+
         printLn("");
         ReverseSearch.RunConfig<G> runConfig = makeRunConfig(config.getJSONObject("runConfig"), registerAllocator);
         printLn("");
         PairGenFactory<G> pairGenFactory = makePairGenFactory(config.getJSONObject("pairGen"), registerAllocator);
         printLn("");
-
-        int[] divisions = new int[registerAllocator.getInitRegisters().length];
-        Arrays.fill(divisions, approximationDepth);
-        List<G> initialGoals = makeInitialGoals(divisions);
 
         printLn("Initialising Reverse Search:");
         reverseSearch = new ReverseSearch<>(divisions, initialGoals, finalGoals, pairGenFactory, runConfig);
@@ -116,16 +117,15 @@ public abstract class FileRun<G extends Goal<G>> {
         configureFinalGoals(finalGoals, approximationDepth);
 
         registerAllocator = makeRegisterAllocator(config);
+        int[] divisions = new int[registerAllocator.getInitRegisters().length];
+        Arrays.fill(divisions, this.approximationDepth);
+        initialGoals = makeInitialGoals(divisions);
+
         printLn("");
         ReverseSearch.RunConfig<G> runConfig = makeRunConfig(config.getJSONObject("runConfig"), registerAllocator);
         printLn("");
         PairGenFactory<G> pairGenFactory = makePairGenFactory(config.getJSONObject("pairGen"), registerAllocator);
         printLn("");
-
-        int[] divisions = new int[registerAllocator.getInitRegisters().length];
-        Arrays.fill(divisions, this.approximationDepth);
-        List<G> initialGoals = makeInitialGoals(divisions);
-
 
         printLn("Initialising Reverse Search:");
         reverseSearch = new ReverseSearch<>(divisions, initialGoals, finalGoals, pairGenFactory, runConfig);
@@ -429,7 +429,7 @@ public abstract class FileRun<G extends Goal<G>> {
                             break;
                     }
                     printLn("Exhustive Search Threshold  : " + json.getInt("threshold"));
-                    return new Scamp5PairGenFactory<>(rs -> new ThresholdConfigGetter(rs, registerAllocator.getAvailableRegistersArray(), json.getInt("threshold"), configConsumer));
+                    return new Scamp5PairGenFactory<>(new ThresholdConfigGetter(initialGoals, registerAllocator.getAvailableRegistersArray(), json.getInt("threshold"), configConsumer));
             }
 
         }

@@ -7,7 +7,6 @@ import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
 import uk.co.edstow.cain.util.Tuple;
-import uk.co.edstow.cain.ReverseSearch;
 import uk.co.edstow.cain.Transformation;
 
 import java.util.*;
@@ -16,17 +15,16 @@ import java.util.stream.Collectors;
 public class V1PairGenFactory implements PairGenFactory<AtomGoal> {
 
 
+    public V1PairGenFactory(AtomGoal.AtomBounds bounds) {
+        this.bounds = bounds;
+    }
+
     @Override
     public Collection<Tuple<List<GoalPair<AtomGoal>>, AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, int depth, AtomGoal goal) {
         return SimplePairGenFactory.applyAllUnaryOps(initialGoals.get(0), goal);
     }
 
-    private AtomGoal.AtomBounds bounds;
-    @Override
-    public void init(ReverseSearch<AtomGoal> rs) {
-        bounds = new AtomGoal.AtomBounds(rs.getFinalGoals());
-
-    }
+    private final AtomGoal.AtomBounds bounds;
 
     @Override
     public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals, int depth) {
