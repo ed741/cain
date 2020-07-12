@@ -1,18 +1,23 @@
 package uk.co.edstow.cain.nonlinear;
 
+import uk.co.edstow.cain.RegisterAllocator;
+import uk.co.edstow.cain.Transformation;
 import uk.co.edstow.cain.structures.Bounds;
 import uk.co.edstow.cain.structures.Goal;
+import uk.co.edstow.cain.structures.GoalPair;
 
-import java.util.Comparator;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-//public abstract class NonLinearGoal<G extends Goal<G>> implements Goal<NonLinearGoal<G>> {
 public abstract class NonLinearGoal<G extends Goal<G>> implements Goal<NonLinearGoal<G>> {
 
 
     public abstract G identity();
     protected abstract int rank();
+
+    public abstract Collection<GoalPair<NonLinearGoal<G>>> getReductions();
 
     public static class WrapperNonLinearGoal<G extends Goal<G>> extends NonLinearGoal<G> {
         final G goal;
@@ -54,6 +59,12 @@ public abstract class NonLinearGoal<G extends Goal<G>> implements Goal<NonLinear
         @Override
         protected int rank() {
             return 0;
+        }
+
+        @Override
+        public Collection<GoalPair<NonLinearGoal<G>>> getReductions() {
+            // Identity function cannot be reduced or rewritten usefully.
+            return Collections.emptyList();
         }
 
         @Override
@@ -134,6 +145,51 @@ public abstract class NonLinearGoal<G extends Goal<G>> implements Goal<NonLinear
         @Override
         protected int rank() {
             return 1;
+        }
+
+        @Override
+        public Collection<GoalPair<NonLinearGoal<G>>> getReductions() {
+            return Collections.singletonList(new GoalPair<NonLinearGoal<G>>(this, this.goal, new Transformation() {
+                @Override
+                public String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
+                    return String.format("// %s <- %s :: %s", uppers.get(0), lowers.get(0), func.toString());
+                }
+
+                @Override
+                public int inputCount() {
+                    return 1;
+                }
+
+                @Override
+                public int outputCount() {
+                    return 2;
+                }
+
+                @Override
+                public boolean[] inputRegisterOutputInterference(int u) {
+                    return new boolean[0];
+                }
+
+                @Override
+                public int[] inputRegisterIntraInterference() {
+                    return new int[0];
+                }
+
+                @Override
+                public boolean clobbersInput(int i) {
+                    return false;
+                }
+
+                @Override
+                public double cost() {
+                    return 2;
+                }
+
+                @Override
+                public String toStringN() {
+                    return func.toString() + " " + goal.toString();
+                }
+            }));
         }
     }
     public enum UnaryNonLinearFunction implements Comparable<UnaryNonLinearFunction> {

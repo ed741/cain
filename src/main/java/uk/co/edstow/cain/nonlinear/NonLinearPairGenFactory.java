@@ -45,6 +45,58 @@ public class NonLinearPairGenFactory<G extends Goal<G>> implements PairGenFactor
     @Override
     public PairGen<NonLinearGoal<G>> generatePairs(GoalBag<NonLinearGoal<G>> goals, int depth) {
 
-        return null;
+        return new NonLinearPairGen<>(goals, linearPairGenFactory, depth);
     }
+
+    private static class NonLinearPairGen<G extends Goal<G>> implements PairGen<NonLinearGoal<G>>{
+        private final GoalBag<NonLinearGoal<G>> goals;
+        private final PairGenFactory<G> linearPairGenFactory;
+        private final int depth;
+        private int count = 0;
+        private List<GoalPair<NonLinearGoal<G>>> currentList;
+        public NonLinearPairGen(GoalBag<NonLinearGoal<G>> goals, PairGenFactory<G> linearPairGenFactory, int depth) {
+            this.goals = goals;
+            this.linearPairGenFactory = linearPairGenFactory;
+            this.depth = depth;
+        }
+
+        @Override
+        public GoalPair<NonLinearGoal<G>> next() {
+            count++;
+            if(currentList!=null){
+                if(currentList.isEmpty()){
+                    return null;
+                } else {
+                    return currentList.remove(0);
+                }
+            }
+            currentList = new ArrayList<>();
+
+
+            GoalBag<G> idGoals = new GoalBag<>();
+            for (NonLinearGoal<G> goal : goals) {
+                if(goal.identity()!=null){
+                    idGoals.add(goal.identity());
+                } else {
+                    currentList.addAll(goal.getReductions());
+                }
+            }
+            PairGen<G> linearPairGen = linearPairGenFactory.generatePairs(idGoals, depth);
+            GoalPair<G> c = linearPairGen.next();
+            while (c != null){
+                currentList.add(new GoalPair<>(idOfGoals(c.getUppers()), idOfGoals(c.getLowers()), c.getTransformation()));
+                c = linearPairGen.next();
+            }
+
+            return null;
+        }
+
+        @Override
+        public int getNumber() {
+            return count;
+        }
+    }
+
+
+
 }
