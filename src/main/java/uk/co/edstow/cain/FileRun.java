@@ -528,14 +528,14 @@ public abstract class FileRun<G extends Goal<G>, C extends Config> {
     private static RegisterAllocator.Register[] getRegisterArray(JSONArray availableRegisters) {
         ArrayList<RegisterAllocator.Register> out = new ArrayList<>(availableRegisters.length());
         for (int i = 0; i < availableRegisters.length(); i++) {
-            out.add(RegisterAllocator.Register.valueOf(availableRegisters.getString(i)));
+            out.add(new RegisterAllocator.Register(availableRegisters.getString(i)));
         }
         return out.toArray(new RegisterAllocator.Register[availableRegisters.length()]);
     }
 
     private static List<RegisterAllocator.Register> getOutputRegisters(JSONObject config) {
         JSONObject filter = config.getJSONObject("filter");
-        return filter.keySet().stream().map(RegisterAllocator.Register::valueOf).collect(Collectors.toList());
+        return filter.keySet().stream().map(RegisterAllocator.Register::new).collect(Collectors.toList());
     }
 
     public static JSONObject fromJson(String path) {

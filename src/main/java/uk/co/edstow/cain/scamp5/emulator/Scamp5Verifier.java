@@ -31,7 +31,13 @@ public class Scamp5Verifier implements Verifier<AtomGoal> {
         List<Bounds> coverage = new ArrayList<>();
         double noise = 0;
         Bounds bounds = new Bounds.SimpleBounds(finalGoals.stream().map(Goal::bounds).collect(Collectors.toList()));
-        Scamp5Emulator emulator = Scamp5Emulator.newWithRegs((plan.bounds().largestMagnitude() + 1) * 3, registerAllocator.getAvailableRegisters() <= 6 ? 6 : 24);
+        RegisterAllocator.Register[] availableRegistersArray = registerAllocator.getAvailableRegistersArray();
+        RegisterAllocator.Register[] initRegistersArray = registerAllocator.getInitRegisters();
+        RegisterAllocator.Register[] regs = new RegisterAllocator.Register[availableRegistersArray.length+initRegistersArray.length];
+        System.arraycopy(availableRegistersArray, 0, regs, 0, availableRegistersArray.length);
+        System.arraycopy(initRegistersArray, 0, regs, availableRegistersArray.length, initRegistersArray.length);
+
+        Scamp5Emulator emulator = Scamp5Emulator.newWithRegs((plan.bounds().largestMagnitude() + 1) * 3, regs);
         RegisterAllocator.Register[] initRegisters = registerAllocator.getInitRegisters();
         for (int i = 0; i < initRegisters.length; i++) {
             RegisterAllocator.Register r = initRegisters[i];
@@ -48,7 +54,7 @@ public class Scamp5Verifier implements Verifier<AtomGoal> {
             Iterator<Tuple<Atom, Integer>> iterator = finalGoals.get(i).uniqueCountIterator();
             while (iterator.hasNext()) {
                 Tuple<Atom, Integer> t = iterator.next();
-                Tuple<Integer, Tuple<Integer, String>> coordinate = Tuple.triple(t.getA().x, t.getA().y, RegisterAllocator.Register.values()[t.getA().z].toString());
+                Tuple<Integer, Tuple<Integer, String>> coordinate = Tuple.triple(t.getA().x, t.getA().y, registerAllocator.getAvailableRegistersArray()[t.getA().z].toString());
                 Double d = testMap.get(coordinate);
                 int expected = t.getA().positive ? t.getB() : -t.getB();
                 if (d == null || Double.compare(expected, d) != 0) {
