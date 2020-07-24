@@ -48,9 +48,9 @@ class DemoSuite {
         final RegisterAllocator<AtomGoal> registerAllocator;
 
         private TestSetup(int cores, Supplier<? extends TraversalSystem<WorkState<AtomGoal>>> traversalAlgorithm, int registerCount, int threshold, boolean allOps, int seconds){
-            RegisterAllocator.Register[] allRegisters = RegisterAllocator.Register.values();
+            RegisterAllocator.Register[] allRegisters = RegisterAllocator.Register.getRegisters(registerCount);
             final RegisterAllocator.Register[] availableRegisters = Arrays.copyOfRange(allRegisters, 0, registerCount);
-            RegisterAllocator<AtomGoal> ra = new RegisterAllocator<>(new RegisterAllocator.Register[]{A}, availableRegisters);
+            RegisterAllocator<AtomGoal> ra = new RegisterAllocator<>(RegisterAllocator.Register.getRegisters("A"), availableRegisters);
             Function<List<AtomGoal>, PairGenFactory<AtomGoal, Scamp5Config<AtomGoal>>> pairGenFactoryFunction = initialGoals -> new Scamp5PairGenFactory<>(new ConfigGetter<AtomGoal, Scamp5Config<AtomGoal>>() {
                 PatternHuristic<Scamp5Config<AtomGoal>> heuristic = new PatternHuristic<>(initialGoals);
                 @Override
@@ -290,10 +290,11 @@ class DemoSuite {
 
             if (RANDOM_DENSE) {
                 Random rand = new Random(2001);
-                AtomGoal[] r = new AtomGoal[4];
+                AtomGoal[] r = new AtomGoal[10];
                 for (int i = 0; i < r.length; i++) {
                     r[i] = new AtomGoal.Factory(makeRandom(rand, 3, 0, 8, 0)).get();
                 }
+                demos.add(new Test("RandomBIG", Arrays.asList(r), 3, "(37+35)"));
                 demos.add(new Test("Random0 3x3 [0-8] 0%", Collections.singletonList(r[0]), 3, "30"));
                 demos.add(new Test("Random1 3x3 [0-8] 0%", Collections.singletonList(r[1]), 3, "35"));
                 demos.add(new Test("Random2 3x3 [0-8] 0%", Collections.singletonList(r[2]), 3, "37"));
@@ -512,8 +513,13 @@ class DemoSuite {
     }
 
     private static boolean checkPlan(Test test, TestSetup setup, String code, Plan<?> p){
+        RegisterAllocator.Register[] availableRegistersArray = setup.registerAllocator.getAvailableRegistersArray();
+        RegisterAllocator.Register[] initRegistersArray = setup.registerAllocator.getInitRegisters();
+        RegisterAllocator.Register[] regs = new RegisterAllocator.Register[availableRegistersArray.length+initRegistersArray.length];
+        System.arraycopy(availableRegistersArray, 0, regs, 0, availableRegistersArray.length);
+        System.arraycopy(initRegistersArray, 0, regs, availableRegistersArray.length, initRegistersArray.length);
 
-        Scamp5Emulator emulator = Scamp5Emulator.newWithRegs(p.bounds().largestMagnitude()*3,26);
+        Scamp5Emulator emulator = Scamp5Emulator.newWithRegs(p.bounds().largestMagnitude()*3,regs);
 //        Scamp5Emulator.verbose = 100;
         RegisterAllocator.Register[] initRegisters = setup.registerAllocator.getInitRegisters();
         for (int i = 0; i < initRegisters.length; i++) {
@@ -529,7 +535,7 @@ class DemoSuite {
             Iterator<Tuple<Atom, Integer>> iterator = test.finalGoals.get(i).uniqueCountIterator();
             while (iterator.hasNext()){
                 Tuple<Atom, Integer> t = iterator.next();
-                Tuple<Integer, Tuple<Integer, String>> coordinate = Tuple.triple(t.getA().x, t.getA().y, RegisterAllocator.Register.values()[t.getA().z].toString());
+                Tuple<Integer, Tuple<Integer, String>> coordinate = Tuple.triple(t.getA().x, t.getA().y, setup.registerAllocator.getAvailableRegistersArray()[t.getA().z].toString());
                 Double d = testMap.get(coordinate);
                 int expected = t.getA().positive? t.getB(): -t.getB();
                 if(d == null || Double.compare(expected, d) != 0){

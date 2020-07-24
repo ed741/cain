@@ -1,5 +1,6 @@
 package uk.co.edstow.cain.scamp5.emulator;
 
+import uk.co.edstow.cain.RegisterAllocator;
 import uk.co.edstow.cain.atom.AtomGoal;
 import uk.co.edstow.cain.util.Tuple;
 
@@ -28,7 +29,7 @@ public class Scamp5Emulator {
     private final Pattern regPattern;
     private final Map<InstructionSignature, Consumer<String[]>> instructionSet;
     private final Queue<Instruction> instructionBuffer;
-
+    private final Reg[] realRegisters;
 
 
     private static class UndefinedInstructionBehaviour extends RuntimeException{
@@ -57,21 +58,78 @@ public class Scamp5Emulator {
     }
 
 
-    enum Reg {
-        News(0, 0), A(0, 0),B(0, 0),C(0, 0),D(0, 0),E(0, 0),F(0, 0),
+    static class Reg extends RegisterAllocator.Register {
+        private static Reg News = new Reg(0,0,"News");
+        private static Reg XNorth = new Reg(0,1,"XNorth");
+        private static Reg XEast = new Reg(1,0,"XEast");
+        private static Reg XSouth = new Reg(0,-1,"XSouth");
+        private static Reg XWest = new Reg(-1,0,"XWest");
+//        News(0, 0), A(0, 0),B(0, 0),C(0, 0),D(0, 0),E(0, 0),F(0, 0),
+//
+//        G(0, 0),H(0, 0),I(0, 0),J(0, 0),K(0, 0),L(0, 0),// Extras
+//        M(0, 0),N(0, 0),O(0, 0),P(0, 0),Q(0, 0),R(0, 0),// Extras
+//        S(0, 0),T(0, 0),U(0, 0),V(0, 0),W(0, 0),X(0, 0),Y(0, 0),Z(0, 0),// Extras
+//
+//        XNorth(0, 1),XEast(1, 0),XSouth(0, -1),XWest(-1, 0);
 
-        G(0, 0),H(0, 0),I(0, 0),J(0, 0),K(0, 0),L(0, 0),// Extras
-        M(0, 0),N(0, 0),O(0, 0),P(0, 0),Q(0, 0),R(0, 0),// Extras
-        S(0, 0),T(0, 0),U(0, 0),V(0, 0),W(0, 0),X(0, 0),Y(0, 0),Z(0, 0),// Extras
+        public static Reg[] getRegisters(int count){
+            Reg[] out = new Reg[count];
+            for (int i = 0; i < count; i++) {
+                out[i] = new Reg(i);
+            }
+            return out;
+        }
+        public static Reg[] getRealRegisters(int count){
+            Reg[] out = new Reg[count+1];
+            out[0] = Reg.News;
+            for (int i = 1; i < out.length; i++) {
+                out[i] = new Reg(i);
+            }
+            return out;
+        }
 
-        XNorth(0, 1),XEast(1, 0),XSouth(0, -1),XWest(-1, 0);
-
+        public static Reg[] getRegisters(RegisterAllocator.Register[] array){
+            Reg[] out = new Reg[array.length];
+            for (int i = 0; i < out.length; i++) {
+                out[i] = new Reg(0,0,array[i].name);
+            }
+            return out;
+        }
+        public static Reg[] getRealRegisters(RegisterAllocator.Register[] array){
+            Reg[] out = new Reg[array.length+1];
+            out[0] = Reg.News;
+            for (int i = 1; i < out.length; i++) {
+                out[i] = new Reg(0,0,array[i-1].name);
+            }
+            return out;
+        }
+        
+        public static Reg valueOf(String name, Reg[] possible){
+            for (Reg reg : possible) {
+                if(name.equals(reg.name)){
+                    return reg;
+                }
+            }
+            return null;
+        }
+        
+        public static Reg[] getNeighbourRegisters(){
+            return new Reg[]{XNorth, XEast, XSouth, XWest};
+        }
+        
         private final int realX;
         private final int realY;
 
-        Reg(int realX, int realY) {
+        Reg(int realX, int realY, String name) {
+            super(name);
             this.realX = realX;
             this.realY = realY;
+        }
+        
+        Reg(int i){
+            super(i);
+            this.realX = 0;
+            this.realY = 0;
         }
 
         private boolean real() {
@@ -111,31 +169,35 @@ public class Scamp5Emulator {
     public static Scamp5Emulator newWithRegs(int rad, int regs){
         return new Scamp5Emulator(-rad, rad+1, -rad, rad+1, regs);
     }
+    public static Scamp5Emulator newWithRegs(int rad, RegisterAllocator.Register[] regs){
+        return new Scamp5Emulator(-rad, rad+1, -rad, rad+1, regs);
+    }
 
     public Scamp5Emulator(int xMin, int xMax, int yMin, int yMax) {
         this(xMin, xMax, yMin, yMax, 6);
     }
-    public static Scamp5Emulator newWithRegs(int xMin, int xMax, int yMin, int yMax, int regs){
-        return new Scamp5Emulator(xMin, xMax, yMin, yMax, regs);
-    }
 
     public Scamp5Emulator(int xMin, int xMax, int yMin, int yMax, int r) {
-        this(xMin, xMax, yMin, yMax, Arrays.asList(Reg.values()).subList(0,r+1));
+        this(xMin, xMax, yMin, yMax, Reg.getRealRegisters(r));
+    }
+    public Scamp5Emulator(int xMin, int xMax, int yMin, int yMax, RegisterAllocator.Register[] r) {
+        this(xMin, xMax, yMin, yMax, Reg.getRealRegisters(r));
     }
 
     @SuppressWarnings("WeakerAccess")
-    private Scamp5Emulator(int xMin, int xMax, int yMin, int yMax, List<Reg> realRegs) {
+    private Scamp5Emulator(int xMin, int xMax, int yMin, int yMax, Reg[] realRegs) {
         this.xMin = xMin;
         this.xMax = xMax;
         this.yMin = yMin;
         this.yMax = yMax;
+        this.realRegisters = realRegs;
         NoiseConfig noiseConfig = new NoiseConfig();
 
         this.tiles = new HashMap<>((xMax-xMin)*(yMax-yMin));
         for (int i = xMin; i < xMax; i++) {
             for (int j = yMin; j < yMax; j++) {
                 Pos position = new Pos(i, j);
-                ProcessingElement pe = new ProcessingElement(position, noiseConfig, realRegs.toArray(new Reg[0]));
+                ProcessingElement pe = new ProcessingElement(position, noiseConfig, realRegisters);
                 this.tiles.put(position, pe);
             }
         }
@@ -143,15 +205,13 @@ public class Scamp5Emulator {
         for (int i = xMin; i < xMax; i++) {
             for (int j = yMin; j < yMax; j++) {
                 ProcessingElement pe = this.tiles.get(new Pos(i, j));
-                for (Reg reg : Reg.values()) {
-                    if(!reg.real()) {
-                        Pos p = new Pos(i+reg.realX, j + reg.realY);
-                        if(this.tiles.containsKey(p)){
-                            pe.addNeighbourRegister(reg, this.tiles.get(p), Reg.News);
-                        } else {
-                            // edge of sensor
-                            pe.addExtraRegister(reg);
-                        }
+                for (Reg reg : Reg.getNeighbourRegisters()) {
+                    Pos p = new Pos(i+reg.realX, j + reg.realY);
+                    if(this.tiles.containsKey(p)){
+                        pe.addNeighbourRegister(reg, this.tiles.get(p), Reg.News);
+                    } else {
+                        // edge of sensor
+                        pe.addExtraRegister(reg);
                     }
                 }
             }
@@ -161,119 +221,119 @@ public class Scamp5Emulator {
         this.argPattern = Pattern.compile("([^\\s,]+)\\s*(?:,|$)");
         this.dirPattern = Pattern.compile("north|east|south|west");
 
-        this.regPattern = Pattern.compile(realRegs.stream().filter(r -> r!=Reg.News).map(Enum::toString).collect(Collectors.joining("", "[", "]")));
+        this.regPattern = Pattern.compile("[A-Z]+");
 
 
         instructionSet = new HashMap<>();
         instructionBuffer = new ArrayDeque<>();
 
         instructionSet.put(new InstructionSignature("input", new int[]{0,2}), args ->
-                instructionBuffer.add(pe -> pe.input(Reg.valueOf(args[0]), Integer.parseInt(args[1])))
+                instructionBuffer.add(pe -> pe.input(regValueOf(args[0]), Integer.parseInt(args[1])))
         );
 
         instructionSet.put(new InstructionSignature("res", new int[]{0}), args -> {
             checkRegsReal(args, 0);
             instructionBuffer.add(pe -> pe.bus(Reg.News));
-            instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[0]), Reg.News));
+            instructionBuffer.add(pe -> pe.bus(regValueOf(args[0]), Reg.News));
         });
         instructionSet.put(new InstructionSignature("res", new int[]{0, 0}), args -> {
             checkRegsReal(args, 0,1);
             instructionBuffer.add(pe -> pe.bus(Reg.News));
-            instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[0]), Reg.News));
-            instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[1]), Reg.News));
+            instructionBuffer.add(pe -> pe.bus(regValueOf(args[0]), Reg.News));
+            instructionBuffer.add(pe -> pe.bus(regValueOf(args[1]), Reg.News));
         });
 
         instructionSet.put(new InstructionSignature("mov", new int[]{0,0}), args -> {
             checkRegsReal(args, 0,1);
-            instructionBuffer.add(pe -> pe.bus(Reg.News,Reg.valueOf(args[1])));
-            instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[0]), Reg.News));
+            instructionBuffer.add(pe -> pe.bus(Reg.News,regValueOf(args[1])));
+            instructionBuffer.add(pe -> pe.bus(regValueOf(args[0]), Reg.News));
         });
         instructionSet.put(new InstructionSignature("add", new int[]{0,0,0}), args -> {
             checkRegsReal(args, 0,1,2);
-            instructionBuffer.add(pe -> pe.bus(Reg.News,Reg.valueOf(args[1]),Reg.valueOf(args[2])));
-            instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[0]), Reg.News));
+            instructionBuffer.add(pe -> pe.bus(Reg.News,regValueOf(args[1]),regValueOf(args[2])));
+            instructionBuffer.add(pe -> pe.bus(regValueOf(args[0]), Reg.News));
         });
         instructionSet.put(new InstructionSignature("add", new int[]{0,0,0,0}), args -> {
             checkRegsReal(args, 0,1,2,3);
-            instructionBuffer.add(pe -> pe.bus(Reg.News,Reg.valueOf(args[1]),Reg.valueOf(args[2]),Reg.valueOf(args[3])));
-            instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[0]), Reg.News));
+            instructionBuffer.add(pe -> pe.bus(Reg.News,regValueOf(args[1]),regValueOf(args[2]),regValueOf(args[3])));
+            instructionBuffer.add(pe -> pe.bus(regValueOf(args[0]), Reg.News));
         });
         instructionSet.put(new InstructionSignature("sub", new int[]{0,0,0}), args -> {
             checkRegsReal(args, 0,1,2);
-            instructionBuffer.add(pe -> pe.bus(Reg.News,Reg.valueOf(args[1])));
-            instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[0]), Reg.News, Reg.valueOf(args[2])));
+            instructionBuffer.add(pe -> pe.bus(Reg.News,regValueOf(args[1])));
+            instructionBuffer.add(pe -> pe.bus(regValueOf(args[0]), Reg.News, regValueOf(args[2])));
         });
         instructionSet.put(new InstructionSignature("neg", new int[]{0,0}), args -> {
             checkRegsReal(args, 0,1);
             instructionBuffer.add(pe -> pe.bus(Reg.News));
-            instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[0]), Reg.News, Reg.valueOf(args[1])));
+            instructionBuffer.add(pe -> pe.bus(regValueOf(args[0]), Reg.News, regValueOf(args[1])));
         });
         instructionSet.put(new InstructionSignature("abs", new int[]{0,0}), args -> {
             checkRegsReal(args, 0,1);
             instructionBuffer.add(pe -> pe.bus(Reg.News));
-            instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[0]), Reg.News, Reg.valueOf(args[1])));
-            instructionBuffer.add(pe -> pe.bus(Reg.News, Reg.valueOf(args[1])));
-            instructionBuffer.add(pe -> pe.where(Reg.valueOf(args[1])));
-            instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[0]), Reg.News));
+            instructionBuffer.add(pe -> pe.bus(regValueOf(args[0]), Reg.News, regValueOf(args[1])));
+            instructionBuffer.add(pe -> pe.bus(Reg.News, regValueOf(args[1])));
+            instructionBuffer.add(pe -> pe.where(regValueOf(args[1])));
+            instructionBuffer.add(pe -> pe.bus(regValueOf(args[0]), Reg.News));
             instructionBuffer.add(pe -> pe.all());
         });
 
         instructionSet.put(new InstructionSignature("divq", new int[]{0,0}), args -> {
             checkRegsReal(args, 0,1);
-            instructionBuffer.add(pe -> pe.bus2(Reg.valueOf(args[0]), Reg.News, Reg.valueOf(args[1])));
-            instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[0]), Reg.News));
+            instructionBuffer.add(pe -> pe.bus2(regValueOf(args[0]), Reg.News, regValueOf(args[1])));
+            instructionBuffer.add(pe -> pe.bus(regValueOf(args[0]), Reg.News));
         });
         instructionSet.put(new InstructionSignature("div", new int[]{0,0,0}), args -> {
             checkRegsReal(args, 0,1,2);
-            instructionBuffer.add(pe -> pe.bus2(Reg.valueOf(args[0]), Reg.valueOf(args[1]), Reg.valueOf(args[2])));
-            instructionBuffer.add(pe -> pe.bus(Reg.News, Reg.valueOf(args[2]), Reg.valueOf(args[1])));
-            instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[2]), Reg.News, Reg.valueOf(args[0])));
-            instructionBuffer.add(pe -> pe.bus2(Reg.valueOf(args[0]), Reg.valueOf(args[1]), Reg.valueOf(args[2])));
-            instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[0]), Reg.valueOf(args[1])));
+            instructionBuffer.add(pe -> pe.bus2(regValueOf(args[0]), regValueOf(args[1]), regValueOf(args[2])));
+            instructionBuffer.add(pe -> pe.bus(Reg.News, regValueOf(args[2]), regValueOf(args[1])));
+            instructionBuffer.add(pe -> pe.bus(regValueOf(args[2]), Reg.News, regValueOf(args[0])));
+            instructionBuffer.add(pe -> pe.bus2(regValueOf(args[0]), regValueOf(args[1]), regValueOf(args[2])));
+            instructionBuffer.add(pe -> pe.bus(regValueOf(args[0]), regValueOf(args[1])));
         });
         instructionSet.put(new InstructionSignature("div", new int[]{0,0,0,0}), args -> {
             checkRegsReal(args, 0,1,2,3);
-            instructionBuffer.add(pe -> pe.bus2(Reg.valueOf(args[0]), Reg.valueOf(args[1]), Reg.valueOf(args[3])));
-            instructionBuffer.add(pe -> pe.bus(Reg.News, Reg.valueOf(args[3]), Reg.valueOf(args[1])));
-            instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[2]), Reg.News, Reg.valueOf(args[0])));
-            instructionBuffer.add(pe -> pe.bus2(Reg.valueOf(args[0]), Reg.valueOf(args[1]), Reg.valueOf(args[2])));
-            instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[0]), Reg.valueOf(args[1])));
+            instructionBuffer.add(pe -> pe.bus2(regValueOf(args[0]), regValueOf(args[1]), regValueOf(args[3])));
+            instructionBuffer.add(pe -> pe.bus(Reg.News, regValueOf(args[3]), regValueOf(args[1])));
+            instructionBuffer.add(pe -> pe.bus(regValueOf(args[2]), Reg.News, regValueOf(args[0])));
+            instructionBuffer.add(pe -> pe.bus2(regValueOf(args[0]), regValueOf(args[1]), regValueOf(args[2])));
+            instructionBuffer.add(pe -> pe.bus(regValueOf(args[0]), regValueOf(args[1])));
         });
         instructionSet.put(new InstructionSignature("diva", new int[]{0,0,0}), args -> {
             checkRegsReal(args, 0,1,2);
-            instructionBuffer.add(pe -> pe.bus2(Reg.valueOf(args[1]), Reg.valueOf(args[2]), Reg.valueOf(args[0])));
-            instructionBuffer.add(pe -> pe.bus(Reg.News, Reg.valueOf(args[1]), Reg.valueOf(args[0])));
-            instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[0]), Reg.News, Reg.valueOf(args[2])));
-            instructionBuffer.add(pe -> pe.bus2(Reg.valueOf(args[1]), Reg.valueOf(args[2]), Reg.valueOf(args[0])));
-            instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[0]), Reg.valueOf(args[1])));
+            instructionBuffer.add(pe -> pe.bus2(regValueOf(args[1]), regValueOf(args[2]), regValueOf(args[0])));
+            instructionBuffer.add(pe -> pe.bus(Reg.News, regValueOf(args[1]), regValueOf(args[0])));
+            instructionBuffer.add(pe -> pe.bus(regValueOf(args[0]), Reg.News, regValueOf(args[2])));
+            instructionBuffer.add(pe -> pe.bus2(regValueOf(args[1]), regValueOf(args[2]), regValueOf(args[0])));
+            instructionBuffer.add(pe -> pe.bus(regValueOf(args[0]), regValueOf(args[1])));
         });
 
         instructionSet.put(new InstructionSignature("movx", new int[]{0,0,1}), args -> {
             checkRegsReal(args, 0,1);
             switch (args[2]){
-                case "east": instructionBuffer.add(pe -> pe.bus(Reg.XWest,Reg.valueOf(args[1]))); break;
-                case "west": instructionBuffer.add(pe -> pe.bus(Reg.XEast,Reg.valueOf(args[1]))); break;
-                case "north": instructionBuffer.add(pe -> pe.bus(Reg.XSouth,Reg.valueOf(args[1]))); break;
-                case "south": instructionBuffer.add(pe -> pe.bus(Reg.XNorth,Reg.valueOf(args[1]))); break;
+                case "east": instructionBuffer.add(pe -> pe.bus(Reg.XWest,regValueOf(args[1]))); break;
+                case "west": instructionBuffer.add(pe -> pe.bus(Reg.XEast,regValueOf(args[1]))); break;
+                case "north": instructionBuffer.add(pe -> pe.bus(Reg.XSouth,regValueOf(args[1]))); break;
+                case "south": instructionBuffer.add(pe -> pe.bus(Reg.XNorth,regValueOf(args[1]))); break;
                 default: throw new UndefinedInstructionBehaviour("Unrecognised direction");
             }
-            instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[0]), Reg.News));
+            instructionBuffer.add(pe -> pe.bus(regValueOf(args[0]), Reg.News));
         });
 
         instructionSet.put(new InstructionSignature("mov2x", new int[]{0,0,1,1}), args -> {
             checkRegsReal(args, 0,1);
             switch (args[2]){
-                case "east": instructionBuffer.add(pe -> pe.bus(Reg.XWest,Reg.valueOf(args[1]))); break;
-                case "west": instructionBuffer.add(pe -> pe.bus(Reg.XEast,Reg.valueOf(args[1]))); break;
-                case "north": instructionBuffer.add(pe -> pe.bus(Reg.XSouth,Reg.valueOf(args[1]))); break;
-                case "south": instructionBuffer.add(pe -> pe.bus(Reg.XNorth,Reg.valueOf(args[1]))); break;
+                case "east": instructionBuffer.add(pe -> pe.bus(Reg.XWest,regValueOf(args[1]))); break;
+                case "west": instructionBuffer.add(pe -> pe.bus(Reg.XEast,regValueOf(args[1]))); break;
+                case "north": instructionBuffer.add(pe -> pe.bus(Reg.XSouth,regValueOf(args[1]))); break;
+                case "south": instructionBuffer.add(pe -> pe.bus(Reg.XNorth,regValueOf(args[1]))); break;
                 default: throw new UndefinedInstructionBehaviour("Unrecognised direction");
             }
             switch (args[3]){
-                case "east": instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[0]), Reg.XEast)); break;
-                case "west": instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[0]), Reg.XWest)); break;
-                case "north": instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[0]), Reg.XNorth)); break;
-                case "south": instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[0]), Reg.XSouth)); break;
+                case "east": instructionBuffer.add(pe -> pe.bus(regValueOf(args[0]), Reg.XEast)); break;
+                case "west": instructionBuffer.add(pe -> pe.bus(regValueOf(args[0]), Reg.XWest)); break;
+                case "north": instructionBuffer.add(pe -> pe.bus(regValueOf(args[0]), Reg.XNorth)); break;
+                case "south": instructionBuffer.add(pe -> pe.bus(regValueOf(args[0]), Reg.XSouth)); break;
                 default: throw new UndefinedInstructionBehaviour("Unrecognised direction");
             }
         });
@@ -281,29 +341,29 @@ public class Scamp5Emulator {
         instructionSet.put(new InstructionSignature("addx", new int[]{0,0,0,1}), args -> {
             checkRegsReal(args, 0,1,2);
             switch (args[3]){
-                case "east": instructionBuffer.add(pe -> pe.bus(Reg.XWest,Reg.valueOf(args[1]),Reg.valueOf(args[2]))); break;
-                case "west": instructionBuffer.add(pe -> pe.bus(Reg.XEast,Reg.valueOf(args[1]),Reg.valueOf(args[2]))); break;
-                case "north": instructionBuffer.add(pe -> pe.bus(Reg.XSouth,Reg.valueOf(args[1]),Reg.valueOf(args[2]))); break;
-                case "south": instructionBuffer.add(pe -> pe.bus(Reg.XNorth,Reg.valueOf(args[1]),Reg.valueOf(args[2]))); break;
+                case "east": instructionBuffer.add(pe -> pe.bus(Reg.XWest,regValueOf(args[1]),regValueOf(args[2]))); break;
+                case "west": instructionBuffer.add(pe -> pe.bus(Reg.XEast,regValueOf(args[1]),regValueOf(args[2]))); break;
+                case "north": instructionBuffer.add(pe -> pe.bus(Reg.XSouth,regValueOf(args[1]),regValueOf(args[2]))); break;
+                case "south": instructionBuffer.add(pe -> pe.bus(Reg.XNorth,regValueOf(args[1]),regValueOf(args[2]))); break;
                 default: throw new UndefinedInstructionBehaviour("Unrecognised direction");
             }
-            instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[0]), Reg.News));
+            instructionBuffer.add(pe -> pe.bus(regValueOf(args[0]), Reg.News));
         });
 
         instructionSet.put(new InstructionSignature("add2x", new int[]{0,0,0,1,1}), args -> {
             checkRegsReal(args, 0,1,2);
             switch (args[3]){
-                case "east": instructionBuffer.add(pe -> pe.bus(Reg.XWest,Reg.valueOf(args[1]),Reg.valueOf(args[2]))); break;
-                case "west": instructionBuffer.add(pe -> pe.bus(Reg.XEast,Reg.valueOf(args[1]),Reg.valueOf(args[2]))); break;
-                case "north": instructionBuffer.add(pe -> pe.bus(Reg.XSouth,Reg.valueOf(args[1]),Reg.valueOf(args[2]))); break;
-                case "south": instructionBuffer.add(pe -> pe.bus(Reg.XNorth,Reg.valueOf(args[1]),Reg.valueOf(args[2]))); break;
+                case "east": instructionBuffer.add(pe -> pe.bus(Reg.XWest,regValueOf(args[1]),regValueOf(args[2]))); break;
+                case "west": instructionBuffer.add(pe -> pe.bus(Reg.XEast,regValueOf(args[1]),regValueOf(args[2]))); break;
+                case "north": instructionBuffer.add(pe -> pe.bus(Reg.XSouth,regValueOf(args[1]),regValueOf(args[2]))); break;
+                case "south": instructionBuffer.add(pe -> pe.bus(Reg.XNorth,regValueOf(args[1]),regValueOf(args[2]))); break;
                 default: throw new UndefinedInstructionBehaviour("Unrecognised direction");
             }
             switch (args[4]){
-                case "east": instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[0]), Reg.XEast)); break;
-                case "west": instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[0]), Reg.XWest)); break;
-                case "north": instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[0]), Reg.XNorth)); break;
-                case "south": instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[0]), Reg.XSouth)); break;
+                case "east": instructionBuffer.add(pe -> pe.bus(regValueOf(args[0]), Reg.XEast)); break;
+                case "west": instructionBuffer.add(pe -> pe.bus(regValueOf(args[0]), Reg.XWest)); break;
+                case "north": instructionBuffer.add(pe -> pe.bus(regValueOf(args[0]), Reg.XNorth)); break;
+                case "south": instructionBuffer.add(pe -> pe.bus(regValueOf(args[0]), Reg.XSouth)); break;
                 default: throw new UndefinedInstructionBehaviour("Unrecognised direction");
             }
         });
@@ -311,29 +371,29 @@ public class Scamp5Emulator {
         instructionSet.put(new InstructionSignature("subx", new int[]{0,0,1,0}), args -> {
             checkRegsReal(args, 0,1,3);
             switch (args[2]){
-                case "east": instructionBuffer.add(pe -> pe.bus(Reg.XWest,Reg.valueOf(args[1]))); break;
-                case "west": instructionBuffer.add(pe -> pe.bus(Reg.XEast,Reg.valueOf(args[1]))); break;
-                case "north": instructionBuffer.add(pe -> pe.bus(Reg.XSouth,Reg.valueOf(args[1]))); break;
-                case "south": instructionBuffer.add(pe -> pe.bus(Reg.XNorth,Reg.valueOf(args[1]))); break;
+                case "east": instructionBuffer.add(pe -> pe.bus(Reg.XWest,regValueOf(args[1]))); break;
+                case "west": instructionBuffer.add(pe -> pe.bus(Reg.XEast,regValueOf(args[1]))); break;
+                case "north": instructionBuffer.add(pe -> pe.bus(Reg.XSouth,regValueOf(args[1]))); break;
+                case "south": instructionBuffer.add(pe -> pe.bus(Reg.XNorth,regValueOf(args[1]))); break;
                 default: throw new UndefinedInstructionBehaviour("Unrecognised direction");
             }
-            instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[0]), Reg.News, Reg.valueOf(args[3])));
+            instructionBuffer.add(pe -> pe.bus(regValueOf(args[0]), Reg.News, regValueOf(args[3])));
         });
 
         instructionSet.put(new InstructionSignature("sub2x", new int[]{0,0,1,1,0}), args -> {
             checkRegsReal(args, 0,1,4);
             switch (args[2]){
-                case "east": instructionBuffer.add(pe -> pe.bus(Reg.XWest,Reg.valueOf(args[1]))); break;
-                case "west": instructionBuffer.add(pe -> pe.bus(Reg.XEast,Reg.valueOf(args[1]))); break;
-                case "north": instructionBuffer.add(pe -> pe.bus(Reg.XSouth,Reg.valueOf(args[1]))); break;
-                case "south": instructionBuffer.add(pe -> pe.bus(Reg.XNorth,Reg.valueOf(args[1]))); break;
+                case "east": instructionBuffer.add(pe -> pe.bus(Reg.XWest,regValueOf(args[1]))); break;
+                case "west": instructionBuffer.add(pe -> pe.bus(Reg.XEast,regValueOf(args[1]))); break;
+                case "north": instructionBuffer.add(pe -> pe.bus(Reg.XSouth,regValueOf(args[1]))); break;
+                case "south": instructionBuffer.add(pe -> pe.bus(Reg.XNorth,regValueOf(args[1]))); break;
                 default: throw new UndefinedInstructionBehaviour("Unrecognised direction");
             }
             switch (args[3]){
-                case "east": instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[0]), Reg.XEast, Reg.valueOf(args[4]))); break;
-                case "west": instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[0]), Reg.XWest, Reg.valueOf(args[4]))); break;
-                case "north": instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[0]), Reg.XNorth, Reg.valueOf(args[4]))); break;
-                case "south": instructionBuffer.add(pe -> pe.bus(Reg.valueOf(args[0]), Reg.XSouth, Reg.valueOf(args[4]))); break;
+                case "east": instructionBuffer.add(pe -> pe.bus(regValueOf(args[0]), Reg.XEast, regValueOf(args[4]))); break;
+                case "west": instructionBuffer.add(pe -> pe.bus(regValueOf(args[0]), Reg.XWest, regValueOf(args[4]))); break;
+                case "north": instructionBuffer.add(pe -> pe.bus(regValueOf(args[0]), Reg.XNorth, regValueOf(args[4]))); break;
+                case "south": instructionBuffer.add(pe -> pe.bus(regValueOf(args[0]), Reg.XSouth, regValueOf(args[4]))); break;
                 default: throw new UndefinedInstructionBehaviour("Unrecognised direction");
             }
         });
@@ -372,10 +432,22 @@ public class Scamp5Emulator {
 
     private void checkRegsReal(String[] args, int... idxs){
         for (int idx : idxs) {
-            if(!Reg.valueOf(args[idx]).real()){
+            Reg r =Reg.valueOf(args[idx], realRegisters);
+            if(r==null){
+                throw new UndefinedInstructionBehaviour("Register: "+args[idx]+" unknown");
+            }
+            if(!r.real()){
                 throw new UndefinedInstructionBehaviour("All registers in Macro Operations must be 'real'");
             }
         }
+    }
+    
+    private Reg regValueOf(String name){
+        Reg r =  Reg.valueOf(name, realRegisters);
+        if(r==null){
+            throw new UndefinedInstructionBehaviour("Register: "+name+" unknown");
+        }
+        return r;
     }
 
 
@@ -442,7 +514,7 @@ public class Scamp5Emulator {
         if (pe == null) {
             return null;
         }
-        Reg r = Reg.valueOf(reg);
+        Reg r = regValueOf(reg);
         return pe.getRawRegisterContains(r);
     }
 
@@ -451,7 +523,7 @@ public class Scamp5Emulator {
         if (pe == null) {
             return null;
         }
-        Reg r = Reg.valueOf(reg);
+        Reg r = regValueOf(reg);
         return pe.getRegToString(r);
     }
 
@@ -460,7 +532,7 @@ public class Scamp5Emulator {
         if (pe == null) {
             return null;
         }
-        Reg r = Reg.valueOf(reg);
+        Reg r = regValueOf(reg);
         return pe.getRegCoverage(r);
     }
 
@@ -470,7 +542,7 @@ public class Scamp5Emulator {
         if (pe == null) {
             return null;
         }
-        Reg r = Reg.valueOf(reg);
+        Reg r = regValueOf(reg);
         return pe.getNoise(r);
     }
 
