@@ -15,6 +15,7 @@ public abstract class NonLinearGoal<G extends Goal<G>> implements Goal<NonLinear
 
 
     public abstract G identity();
+    public abstract List<G> base();
     protected abstract int rank();
 
     public abstract Collection<GoalPair<NonLinearGoal<G>>> getReductions();
@@ -29,6 +30,11 @@ public abstract class NonLinearGoal<G extends Goal<G>> implements Goal<NonLinear
         @Override
         public G identity() {
             return goal;
+        }
+
+        @Override
+        public List<G> base() {
+            return Collections.singletonList(goal);
         }
 
         @Override
@@ -143,6 +149,11 @@ public abstract class NonLinearGoal<G extends Goal<G>> implements Goal<NonLinear
         }
 
         @Override
+        public List<G> base() {
+            return goal.base();
+        }
+
+        @Override
         protected int rank() {
             return 1;
         }
@@ -204,5 +215,7 @@ public abstract class NonLinearGoal<G extends Goal<G>> implements Goal<NonLinear
     public static <G extends Goal<G>> NonLinearGoal<G> idOfGoal(G goal){
         return new WrapperNonLinearGoal<>(goal);
     }
+
+
 
 }

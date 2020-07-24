@@ -4,6 +4,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
+import uk.co.edstow.cain.pairgen.Config;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.scamp5.Scamp5Config;
 import uk.co.edstow.cain.scamp5.Scamp5PairGenFactory;
@@ -24,10 +25,10 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public abstract class FileRun<G extends Goal<G>> {
+public abstract class FileRun<G extends Goal<G>, C extends Config> {
     private static int verbose;
 
-    public static FileRun<?> loadFromJson(String path){
+    public static FileRun<?,?> loadFromJson(String path){
 
         JSONObject config = fromJson(path);
         verbose = config.has("verbose")? config.getInt("verbose"):10;
@@ -37,7 +38,7 @@ public abstract class FileRun<G extends Goal<G>> {
         String goalSystem = config.getString("goalSystem");
         switch (goalSystem){
             case "Atom":
-                return new AtomFileRun(config);
+                return AtomFileRun.getAtomFileRun(config);
             default:
                 throw new IllegalArgumentException("GoalSystem Unknown");
         }
@@ -76,7 +77,7 @@ public abstract class FileRun<G extends Goal<G>> {
     private int approximationDepth;
 
 
-    protected final ReverseSearch<G> reverseSearch;
+    protected final ReverseSearch<G,C> reverseSearch;
     protected final List<G> initialGoals;
     protected RegisterAllocator<G> registerAllocator;
     protected final JSONObject config;
@@ -96,7 +97,7 @@ public abstract class FileRun<G extends Goal<G>> {
         printLn("");
         ReverseSearch.RunConfig<G> runConfig = makeRunConfig(config.getJSONObject("runConfig"), registerAllocator);
         printLn("");
-        PairGenFactory<G> pairGenFactory = makePairGenFactory(config.getJSONObject("pairGen"), registerAllocator);
+        PairGenFactory<G,C> pairGenFactory = makePairGenFactory(config.getJSONObject("pairGen"), registerAllocator);
         printLn("");
 
         printLn("Initialising Reverse Search:");
@@ -124,7 +125,7 @@ public abstract class FileRun<G extends Goal<G>> {
         printLn("");
         ReverseSearch.RunConfig<G> runConfig = makeRunConfig(config.getJSONObject("runConfig"), registerAllocator);
         printLn("");
-        PairGenFactory<G> pairGenFactory = makePairGenFactory(config.getJSONObject("pairGen"), registerAllocator);
+        PairGenFactory<G,C> pairGenFactory = makePairGenFactory(config.getJSONObject("pairGen"), registerAllocator);
         printLn("");
 
         printLn("Initialising Reverse Search:");
@@ -135,7 +136,7 @@ public abstract class FileRun<G extends Goal<G>> {
 
     protected abstract List<G> makeFinalGoals(JSONObject config);
     protected abstract List<G> makeInitialGoals(int[] divisions);
-    protected abstract PairGenFactory<G> makePairGenFactory(JSONObject pairGen, RegisterAllocator<G> registerAllocator);
+    protected abstract PairGenFactory<G,C> makePairGenFactory(JSONObject pairGen, RegisterAllocator<G> registerAllocator);
     protected abstract Verifier<G> makeVerifier(JSONObject config);
 
     protected RegisterAllocator<G> makeRegisterAllocator(JSONObject config) {
@@ -338,7 +339,17 @@ public abstract class FileRun<G extends Goal<G>> {
     }
 
 
-    private static class AtomFileRun extends FileRun<AtomGoal> {
+    private static abstract class AtomFileRun<C extends Config> extends FileRun<AtomGoal, C> {
+
+        public static AtomFileRun<?> getAtomFileRun(JSONObject config){
+            JSONObject json = config.getJSONObject("pairGen");
+            switch (json.getString("name")) {
+                default:
+                    throw new IllegalArgumentException("Unknown PairGen Factory " + json.getString("name"));
+                case "Scamp5":
+                    return new Scamp5AtomFileRun(config);
+            }
+        }
 
         public AtomFileRun(JSONObject config) {
             super(config);
@@ -398,42 +409,6 @@ public abstract class FileRun<G extends Goal<G>> {
             return initialGoals;
         }
 
-        @Override
-        protected PairGenFactory<AtomGoal> makePairGenFactory(JSONObject json, RegisterAllocator<AtomGoal> registerAllocator) {
-            printLn("\t Making Pair Generation Factory:");
-            printLn("Name                        : " + json.getString("name"));
-            switch (json.getString("name")) {
-                default:
-                    throw new IllegalArgumentException("Unknown PairGen Factory " + json.getString("name"));
-                case "Scamp5":
-                    return makeScamp5PairGen(json, registerAllocator);
-            }
-        }
-
-        private PairGenFactory<AtomGoal> makeScamp5PairGen(JSONObject json, RegisterAllocator<AtomGoal> registerAllocator) {
-            printLn("Config Getter               : " + json.getString("configGetter"));
-            switch (json.getString("configGetter")) {
-                default:
-                    throw new IllegalArgumentException("Unknown Scamp5 ConfigGetter " + json.getString("configGetter"));
-                case "Threshold":
-                    printLn("Instruction to use          : " + json.getString("ops"));
-                    Consumer<Scamp5Config> configConsumer;
-                    switch (json.getString("ops")) {
-                        default:
-                            throw new IllegalArgumentException("Unknown Instuctions option " + json.getString("ops"));
-                        case "all":
-                            configConsumer = c -> c.useAll().useSubPowerOf2();
-                            break;
-                        case "basic":
-                            configConsumer = c -> c.useBasicOps().useSubPowerOf2();
-                            break;
-                    }
-                    printLn("Exhustive Search Threshold  : " + json.getInt("threshold"));
-                    return new Scamp5PairGenFactory<>(new ThresholdConfigGetter(initialGoals, registerAllocator.getAvailableRegistersArray(), json.getInt("threshold"), configConsumer));
-            }
-
-        }
-
         protected Verifier<AtomGoal> makeVerifier(JSONObject config){
             String verf = config.getString("verifier");
             switch (verf){
@@ -488,6 +463,40 @@ public abstract class FileRun<G extends Goal<G>> {
             }
         }
 
+    }
+
+    private static class Scamp5AtomFileRun extends AtomFileRun<Scamp5Config<AtomGoal>> {
+
+        public Scamp5AtomFileRun(JSONObject config) {
+            super(config);
+        }
+
+        @Override
+        protected PairGenFactory<AtomGoal, Scamp5Config<AtomGoal>> makePairGenFactory(JSONObject json, RegisterAllocator<AtomGoal> registerAllocator) {
+            printLn("\t Making Pair Generation Factory:");
+            printLn("Name                        : " + json.getString("name"));
+            printLn("Config Getter               : " + json.getString("configGetter"));
+            switch (json.getString("configGetter")) {
+                default:
+                    throw new IllegalArgumentException("Unknown Scamp5 ConfigGetter " + json.getString("configGetter"));
+                case "Threshold":
+                    printLn("Instruction to use          : " + json.getString("ops"));
+                    Consumer<Scamp5Config> configConsumer;
+                    switch (json.getString("ops")) {
+                        default:
+                            throw new IllegalArgumentException("Unknown Instuctions option " + json.getString("ops"));
+                        case "all":
+                            configConsumer = c -> c.useAll().useSubPowerOf2();
+                            break;
+                        case "basic":
+                            configConsumer = c -> c.useBasicOps().useSubPowerOf2();
+                            break;
+                    }
+                    printLn("Exhustive Search Threshold  : " + json.getInt("threshold"));
+                    return new Scamp5PairGenFactory<>(new ThresholdConfigGetter(initialGoals, registerAllocator.getAvailableRegistersArray(), json.getInt("threshold"), configConsumer));
+            }
+
+        }
     }
 
 

@@ -2,6 +2,7 @@ package uk.co.edstow.cain.atom.pairGen;
 
 import uk.co.edstow.cain.atom.Atom;
 import uk.co.edstow.cain.atom.AtomGoal;
+import uk.co.edstow.cain.pairgen.Config;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
 import uk.co.edstow.cain.util.Tuple;
@@ -16,7 +17,7 @@ public class SortPairGenFactory extends SimplePairGenFactory {
     }
 
     @Override
-    public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals) {
+    public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals, Config config) {
         return new AddSortPairGen(goals);
     }
 

@@ -36,7 +36,7 @@ class DemoSuite {
     private static class TestSetup {
         final String name;
         final RegisterAllocator.Register[] availableRegisters;
-        final Function<List<AtomGoal>, PairGenFactory<AtomGoal>> pairGenFactoryGetter;
+        final Function<List<AtomGoal>, PairGenFactory<AtomGoal, Scamp5Config<AtomGoal>>> pairGenFactoryGetter;
         final ReverseSearch.RunConfig<AtomGoal> runConfig;
 
         final int cores;
@@ -48,10 +48,10 @@ class DemoSuite {
         final RegisterAllocator<AtomGoal> registerAllocator;
 
         private TestSetup(int cores, Supplier<? extends TraversalSystem<WorkState<AtomGoal>>> traversalAlgorithm, int registerCount, int threshold, boolean allOps, int seconds){
-            RegisterAllocator.Register[] allRegisters = new RegisterAllocator.Register[]{A, B, C, D, E, F};
+            RegisterAllocator.Register[] allRegisters = RegisterAllocator.Register.values();
             final RegisterAllocator.Register[] availableRegisters = Arrays.copyOfRange(allRegisters, 0, registerCount);
             RegisterAllocator<AtomGoal> ra = new RegisterAllocator<>(new RegisterAllocator.Register[]{A}, availableRegisters);
-            Function<List<AtomGoal>, PairGenFactory<AtomGoal>> pairGenFactoryFunction = initialGoals -> new Scamp5PairGenFactory<>(new ConfigGetter<AtomGoal, Scamp5Config<AtomGoal>>() {
+            Function<List<AtomGoal>, PairGenFactory<AtomGoal, Scamp5Config<AtomGoal>>> pairGenFactoryFunction = initialGoals -> new Scamp5PairGenFactory<>(new ConfigGetter<AtomGoal, Scamp5Config<AtomGoal>>() {
                 PatternHuristic<Scamp5Config<AtomGoal>> heuristic = new PatternHuristic<>(initialGoals);
                 @Override
                 public Scamp5Config<AtomGoal> getConfig(GoalBag<AtomGoal> goals, int depth) {
@@ -71,12 +71,13 @@ class DemoSuite {
                 }
 
                 @Override
-                public Scamp5Config<AtomGoal> getConfigForDirectSolve(List<AtomGoal> goals, int depth) {
+                public Scamp5Config<AtomGoal> getConfigForDirectSolve(GoalBag<AtomGoal> goals, int depth) {
                     return new Scamp5Config<>(availableRegisters.length, depth, initialGoals).useAll();
                 }
             });
 
             ReverseSearch.RunConfig<AtomGoal> config = new ReverseSearch.RunConfig<>();
+            config.setInitialMaxDepth(10000);
             config.setSearchTime(seconds*1000).setWorkers(cores).setRegisterAllocator(ra).setTimeOut(true);
             config.setTraversalAlgorithm(traversalAlgorithm).setLivePrintPlans(1);
             config.setCostFunction(Plan::depth);
@@ -355,7 +356,7 @@ class DemoSuite {
                 int division = test.divisions[i];
                 initialGoals.add(new AtomGoal.Factory().add(new int[]{0,0,i}, 1 << division).get());
             }
-            ReverseSearch<AtomGoal> rs = new ReverseSearch<>(test.divisions, initialGoals, test.finalGoals, setup.pairGenFactoryGetter.apply(initialGoals), setup.runConfig);
+            ReverseSearch<AtomGoal, ?> rs = new ReverseSearch<>(test.divisions, initialGoals, test.finalGoals, setup.pairGenFactoryGetter.apply(initialGoals), setup.runConfig);
             rs.search();
 
             double min = Double.MAX_VALUE;
@@ -382,7 +383,7 @@ class DemoSuite {
                 System.out.println(code);
                 System.out.println(GoalBag.toGoalsString(test.finalGoals));
 
-                if(checkPlan(test, setup, code)) {
+                if(checkPlan(test, setup, code, p)) {
                     System.out.println("Code validated on emulator");
                 }else{
                     System.out.println("Code failed validation");
@@ -510,8 +511,9 @@ class DemoSuite {
         return out;
     }
 
-    private static boolean checkPlan(Test test, TestSetup setup, String code){
-        Scamp5Emulator emulator = new Scamp5Emulator(new AtomGoal.AtomBounds(test.finalGoals).largestMagnitude()*3);
+    private static boolean checkPlan(Test test, TestSetup setup, String code, Plan<?> p){
+
+        Scamp5Emulator emulator = Scamp5Emulator.newWithRegs(new AtomGoal.AtomBounds(test.finalGoals).largestMagnitude()*3,26);
 //        Scamp5Emulator.verbose = 100;
         RegisterAllocator.Register[] initRegisters = setup.registerAllocator.getInitRegisters();
         for (int i = 0; i < initRegisters.length; i++) {

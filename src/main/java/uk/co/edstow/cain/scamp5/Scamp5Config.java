@@ -6,7 +6,11 @@ import uk.co.edstow.cain.structures.Goal;
 
 import java.util.List;
 
-public class Scamp5Config<G extends Goal<G>> extends Config<G> {
+public class Scamp5Config<G extends Goal<G>> implements Config.ConfigWithRegs {
+    private final int availableRegisters;
+    public final int depth;
+    public final List<G> initialGoals;
+
     PairGenFactory.PairGen<G> strategy;
 
     boolean useMov2x;
@@ -19,13 +23,19 @@ public class Scamp5Config<G extends Goal<G>> extends Config<G> {
 
     boolean subPowerOf2;
 
+    private boolean onlyCostantValues;
+
+
     public Scamp5Config(int availableRegisters, int depth, List<G> initialGoals) {
-        super(availableRegisters, depth, initialGoals);
+        this.availableRegisters = availableRegisters;
+        this.depth = depth;
+        this.initialGoals = initialGoals;
     }
 
     public Scamp5Config(PairGenFactory.PairGen<G> strategy, boolean useMov2x, boolean useAdd3, boolean useAddx, boolean useAdd2x, boolean useSubx, boolean useSub2x, int availableRegisters, int depth, List<G> initialGoals) {
-        super(availableRegisters, depth, initialGoals);
-
+        this.availableRegisters = availableRegisters;
+        this.depth = depth;
+        this.initialGoals = initialGoals;
         this.strategy = strategy;
 
         this.useMov2x = useMov2x;
@@ -67,5 +77,16 @@ public class Scamp5Config<G extends Goal<G>> extends Config<G> {
     }
 
 
+    public boolean onlyConstantValues() {
+        return onlyCostantValues;
+    }
 
+    public void setOnlyConstantValues() {
+        onlyCostantValues = true;
+    }
+
+    @Override
+    public int totalAvailableRegisters() {
+        return availableRegisters;
+    }
 }

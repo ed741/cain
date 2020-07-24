@@ -2,6 +2,7 @@ package uk.co.edstow.cain.atom.pairGen;
 
 import uk.co.edstow.cain.atom.Atom;
 import uk.co.edstow.cain.atom.AtomGoal;
+import uk.co.edstow.cain.pairgen.Config;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
@@ -10,7 +11,7 @@ import uk.co.edstow.cain.Transformation;
 
 import java.util.*;
 
-public class SimplePairGenFactory implements PairGenFactory<AtomGoal> {
+public class SimplePairGenFactory implements PairGenFactory<AtomGoal, Config> {
 
     private final AtomGoal.AtomBounds bounds;
 
@@ -45,17 +46,23 @@ public class SimplePairGenFactory implements PairGenFactory<AtomGoal> {
     }
 
     @Override
-    public Collection<Tuple<List<GoalPair<AtomGoal>>, AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, int depth, AtomGoal goal) {
+    public Collection<Tuple<List<GoalPair<AtomGoal>>, AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, Config conf, AtomGoal goal) {
         return applyAllUnaryOps(initialGoals.get(0), goal);
     }
 
     @Override
-    public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals, int depth) {
-        return generatePairs(goals);
-    }
-    @SuppressWarnings("WeakerAccess")
-    public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals) {
+    public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals, Config conf) {
         return new SimplePairGen(goals);
+    }
+
+    @Override
+    public Config getConfig(GoalBag<AtomGoal> goals, int depth) {
+        return new Config(){};
+    }
+
+    @Override
+    public Config getConfigForDirectSolve(GoalBag<AtomGoal> goals, int depth) {
+        return new Config(){};
     }
 
     public class SimplePairGen implements PairGen<AtomGoal> {

@@ -1,6 +1,5 @@
 package uk.co.edstow.cain.scamp5;
 
-import uk.co.edstow.cain.ReverseSearch;
 import uk.co.edstow.cain.pairgen.Config;
 import uk.co.edstow.cain.pairgen.CostHuristic;
 import uk.co.edstow.cain.atom.pairGen.Distance;
@@ -11,7 +10,7 @@ import uk.co.edstow.cain.structures.GoalPair;
 
 import java.util.*;
 
-public class PatternHuristic<C extends Config> implements CostHuristic<AtomGoal, C> {
+public class PatternHuristic<C extends Config.ConfigWithRegs> implements CostHuristic<AtomGoal, C> {
 
     private final int[] initialDivisions;
     private final int initialDivisionsMax;
@@ -47,7 +46,7 @@ public class PatternHuristic<C extends Config> implements CostHuristic<AtomGoal,
             toAdd.add(goal);
         }
         proposedGoals.addAll(toAdd);
-        if(proposedGoals.size() +(pair.getTransformation().ExtraRegisterCount()) > config.availableRegisters){
+        if(proposedGoals.size() +(pair.getTransformation().ExtraRegisterCount()) > config.totalAvailableRegisters()){
             return -1; // exit early if too many registers are used.
         }
         double cost = 0;

@@ -9,5 +9,5 @@ public interface Verifier<G extends Goal<G>> {
     }
 
     default void verbose(int v){}
-    String verify(String code, ReverseSearch<G> reverseSearch, Plan<G> plan, RegisterAllocator<G> registerAllocator);
+    String verify(String code, ReverseSearch<G, ?> reverseSearch, Plan<G> plan, RegisterAllocator<G> registerAllocator);
 }

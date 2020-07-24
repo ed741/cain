@@ -25,7 +25,7 @@ public class Scamp5Verifier implements Verifier<AtomGoal> {
     }
 
     @Override
-    public String verify(String code, ReverseSearch<AtomGoal> reverseSearch, Plan<AtomGoal> plan, RegisterAllocator<AtomGoal> registerAllocator) {
+    public String verify(String code, ReverseSearch<AtomGoal, ?> reverseSearch, Plan<AtomGoal> plan, RegisterAllocator<AtomGoal> registerAllocator) {
         List<AtomGoal> finalGoals = reverseSearch.getFinalGoals();
         int[] divisions = reverseSearch.getInitialDivisions();
         List<Bounds> coverage = new ArrayList<>();

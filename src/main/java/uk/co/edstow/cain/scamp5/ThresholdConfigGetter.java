@@ -17,15 +17,15 @@ public class ThresholdConfigGetter implements ConfigGetter<AtomGoal, Scamp5Confi
     private final int threshold;
     private final List<AtomGoal> initalGoals;
 
-    public ThresholdConfigGetter(ReverseSearch<AtomGoal> rs, RegisterAllocator.Register[] availableRegisters) {
+    public ThresholdConfigGetter(ReverseSearch<AtomGoal, ?> rs, RegisterAllocator.Register[] availableRegisters) {
         this(rs, availableRegisters, 10, c -> c.useAll().useSubPowerOf2());
     }
 
-    public ThresholdConfigGetter(ReverseSearch<AtomGoal> rs, RegisterAllocator.Register[] availableRegisters, int threshold) {
+    public ThresholdConfigGetter(ReverseSearch<AtomGoal, ?> rs, RegisterAllocator.Register[] availableRegisters, int threshold) {
         this(rs, availableRegisters, threshold, c -> c.useAll().useSubPowerOf2());
     }
 
-    public ThresholdConfigGetter(ReverseSearch<AtomGoal> rs, RegisterAllocator.Register[] availableRegisters, int threshold, Consumer<Scamp5Config> configConsumer) {
+    public ThresholdConfigGetter(ReverseSearch<AtomGoal, ?> rs, RegisterAllocator.Register[] availableRegisters, int threshold, Consumer<Scamp5Config> configConsumer) {
         this(rs.getInitialGoals(), availableRegisters, threshold, configConsumer);
     }
 
@@ -51,7 +51,7 @@ public class ThresholdConfigGetter implements ConfigGetter<AtomGoal, Scamp5Confi
     }
 
     @Override
-    public Scamp5Config<AtomGoal> getConfigForDirectSolve(List<AtomGoal> goals, int depth) {
+    public Scamp5Config<AtomGoal> getConfigForDirectSolve(GoalBag<AtomGoal> goals, int depth) {
         Scamp5Config<AtomGoal> conf = new Scamp5Config<>(availableRegisters.length, depth, initalGoals).useAll();
         configConsumer.accept(conf);
         return conf;
