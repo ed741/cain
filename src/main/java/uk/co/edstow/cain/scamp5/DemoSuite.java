@@ -513,7 +513,7 @@ class DemoSuite {
 
     private static boolean checkPlan(Test test, TestSetup setup, String code, Plan<?> p){
 
-        Scamp5Emulator emulator = Scamp5Emulator.newWithRegs(new AtomGoal.AtomBounds(test.finalGoals).largestMagnitude()*3,26);
+        Scamp5Emulator emulator = Scamp5Emulator.newWithRegs(p.bounds().largestMagnitude()*3,26);
 //        Scamp5Emulator.verbose = 100;
         RegisterAllocator.Register[] initRegisters = setup.registerAllocator.getInitRegisters();
         for (int i = 0; i < initRegisters.length; i++) {

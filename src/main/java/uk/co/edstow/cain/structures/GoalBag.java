@@ -1,6 +1,7 @@
 package uk.co.edstow.cain.structures;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class GoalBag<G extends Goal<G>> implements Iterable<G>{
     private final ArrayList<G> arrayList;
@@ -244,5 +245,9 @@ public class GoalBag<G extends Goal<G>> implements Iterable<G>{
 
     public List<G> asList(){
         return Collections.unmodifiableList(arrayList);
+    }
+
+    public Bounds bounds() {
+        return new Bounds.SimpleBounds(arrayList.stream().map(Goal::bounds).collect(Collectors.toList()));
     }
 }
