@@ -15,6 +15,7 @@ import uk.co.edstow.cain.traversal.TraversalSystem;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static uk.co.edstow.cain.RegisterAllocator.Register.*;
@@ -35,7 +36,7 @@ class DemoSuite {
     private static class TestSetup {
         final String name;
         final RegisterAllocator.Register[] availableRegisters;
-        final PairGenFactory<AtomGoal> pairGenFactory;
+        final Function<List<AtomGoal>, PairGenFactory<AtomGoal, Scamp5Config<AtomGoal>>> pairGenFactoryGetter;
         final ReverseSearch.RunConfig<AtomGoal> runConfig;
 
         final int cores;
@@ -47,18 +48,18 @@ class DemoSuite {
         final RegisterAllocator<AtomGoal> registerAllocator;
 
         private TestSetup(int cores, Supplier<? extends TraversalSystem<WorkState<AtomGoal>>> traversalAlgorithm, int registerCount, int threshold, boolean allOps, int seconds){
-            RegisterAllocator.Register[] allRegisters = new RegisterAllocator.Register[]{A, B, C, D, E, F};
+            RegisterAllocator.Register[] allRegisters = RegisterAllocator.Register.values();
             final RegisterAllocator.Register[] availableRegisters = Arrays.copyOfRange(allRegisters, 0, registerCount);
             RegisterAllocator<AtomGoal> ra = new RegisterAllocator<>(new RegisterAllocator.Register[]{A}, availableRegisters);
-            PairGenFactory<AtomGoal> pairGenFactory = new Scamp5PairGenFactory<>(rs -> new ConfigGetter<AtomGoal, Scamp5Config<AtomGoal>>() {
-                PatternHuristic<Scamp5Config<AtomGoal>> heuristic = new PatternHuristic<>(rs);
+            Function<List<AtomGoal>, PairGenFactory<AtomGoal, Scamp5Config<AtomGoal>>> pairGenFactoryFunction = initialGoals -> new Scamp5PairGenFactory<>(new ConfigGetter<AtomGoal, Scamp5Config<AtomGoal>>() {
+                PatternHuristic<Scamp5Config<AtomGoal>> heuristic = new PatternHuristic<>(initialGoals);
                 @Override
                 public Scamp5Config<AtomGoal> getConfig(GoalBag<AtomGoal> goals, int depth) {
                     int max = Integer.MIN_VALUE;
                         for (AtomGoal goal : goals) {
                             max = Math.max(max, goal.atomCount());
                         }
-                    Scamp5Config<AtomGoal> conf = new Scamp5Config<>(availableRegisters.length, depth, rs.getInitialGoals());
+                    Scamp5Config<AtomGoal> conf = new Scamp5Config<>(availableRegisters.length, depth, initialGoals);
                         if(allOps) {
                             conf.useAll();
                             conf.useSubPowerOf2();
@@ -70,12 +71,13 @@ class DemoSuite {
                 }
 
                 @Override
-                public Scamp5Config<AtomGoal> getConfigForDirectSolve(List<AtomGoal> goals, int depth) {
-                    return new Scamp5Config<>(availableRegisters.length, depth, rs.getInitialGoals()).useAll();
+                public Scamp5Config<AtomGoal> getConfigForDirectSolve(GoalBag<AtomGoal> goals, int depth) {
+                    return new Scamp5Config<>(availableRegisters.length, depth, initialGoals).useAll();
                 }
             });
 
             ReverseSearch.RunConfig<AtomGoal> config = new ReverseSearch.RunConfig<>();
+            config.setInitialMaxDepth(10000);
             config.setSearchTime(seconds*1000).setWorkers(cores).setRegisterAllocator(ra).setTimeOut(true);
             config.setTraversalAlgorithm(traversalAlgorithm).setLivePrintPlans(1);
             config.setCostFunction(Plan::depth);
@@ -84,7 +86,7 @@ class DemoSuite {
             this.name = String.format("%d Core, %s, %d registers, threshold %d, %s, %d seconds", cores, traversalAlgorithm.get().getClass().getSimpleName(), registerCount, threshold, allOps?"AllOps":"BasicOps", seconds);
             this.availableRegisters = availableRegisters;
             this.registerAllocator = ra;
-            this.pairGenFactory = pairGenFactory;
+            this.pairGenFactoryGetter = pairGenFactoryFunction;
             this.runConfig = config;
             this.cores = cores;
             this.traversalAlgorithm = traversalAlgorithm;
@@ -354,7 +356,7 @@ class DemoSuite {
                 int division = test.divisions[i];
                 initialGoals.add(new AtomGoal.Factory().add(new int[]{0,0,i}, 1 << division).get());
             }
-            ReverseSearch<AtomGoal> rs = new ReverseSearch<>(test.divisions, initialGoals, test.finalGoals, setup.pairGenFactory, setup.runConfig);
+            ReverseSearch<AtomGoal, ?> rs = new ReverseSearch<>(test.divisions, initialGoals, test.finalGoals, setup.pairGenFactoryGetter.apply(initialGoals), setup.runConfig);
             rs.search();
 
             double min = Double.MAX_VALUE;
@@ -381,7 +383,7 @@ class DemoSuite {
                 System.out.println(code);
                 System.out.println(GoalBag.toGoalsString(test.finalGoals));
 
-                if(checkPlan(test, setup, code)) {
+                if(checkPlan(test, setup, code, p)) {
                     System.out.println("Code validated on emulator");
                 }else{
                     System.out.println("Code failed validation");
@@ -509,8 +511,9 @@ class DemoSuite {
         return out;
     }
 
-    private static boolean checkPlan(Test test, TestSetup setup, String code){
-        Scamp5Emulator emulator = new Scamp5Emulator(new AtomGoal.AtomBounds(test.finalGoals).largestMagnitude()*3);
+    private static boolean checkPlan(Test test, TestSetup setup, String code, Plan<?> p){
+
+        Scamp5Emulator emulator = Scamp5Emulator.newWithRegs(p.bounds().largestMagnitude()*3,26);
 //        Scamp5Emulator.verbose = 100;
         RegisterAllocator.Register[] initRegisters = setup.registerAllocator.getInitRegisters();
         for (int i = 0; i < initRegisters.length; i++) {

@@ -1,6 +1,5 @@
 package uk.co.edstow.cain.scamp5;
 
-import uk.co.edstow.cain.ReverseSearch;
 import uk.co.edstow.cain.pairgen.Config;
 import uk.co.edstow.cain.pairgen.CostHuristic;
 import uk.co.edstow.cain.atom.pairGen.Distance;
@@ -11,14 +10,23 @@ import uk.co.edstow.cain.structures.GoalPair;
 
 import java.util.*;
 
-public class PatternHuristic<C extends Config> implements CostHuristic<AtomGoal, C> {
+public class PatternHuristic<C extends Config.ConfigWithRegs> implements CostHuristic<AtomGoal, C> {
 
-    private int[] initialDivisions;
-    private int initialDivisionsMax;
-    private int initialDivisionsMin;
+    private final int[] initialDivisions;
+    private final int initialDivisionsMax;
+    private final int initialDivisionsMin;
 
-    public PatternHuristic(ReverseSearch<AtomGoal> rs) {
-        this.initialDivisions = rs.getInitialDivisions();
+    public PatternHuristic(int[] initialDivisions) {
+        this.initialDivisions = initialDivisions;
+        this.initialDivisionsMax = Arrays.stream(this.initialDivisions).max().getAsInt();
+        this.initialDivisionsMin = Arrays.stream(this.initialDivisions).min().getAsInt();
+    }
+    public PatternHuristic(List<AtomGoal> initialGoals) {
+        int[] initialDivisions = new int[initialGoals.size()];
+        for (int i = 0; i < initialDivisions.length; i++) {
+            initialDivisions[i] = 31 - Integer.numberOfLeadingZeros( initialGoals.get(i).atomCount() );
+        }
+        this.initialDivisions = initialDivisions;
         this.initialDivisionsMax = Arrays.stream(this.initialDivisions).max().getAsInt();
         this.initialDivisionsMin = Arrays.stream(this.initialDivisions).min().getAsInt();
     }
@@ -38,7 +46,7 @@ public class PatternHuristic<C extends Config> implements CostHuristic<AtomGoal,
             toAdd.add(goal);
         }
         proposedGoals.addAll(toAdd);
-        if(proposedGoals.size() +(pair.getTransformation().ExtraRegisterCount()) > config.availableRegisters){
+        if(proposedGoals.size() +(pair.getTransformation().ExtraRegisterCount()) > config.totalAvailableRegisters()){
             return -1; // exit early if too many registers are used.
         }
         double cost = 0;

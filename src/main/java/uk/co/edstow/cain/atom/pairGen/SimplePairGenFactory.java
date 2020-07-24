@@ -2,18 +2,22 @@ package uk.co.edstow.cain.atom.pairGen;
 
 import uk.co.edstow.cain.atom.Atom;
 import uk.co.edstow.cain.atom.AtomGoal;
+import uk.co.edstow.cain.pairgen.Config;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
 import uk.co.edstow.cain.util.Tuple;
-import uk.co.edstow.cain.ReverseSearch;
 import uk.co.edstow.cain.Transformation;
 
 import java.util.*;
 
-public class SimplePairGenFactory implements PairGenFactory<AtomGoal> {
+public class SimplePairGenFactory implements PairGenFactory<AtomGoal, Config> {
 
-    private AtomGoal.AtomBounds bounds;
+    private final AtomGoal.AtomBounds bounds;
+
+    public SimplePairGenFactory(AtomGoal.AtomBounds bounds) {
+        this.bounds = bounds;
+    }
 
 
     public static Collection<Tuple<List<GoalPair<AtomGoal>>, AtomGoal>> applyAllUnaryOps(AtomGoal goal, AtomGoal upper){
@@ -42,22 +46,23 @@ public class SimplePairGenFactory implements PairGenFactory<AtomGoal> {
     }
 
     @Override
-    public Collection<Tuple<List<GoalPair<AtomGoal>>, AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, int depth, AtomGoal goal) {
+    public Collection<Tuple<List<GoalPair<AtomGoal>>, AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, Config conf, AtomGoal goal) {
         return applyAllUnaryOps(initialGoals.get(0), goal);
     }
 
     @Override
-    public void init(ReverseSearch<AtomGoal> rs) {
-        bounds = new AtomGoal.AtomBounds(rs.getFinalGoals());
+    public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals, Config conf) {
+        return new SimplePairGen(goals);
     }
 
     @Override
-    public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals, int depth) {
-        return generatePairs(goals);
+    public Config getConfig(GoalBag<AtomGoal> goals, int depth) {
+        return new Config(){};
     }
-    @SuppressWarnings("WeakerAccess")
-    public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals) {
-        return new SimplePairGen(goals);
+
+    @Override
+    public Config getConfigForDirectSolve(GoalBag<AtomGoal> goals, int depth) {
+        return new Config(){};
     }
 
     public class SimplePairGen implements PairGen<AtomGoal> {

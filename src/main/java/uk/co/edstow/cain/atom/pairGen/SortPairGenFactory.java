@@ -2,6 +2,7 @@ package uk.co.edstow.cain.atom.pairGen;
 
 import uk.co.edstow.cain.atom.Atom;
 import uk.co.edstow.cain.atom.AtomGoal;
+import uk.co.edstow.cain.pairgen.Config;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
 import uk.co.edstow.cain.util.Tuple;
@@ -11,8 +12,12 @@ import java.util.stream.Collectors;
 
 public class SortPairGenFactory extends SimplePairGenFactory {
 
+    public SortPairGenFactory(AtomGoal.AtomBounds bounds) {
+        super(bounds);
+    }
+
     @Override
-    public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals) {
+    public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals, Config config) {
         return new AddSortPairGen(goals);
     }
 

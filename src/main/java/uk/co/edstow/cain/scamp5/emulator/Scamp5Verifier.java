@@ -25,13 +25,13 @@ public class Scamp5Verifier implements Verifier<AtomGoal> {
     }
 
     @Override
-    public String verify(String code, ReverseSearch<AtomGoal> reverseSearch, Plan<AtomGoal> plan, RegisterAllocator<AtomGoal> registerAllocator) {
+    public String verify(String code, ReverseSearch<AtomGoal, ?> reverseSearch, Plan<AtomGoal> plan, RegisterAllocator<AtomGoal> registerAllocator) {
         List<AtomGoal> finalGoals = reverseSearch.getFinalGoals();
         int[] divisions = reverseSearch.getInitialDivisions();
         List<Bounds> coverage = new ArrayList<>();
         double noise = 0;
         Bounds bounds = new Bounds.SimpleBounds(finalGoals.stream().map(Goal::bounds).collect(Collectors.toList()));
-        Scamp5Emulator emulator = Scamp5Emulator.newWithRegs((bounds.largestMagnitude() + 1) * 3, registerAllocator.getAvailableRegisters() <= 6 ? 6 : 24);
+        Scamp5Emulator emulator = Scamp5Emulator.newWithRegs((plan.bounds().largestMagnitude() + 1) * 3, registerAllocator.getAvailableRegisters() <= 6 ? 6 : 24);
         RegisterAllocator.Register[] initRegisters = registerAllocator.getInitRegisters();
         for (int i = 0; i < initRegisters.length; i++) {
             RegisterAllocator.Register r = initRegisters[i];

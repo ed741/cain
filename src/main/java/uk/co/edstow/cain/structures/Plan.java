@@ -104,6 +104,10 @@ public class Plan<G extends Goal<G>> {
         return sb.toString();
     }
 
+    public Bounds bounds() {
+        return new Bounds.SimpleBounds(getAll().stream().map(s->s.liveGoals().bounds()).collect(Collectors.toList()));
+    }
+
     public static class Step<G extends Goal<G>> {
         private final GoalPair<G> goalPair;
         private final GoalBag<G> currentGoals;
@@ -149,7 +153,7 @@ public class Plan<G extends Goal<G>> {
         }
 
         private String toStringN() {
-            return idx +" " + goalPair.toStringN() +
+            return idx +" " + goalPair.toString() +
                     "\n";
         }
 

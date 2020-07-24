@@ -56,9 +56,9 @@ class FileRunTest {
                 "\n" +
                 "}";
         try {
-            FileRun<?> fileRun = FileRun.loadFromJson(json);
+            FileRun<?,?> fileRun = FileRun.loadFromJson(json);
             fileRun.run();
-            List<? extends FileRun<?>.Result> results = fileRun.getResults();
+            List<? extends FileRun<?,?>.Result> results = fileRun.getResults();
             assertTrue(results.stream().mapToInt(r -> r.depth).min().getAsInt()<=5);
         } catch (Exception e){
             e.printStackTrace();

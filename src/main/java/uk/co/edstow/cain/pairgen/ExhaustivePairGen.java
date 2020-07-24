@@ -10,24 +10,29 @@ import java.util.stream.Stream;
 
 public abstract class ExhaustivePairGen<G extends Goal<G>, T extends Config> implements PairGenFactory.PairGen<G> {
     private final Iterator<GoalPair<G>> it;
-    private int count;
-    protected final T conf;
+    private int count = 0;
+    protected final T config;
     protected final GoalBag<G> goals;
 
-    public ExhaustivePairGen(GoalBag<G> goals, T conf, CostHuristic<G, T> huristic) {
+    public ExhaustivePairGen(GoalBag<G> goals, T config, CostHuristic<G, T> huristic) {
         this.goals = goals;
-        this.conf = conf;
+        this.config = config;
         Comparator<Tuple<GoalPair<G>, Double>> comparator = Comparator.comparingDouble(Tuple::getB);
-        this.it = goals.asList().parallelStream()
+        Stream<GoalPair<G>> stream = goals.asList().parallelStream()
                 .flatMap((G upper) ->
                         Stream.concat(
                                 getNaryOpStream(upper),
                                 getUnaryOpStream(upper)
                         )
-                ).map(pair -> new Tuple<>(pair, huristic.getCost(pair, goals, conf))).filter(t -> t.getB()>=0)
-                .sorted(comparator)
-                .map(Tuple::getA)
-                .iterator();
+                );
+        if (huristic != null) {
+            this.it = stream.map(pair -> new Tuple<>(pair, huristic.getCost(pair, goals, config))).filter(t -> t.getB() >= 0)
+                    .sorted(comparator)
+                    .map(Tuple::getA)
+                    .iterator();
+        } else {
+            this.it = stream.iterator();
+        }
     }
 
     @Override

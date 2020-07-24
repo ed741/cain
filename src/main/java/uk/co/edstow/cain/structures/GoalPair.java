@@ -49,26 +49,5 @@ public class GoalPair<G extends Goal> {
     public String toString() {
         return "{T:" + transformation + ", U: " + uppers.toString() + ", Ls:" + lowers.toString() + "}";
     }
-    public String toStringN() {
-        StringBuilder sLowers  = new StringBuilder("[");
-        for (G g: lowers){
-            sLowers.append(g.toString());
-            if (g != lowers.get(lowers.size()-1)) {
-                sLowers.append(",");
-            }
-        }
-        sLowers.append("]");
-
-        StringBuilder sUppers  = new StringBuilder("[");
-        for (G g: uppers){
-            sUppers.append(g.toString());
-            if (g != uppers.get(uppers.size()-1)) {
-                sUppers.append(",");
-            }
-        }
-        sUppers.append("]");
-
-        return "{T:" + transformation + ", U: " + sUppers.toString() + ", Ls:" + sLowers.toString() + "}";
-    }
 
 }

@@ -347,7 +347,7 @@ public class AtomGoal implements List<Atom>, Goal<AtomGoal> {
             int xZero = 1 - b.getXMin();
             int yZero = 1 - b.getYMin();
             for (int x = b.getXMin() - 1; x <= b.getXMax() + 1; x++) {
-                for (int y = b.getYMin() - 1; y <= b.getXMax() + 1; y++) {
+                for (int y = b.getYMin() - 1; y <= b.getYMax() + 1; y++) {
                     if (b.getXMin() <= x && x <= b.getXMax() && b.getYMin() <= y && y <= b.getYMax()) {
 
                         StringBuilder sb = new StringBuilder();

@@ -1,5 +1,6 @@
 package uk.co.edstow.cain;
 
+import uk.co.edstow.cain.pairgen.Config;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.structures.*;
 import uk.co.edstow.cain.traversal.SOT;
@@ -14,7 +15,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 
-public class ReverseSearch<G extends Goal<G>> {
+public class ReverseSearch<G extends Goal<G>, C extends Config> {
 
     @SuppressWarnings({"UnusedReturnValue", "unused"})
     public static class RunConfig<G extends Goal<G>> {
@@ -207,7 +208,7 @@ public class ReverseSearch<G extends Goal<G>> {
     private final ReentrantLock planLock;
     private final GoalsCache<G> cache;
 
-    private final PairGenFactory<G> pairGenFactory;
+    private final PairGenFactory<G, C> pairGenFactory;
 
     private final int workers;
     private final AtomicBoolean end;
@@ -235,7 +236,7 @@ public class ReverseSearch<G extends Goal<G>> {
     private final int goalReductionsTolerance;
 
 
-    public ReverseSearch(int[] divisions, List<G> initialGoals, List<G> finalGoals, PairGenFactory pairGenFactory, RunConfig<G> runConfig) {
+    public ReverseSearch(int[] divisions, List<G> initialGoals, List<G> finalGoals, PairGenFactory<G,C> pairGenFactory, RunConfig<G> runConfig) {
         this.liveCounter = runConfig.liveCounter;
         this.livePrintPlans = runConfig.livePrintPlans;
         this.quiet = runConfig.quiet;
@@ -286,7 +287,7 @@ public class ReverseSearch<G extends Goal<G>> {
 
         // Init PairGen with complete Object
         this.pairGenFactory = pairGenFactory;
-        this.pairGenFactory.init(this);
+//        this.pairGenFactory.init(initialGoals, finalGoals);
 
     }
 
@@ -547,7 +548,7 @@ public class ReverseSearch<G extends Goal<G>> {
 
                 if (tryDirectSolve(depth, goals, currentPlan)) return;
 
-                goalPairs = pairGenFactory.generatePairs(goals, depth);
+                goalPairs = pairGenFactory.generatePairs(goals, pairGenFactory.getConfig(goals, depth));
                 nodesExpanded++;
             }
             int childNumber = goalPairs.getNumber();
@@ -696,7 +697,7 @@ public class ReverseSearch<G extends Goal<G>> {
 
 
     private List<GoalPair<G>> isTransformable(GoalBag<G> goals, int depth) {
-        return this.pairGenFactory.applyAllUnaryOpForwards(initialGoals, depth, goals);
+        return this.pairGenFactory.applyAllUnaryOpForwards(initialGoals, this.pairGenFactory.getConfigForDirectSolve(goals, depth), goals);
     }
 
 

@@ -7,5 +7,5 @@ import java.util.List;
 
 public interface ConfigGetter<G extends Goal<G>, T extends Config> {
     T getConfig(GoalBag<G> goals, int depth);
-    T getConfigForDirectSolve(List<G> goals, int depth);
+    T getConfigForDirectSolve(GoalBag<G> goals, int depth);
 }

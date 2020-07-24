@@ -3,6 +3,7 @@ package uk.co.edstow.cain.atom.pairGen;
 import uk.co.edstow.cain.ReverseSearch;
 import uk.co.edstow.cain.atom.Atom;
 import uk.co.edstow.cain.atom.AtomGoal;
+import uk.co.edstow.cain.pairgen.Config;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
@@ -10,23 +11,29 @@ import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 
-public class V2PairGenFactory implements PairGenFactory<AtomGoal> {
+public class V2PairGenFactory implements PairGenFactory<AtomGoal, Config> {
 
     private static final Comparator<Tuple<Distance, AtomGoal>> entryComparator = Comparator.comparingInt((Tuple<Distance, AtomGoal> t) -> t.getB().size()).thenComparingInt(t -> -t.getA().manhattanXY());
 
 
     @Override
-    public Collection<Tuple<List<GoalPair<AtomGoal>>, AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, int depth, AtomGoal goal) {
+    public Collection<Tuple<List<GoalPair<AtomGoal>>, AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, Config config, AtomGoal goal) {
         return SimplePairGenFactory.applyAllUnaryOps(initialGoals.get(0), goal);
     }
 
     @Override
-    public void init(ReverseSearch<AtomGoal> rs) {
+    public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals, Config config) {
+        return new V2PairGen(goals);
     }
 
     @Override
-    public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals, int depth) {
-        return new V2PairGen(goals);
+    public Config getConfig(GoalBag<AtomGoal> goals, int depth) {
+        return new Config() {};
+    }
+
+    @Override
+    public Config getConfigForDirectSolve(GoalBag<AtomGoal> goals, int depth) {
+        return new Config() {};
     }
 
     protected class V2PairGen implements PairGen<AtomGoal> {
@@ -37,7 +44,7 @@ public class V2PairGenFactory implements PairGenFactory<AtomGoal> {
         final List<GoalPair<AtomGoal>> currentList = new ArrayList<>();
         private int count;
 
-        V2PairGen(GoalBag goals) {
+        V2PairGen(GoalBag<AtomGoal> goals) {
             this.goals = goals;
             ii = 0;
             jj = 0;

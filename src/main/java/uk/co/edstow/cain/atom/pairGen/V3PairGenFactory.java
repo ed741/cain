@@ -1,7 +1,7 @@
 package uk.co.edstow.cain.atom.pairGen;
 
-import uk.co.edstow.cain.ReverseSearch;
 import uk.co.edstow.cain.atom.AtomGoal;
+import uk.co.edstow.cain.pairgen.Config;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
 import uk.co.edstow.cain.util.Tuple;
@@ -12,8 +12,12 @@ public class V3PairGenFactory extends V2PairGenFactory{
 
     private static Comparator<Tuple<Distance, AtomGoal>> entryComparator = Comparator.comparingInt((Tuple<Distance, AtomGoal> t) -> t.getB().size()).thenComparingInt(t -> -t.getA().manhattanXY());
 
+    public V3PairGenFactory(AtomGoal.AtomBounds bounds) {
+        this.bounds = bounds;
+    }
+
     @Override
-    public Collection<Tuple<List<GoalPair<AtomGoal>>, AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, int depth, AtomGoal goal) {
+    public Collection<Tuple<List<GoalPair<AtomGoal>>, AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, Config config, AtomGoal goal) {
         return SimplePairGenFactory.applyAllUnaryOps(initialGoals.get(0), goal);
     }
 
@@ -21,12 +25,7 @@ public class V3PairGenFactory extends V2PairGenFactory{
     private AtomGoal.AtomBounds bounds;
 
     @Override
-    public void init(ReverseSearch<AtomGoal> rs) {
-        bounds = new AtomGoal.AtomBounds(rs.getFinalGoals());
-    }
-
-    @Override
-    public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals, int depth) {
+    public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals, Config config) {
         return new V3PairGen(goals);
     }
 
