@@ -73,9 +73,9 @@ public abstract class FileRun<G extends Goal<G>, C extends Config> {
         }
     }
 
-    private List<RegisterAllocator.Register> outputRegisters;
-    private int approximationDepth;
 
+    protected List<RegisterAllocator.Register> outputRegisters;
+    protected int approximationDepth;
 
     protected final ReverseSearch<G,C> reverseSearch;
     protected final List<G> initialGoals;
@@ -144,7 +144,7 @@ public abstract class FileRun<G extends Goal<G>, C extends Config> {
         RegisterAllocator.Register[] availableRegisters = getRegisterArray(config.getJSONArray("availableRegisters"));
         printLn("Available registers  : " + Arrays.toString(availableRegisters));
 
-        List<RegisterAllocator.Register> available = new ArrayList<>(getOutputRegisters(config));
+        List<RegisterAllocator.Register> available = new ArrayList<>(outputRegisters);
         for (RegisterAllocator.Register availableRegister : availableRegisters) {
             if (!available.contains(availableRegister)) {
                 available.add(availableRegister);
@@ -354,6 +354,9 @@ public abstract class FileRun<G extends Goal<G>, C extends Config> {
         public AtomFileRun(JSONObject config) {
             super(config);
         }
+        public AtomFileRun(JSONObject config, List<AtomGoal> finalGoals, int approximationDepth) {
+            super(config, finalGoals, approximationDepth);
+        }
 
         @Override
         protected List<AtomGoal> makeFinalGoals(JSONObject config) {
@@ -389,8 +392,9 @@ public abstract class FileRun<G extends Goal<G>, C extends Config> {
             }
 
             List<AtomGoal> finalGoals = goalAprox.solve();
-            int approximationDepth = goalAprox.getDepth();
-            printLn("Output Registers        : " + getOutputRegisters(config).toString());
+            this.approximationDepth = goalAprox.getDepth();
+            this.outputRegisters = getOutputRegisters(config);
+            printLn("Output Registers        : " + this.outputRegisters.toString());
             printLn("\tApproximated goals:");
             printLn(GoalBag.toGoalsString(finalGoals, false, false, true, true));
             printLn("");
@@ -465,10 +469,13 @@ public abstract class FileRun<G extends Goal<G>, C extends Config> {
 
     }
 
-    private static class Scamp5AtomFileRun extends AtomFileRun<Scamp5Config<AtomGoal>> {
+    public static class Scamp5AtomFileRun extends AtomFileRun<Scamp5Config<AtomGoal>> {
 
         public Scamp5AtomFileRun(JSONObject config) {
             super(config);
+        }
+        public Scamp5AtomFileRun(JSONObject config, List<AtomGoal> finalGoals, int approximationDepth) {
+            super(config, finalGoals, approximationDepth);
         }
 
         @Override
@@ -534,11 +541,17 @@ public abstract class FileRun<G extends Goal<G>, C extends Config> {
     }
 
     private static List<RegisterAllocator.Register> getOutputRegisters(JSONObject config) {
-        JSONObject filter = config.getJSONObject("filter");
-        return filter.keySet().stream().map(RegisterAllocator.Register::new).collect(Collectors.toList());
+        if(config.has("filter")) {
+            JSONObject filter = config.getJSONObject("filter");
+            return filter.keySet().stream().map(RegisterAllocator.Register::new).collect(Collectors.toList());
+        } else {
+            return new ArrayList<>();
+        }
     }
-
     public static JSONObject fromJson(String path) {
+        return fromJson(path, false);
+    }
+    public static JSONObject fromJson(String path, boolean setVerbose) {
 
         InputStream in = null;
         JSONTokener tokeniser = null;
@@ -561,9 +574,19 @@ public abstract class FileRun<G extends Goal<G>, C extends Config> {
         if (verbose > 5 && in != null) {
             System.out.println("Json config read from   : '" + path + "'");
         }
+        if (verbose > 5 && in == null) {
+            System.out.println("Json config read directly");
+        }
         if (verbose > 10 && in == null) {
             System.out.println("Json config:\n" + path + "\n");
         }
+        if(setVerbose){
+            FileRun.verbose = verbose;
+            if (verbose > 5) {
+                System.out.println("Verbose set to "+ verbose);
+            }
+        }
+
 
 
         return config;
