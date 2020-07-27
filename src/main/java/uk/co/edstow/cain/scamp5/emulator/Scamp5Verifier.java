@@ -54,7 +54,7 @@ public class Scamp5Verifier implements Verifier<AtomGoal> {
             Iterator<Tuple<Atom, Integer>> iterator = finalGoals.get(i).uniqueCountIterator();
             while (iterator.hasNext()) {
                 Tuple<Atom, Integer> t = iterator.next();
-                Tuple<Integer, Tuple<Integer, String>> coordinate = Tuple.triple(t.getA().x, t.getA().y, registerAllocator.getAvailableRegistersArray()[t.getA().z].toString());
+                Tuple<Integer, Tuple<Integer, String>> coordinate = Tuple.triple(t.getA().x, t.getA().y, registerAllocator.getInitRegisters()[t.getA().z].toString());
                 Double d = testMap.get(coordinate);
                 int expected = t.getA().positive ? t.getB() : -t.getB();
                 if (d == null || Double.compare(expected, d) != 0) {
