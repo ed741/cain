@@ -66,7 +66,7 @@ def main():
   ax.set_xticks(ticks)
   ax.set_xticklabels(tickLabels)
   ax.set(xlabel='Kernel Count', ylabel='Smallest Plan Length Found')
-  ax.set_title("Comparison of Shortest Plans founds for Kernels\nProcessed Individually and Simultaneously for 6 and 24 available registers")
+  ax.set_title("Comparison of Shortest Plans founds for Kernels\nProcessed Individually and Simultaneously for 1000 available registers")
   # ax.axvline(x=first)
   plt.show(block=True)
 
