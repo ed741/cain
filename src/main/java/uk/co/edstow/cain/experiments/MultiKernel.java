@@ -56,7 +56,7 @@ public class MultiKernel {
 
     private static OutputStreamWriter writer;
     public static void main(String[] args) throws IOException {
-        File f = new File("MultiKernel_00.csv");
+        File f = new File("MultiKernel_02.csv");
         if(!f.createNewFile()){
             System.out.println("Cannot make new file!");
             System.exit(-1);
@@ -70,7 +70,7 @@ public class MultiKernel {
         final Random r = new Random(900);
         final int divisions = 0;
 
-        for (int goalCount = 10; goalCount <=10; goalCount++) {
+        for (int goalCount = 1; goalCount <=10; goalCount++) {
             System.out.println("GoalCount: "+goalCount);
             for (int sampleId = 1; sampleId <= samples; sampleId++) {
                 System.out.println("Sample: "+sampleId);
@@ -82,9 +82,15 @@ public class MultiKernel {
                 }
                 System.out.println(GoalBag.toGoalsString(allFinalGoals));
 
+//                if (goalCount< 10) continue;
+//                if(sampleId<9) continue;
+
                 // Generate Individually
                 for (int part = 1; part <= goalCount; part++) {
                     System.out.println("GoalCount: " + goalCount + " SampleID: " + sampleId + " Part: " + part);
+
+//                    if(part<100) continue;
+
                     // get current final goal
                     List<AtomGoal> finalGoals = allFinalGoals.subList(part - 1, part);
 
@@ -113,7 +119,7 @@ public class MultiKernel {
                     conf.getJSONArray("availableRegisters").put(reg.name);
                 }
 
-//                conf.getJSONObject("runConfig").put("searchTime",60000);
+                conf.getJSONObject("runConfig").put("searchTime",60000);
 
                 run(goalCount, sampleId, part, conf, allFinalGoals, divisions);
 
