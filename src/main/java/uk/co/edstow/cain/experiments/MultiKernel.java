@@ -64,7 +64,7 @@ public class MultiKernel {
         writer = new OutputStreamWriter(new FileOutputStream(f, true));
         writer.write("\"kernels\",\"id\",\"part\",\"cost\"\n");
 
-        final RegisterAllocator.Register[] registers = RegisterAllocator.Register.getRegisters(1000);
+        final RegisterAllocator.Register[] registers = RegisterAllocator.Register.getRegisters(18);
         final int samples = 10;
 
         final Random r = new Random(900);

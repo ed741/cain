@@ -8,6 +8,7 @@ import numpy as np
 
 matplotlib.use('TkAgg')
 matplotlib.rcParams.update({'font.size': 22})
+plt.rc('pgf', texsystem='pdflatex')
 
 def main():
   path = sys.argv[1]
@@ -65,8 +66,19 @@ def main():
 
   ax.set_xticks(ticks)
   ax.set_xticklabels(tickLabels)
-  ax.set(xlabel='Kernel Count', ylabel='Smallest Plan Length Found')
-  ax.set_title("Comparison of Shortest Plans founds for Kernels\nProcessed Individually and Simultaneously for 1000 available registers")
+
+  hB, = ax.plot([1, 1], c='blue')
+  hR, = ax.plot([1, 1], c='red')
+  # hG, = ax.plot([1, 1], c='green')
+  # hBl, = ax.plot([1, 1],c='black')
+  ax.legend((hB, hR), ('Sum of Individual Kernels', 'Simultaneous Kernels'))
+  hB.set_visible(False)
+  hR.set_visible(False)
+  # hG.set_visible(False)
+  # hBl.set_visible(False)
+
+  ax.set(xlabel='Kernels Compiled', ylabel='Smallest Plan Length Found')
+  ax.set_title("Comparison of Shortest Plans Found for Kernels\nProcessed Individually and Simultaneously Given 18 Available Registers")
   # ax.axvline(x=first)
   plt.show(block=True)
 
