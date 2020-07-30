@@ -221,6 +221,11 @@ public abstract class FileRun<G extends Goal<G>, C extends Config> {
                 printLn("Traversal Algorithm         : Stow-Optimised-Traversal");
                 runConfig.setTraversalAlgorithm(SOT.SOTFactory());
                 break;
+            case "SOTN":
+                int n = json.getInt("SOTN");
+                printLn("Traversal Algorithm         : Stow-Optimised-Traversal-N:"+n);
+                runConfig.setTraversalAlgorithm(SOTN.SOTNFactory(n));
+                break;
             case "BFS":
                 printLn("Traversal Algorithm         : Breadth-First-Search");
                 runConfig.setTraversalAlgorithm(BFS.BFSFactory());
@@ -232,6 +237,10 @@ public abstract class FileRun<G extends Goal<G>, C extends Config> {
             case "HOS":
                 printLn("Traversal Algorithm         : Heir-Ordered-Search");
                 runConfig.setTraversalAlgorithm(HOS.HOSFactory());
+                break;
+            case "RT":
+                printLn("Traversal Algorithm         : Random-Traversal");
+                runConfig.setTraversalAlgorithm(RT.RTFactory());
                 break;
             case "BestFirstSearch":
                 printLn("Traversal Algorithm         : Best-First-Search");

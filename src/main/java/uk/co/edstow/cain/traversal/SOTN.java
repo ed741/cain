@@ -23,7 +23,7 @@ public class SOTN<T> implements TraversalSystem<T> {
     public void add(T child, T next) {
         cn--;
         if(child!=null)wait.add(child);
-        if(cn==0){
+        if(cn<=0){
             cn = n;
             if(next!=null)workQueue.addLast(next);
             for (int i = wait.size() - 1; i >= 0; i--) {
