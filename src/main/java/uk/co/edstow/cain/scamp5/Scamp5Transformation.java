@@ -914,7 +914,7 @@ public abstract class Scamp5Transformation extends Transformation {
         public String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
             assert lowers.size() == inputCount();
             assert uppers.size() == outputCount();
-            if(uppers.get(0) == lowers.get(0)){
+            if(uppers.get(0).equals(lowers.get(0))){
                 assert trash.size()>=2;
                 return String.format("diva(%s, %s, %s);", uppers.get(0), trash.get(0), trash.get(1));
             }
