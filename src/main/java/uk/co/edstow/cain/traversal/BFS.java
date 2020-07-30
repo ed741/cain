@@ -11,7 +11,7 @@ public class BFS<T> implements TraversalSystem<T> {
     @Override
     public void add(T child, T next) {
         if(next!=null)workQueue.addFirst(next);
-        if(child!=null)workQueue.addFirst(child);
+        if(child!=null)workQueue.addLast(child);
     }
 
     @Override
@@ -27,7 +27,7 @@ public class BFS<T> implements TraversalSystem<T> {
     @Override
     public T steal(TraversalSystem<T> system) throws InterruptedException {
         if(system instanceof BFS) {
-            return ((BFS<T>) system).workQueue.pollLast(100, TimeUnit.MILLISECONDS);
+            return ((BFS<T>) system).workQueue.pollFirst(100, TimeUnit.MILLISECONDS);
         }
         return null;
     }
