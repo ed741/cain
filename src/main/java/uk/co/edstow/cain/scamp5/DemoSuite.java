@@ -12,13 +12,12 @@ import uk.co.edstow.cain.traversal.DFS;
 import uk.co.edstow.cain.traversal.HOS;
 import uk.co.edstow.cain.traversal.SOT;
 import uk.co.edstow.cain.traversal.TraversalSystem;
+import uk.co.edstow.cain.util.RandomKernel;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
-
-import static uk.co.edstow.cain.RegisterAllocator.Register.*;
 
 @SuppressWarnings("SameParameterValue")
 class DemoSuite {
@@ -135,19 +134,6 @@ class DemoSuite {
             this.results = new HashMap<>();
 
         }
-    }
-
-    private static int[][] makeRandom(Random r, int size, int min, int max, double sparsity){
-
-        int[][] filter = new int[size][size];
-        for (int i = 0; i < filter.length; i++) {
-            for (int j = 0; j < filter[i].length; j++) {
-                if(r.nextDouble() > sparsity){
-                    filter[i][j] = r.nextInt((max+1)-min)+min;
-                }
-            }
-        }
-        return filter;
     }
 
     private static List<Test> initialiseDemosList(){
@@ -292,7 +278,7 @@ class DemoSuite {
                 Random rand = new Random(2001);
                 AtomGoal[] r = new AtomGoal[10];
                 for (int i = 0; i < r.length; i++) {
-                    r[i] = new AtomGoal.Factory(makeRandom(rand, 3, 0, 8, 0)).get();
+                    r[i] = new AtomGoal.Factory(RandomKernel.makeRandom(rand, 3, 0, 8, 0)).get();
                 }
                 demos.add(new Test("RandomBIG", Arrays.asList(r), 3, "(37+35)"));
                 demos.add(new Test("Random0 3x3 [0-8] 0%", Collections.singletonList(r[0]), 3, "30"));
@@ -308,7 +294,7 @@ class DemoSuite {
                 Random rand = new Random(2002);
                 AtomGoal[] r = new AtomGoal[4];
                 for (int i = 0; i < r.length; i++) {
-                    r[i] = new AtomGoal.Factory(makeRandom(rand, 3, 1, 8, 0.5)).get();
+                    r[i] = new AtomGoal.Factory(RandomKernel.makeRandom(rand, 3, 1, 8, 0.5)).get();
                 }
                 demos.add(new Test("Random0 3x3 [1-8] 50%", Collections.singletonList(r[0]), 3, "22"));
                 demos.add(new Test("Random1 3x3 [1-8] 50%", Collections.singletonList(r[1]), 3, "15"));
