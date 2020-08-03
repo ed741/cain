@@ -47,7 +47,7 @@ public class NodesExplored {
                     "    \"name\": \"Scamp5\",\n" +
                     "    \"configGetter\": \"Threshold\",\n" +
                     "    \"ops\":\"all\",\n" +
-                    "    \"threshold\":0\n" +
+                    "    \"threshold\":10\n" +
                     "  },\n" +
                     "  \"verifier\":\"Scamp5Emulator\"\n" +
                     "\n" +
