@@ -13,10 +13,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
-import java.util.stream.Collectors;
 
 public class MultiKernel {
 
@@ -57,7 +55,7 @@ public class MultiKernel {
 
     private static OutputStreamWriter writer;
     public static void main(String[] args) throws IOException {
-        File f = new File("MultiKernel_02.csv");
+        File f = new File("MultiKernel_00.csv");
         if(!f.createNewFile()){
             System.out.println("Cannot make new file!");
             System.exit(-1);
@@ -83,14 +81,10 @@ public class MultiKernel {
                 }
                 System.out.println(GoalBag.toGoalsString(allFinalGoals));
 
-//                if (goalCount< 10) continue;
-//                if(sampleId<9) continue;
 
                 // Generate Individually
                 for (int part = 1; part <= goalCount; part++) {
                     System.out.println("GoalCount: " + goalCount + " SampleID: " + sampleId + " Part: " + part);
-
-//                    if(part<100) continue;
 
                     // get current final goal
                     List<AtomGoal> finalGoals = allFinalGoals.subList(part - 1, part);
