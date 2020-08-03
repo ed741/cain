@@ -6,6 +6,7 @@ import uk.co.edstow.cain.FileRun;
 import uk.co.edstow.cain.RegisterAllocator;
 import uk.co.edstow.cain.atom.AtomGoal;
 import uk.co.edstow.cain.structures.GoalBag;
+import uk.co.edstow.cain.util.RandomKernel;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -78,7 +79,7 @@ public class MultiKernel {
                 // Generate Random Goals
                 List<AtomGoal> allFinalGoals = new ArrayList<>();
                 for (int j = 0; j < goalCount; j++) {
-                    allFinalGoals.add(new AtomGoal.Factory(makeRandom(r, 3, 0, 8, 0d)).get());
+                    allFinalGoals.add(new AtomGoal.Factory(RandomKernel.makeRandom(r, 3, 0, 8, 0d)).get());
                 }
                 System.out.println(GoalBag.toGoalsString(allFinalGoals));
 
@@ -158,21 +159,6 @@ public class MultiKernel {
 
 
     }
-
-
-    private static int[][] makeRandom(Random r, int size, int min, int max, double sparsity){
-
-        int[][] filter = new int[size][size];
-        for (int i = 0; i < filter.length; i++) {
-            for (int j = 0; j < filter[i].length; j++) {
-                if(r.nextDouble() > sparsity){
-                    filter[i][j] = r.nextInt((max+1)-min)+min;
-                }
-            }
-        }
-        return filter;
-    }
-
 
 
 }
