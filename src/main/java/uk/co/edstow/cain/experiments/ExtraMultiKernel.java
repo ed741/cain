@@ -16,10 +16,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public class MultiKernel {
+public class ExtraMultiKernel {
 
     private static final String BaseJson =
-            "{\"name\":\"MultiKernelTest\",\n" +
+            "{\"name\":\"ExtraMultiKernelTest\",\n" +
                     "  \"verbose\":1,\n" +
                     "  \"goalSystem\":Atom,\n" +
                     "\n" +
@@ -55,7 +55,7 @@ public class MultiKernel {
 
     private static OutputStreamWriter writer;
     public static void main(String[] args) throws IOException {
-        File f = new File("MultiKernel_00.csv");
+        File f = new File("ExtraMultiKernel_00.csv");
         if(!f.createNewFile()){
             System.out.println("Cannot make new file!");
             System.exit(-1);
