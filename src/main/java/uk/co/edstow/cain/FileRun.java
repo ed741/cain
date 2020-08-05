@@ -373,7 +373,7 @@ public abstract class FileRun<G extends Goal<G>, C extends Config> {
             int maxApproximationDepth = config.getInt("maxApproximationDepth");
             printLn("Max Approximation Depth : " + maxApproximationDepth);
             double maxApproximationError = config.getDouble("maxApproximationError");
-            printLn("Max Approximation Error :RegisterAllocator.Register.values() " + maxApproximationError);
+            printLn("Max Approximation Error : " + maxApproximationError);
 
             Approximater goalAprox = new Approximater(maxApproximationDepth, maxApproximationError);
 
