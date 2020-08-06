@@ -11,9 +11,9 @@ matplotlib.rcParams.update({'font.size': 22})
 plt.rc('pgf', texsystem='pdflatex')
 
 def main():
-    xAxis = "time"
+    xAxis = "nodes"
     yAxis = "length"
-    resolutionf = lambda m: 10
+    resolutionf = lambda m: int(m/10)
 
     path = sys.argv[1]
     print("Reading data from:", path)

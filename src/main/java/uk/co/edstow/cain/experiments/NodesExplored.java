@@ -66,7 +66,7 @@ public class NodesExplored {
         final int samples = 100;
 
         final Random r = new Random(100);
-        final int divisions = 0;
+        final int divisions = 3;
 
         for (int sampleId = 1; sampleId <= samples; sampleId++) {
             System.out.println("Sample: "+sampleId);
