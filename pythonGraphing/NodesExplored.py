@@ -49,9 +49,9 @@ def main():
     ax.grid()
 
     # ax.plot(mean, label="Mean")
+    ax.plot(p95th, label="$95_{th}$ Percentile")
     ax.plot(median, label="Median")
     ax.plot(p5th, label="$5_{th}$ Percentile")
-    ax.plot(p95th, label="$95_{th}$ Percentile")
 
     ax.legend()
     if xAxis is "nodes":
