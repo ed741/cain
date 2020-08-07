@@ -67,7 +67,7 @@ public class ExtraMultiKernel {
         final int samples = 10;
 
         final Random r = new Random(900);
-        final int divisions = 0;
+        final int divisions = 3;
 
         for (int goalCount = 1; goalCount <=10; goalCount++) {
             System.out.println("GoalCount: "+goalCount);

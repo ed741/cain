@@ -65,9 +65,9 @@ public class MultiKernel {
         final int samples = 25;
 
         final Random r = new Random(1000);
-        final int divisions = 0;
+        final int divisions = 3;
 
-        for (int goalCount = 1; goalCount <=5; goalCount++) {
+        for (int goalCount = 1; goalCount <=4; goalCount++) {
             System.out.println("GoalCount: "+goalCount);
             for (int sampleId = 1; sampleId <= samples; sampleId++) {
                 System.out.println("Sample: "+sampleId);

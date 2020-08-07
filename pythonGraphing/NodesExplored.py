@@ -11,9 +11,9 @@ matplotlib.rcParams.update({'font.size': 22})
 plt.rc('pgf', texsystem='pdflatex')
 
 def main():
-    xAxis = "time"
+    xAxis = "nodes"
     yAxis = "length"
-    resolutionf = lambda m: 10
+    resolutionf = lambda m: int(m/10)
 
     path = sys.argv[1]
     print("Reading data from:", path)
@@ -49,9 +49,9 @@ def main():
     ax.grid()
 
     # ax.plot(mean, label="Mean")
+    ax.plot(p95th, label="$95_{th}$ Percentile")
     ax.plot(median, label="Median")
     ax.plot(p5th, label="$5_{th}$ Percentile")
-    ax.plot(p95th, label="$95_{th}$ Percentile")
 
     ax.legend()
     if xAxis is "nodes":
