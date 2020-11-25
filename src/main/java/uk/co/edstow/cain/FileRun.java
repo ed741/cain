@@ -7,7 +7,7 @@ import org.json.JSONTokener;
 import uk.co.edstow.cain.pairgen.Config;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.scamp5.Scamp5Config;
-import uk.co.edstow.cain.scamp5.Scamp5PairGenFactory;
+import uk.co.edstow.cain.scamp5.analogue.Scamp5PairGenFactory;
 import uk.co.edstow.cain.scamp5.ThresholdConfigGetter;
 import uk.co.edstow.cain.atom.AtomGoal;
 import uk.co.edstow.cain.scamp5.emulator.Scamp5Verifier;

@@ -5,6 +5,7 @@ import uk.co.edstow.cain.ReverseSearch;
 import uk.co.edstow.cain.pairgen.ConfigGetter;
 import uk.co.edstow.cain.pairgen.CostHuristic;
 import uk.co.edstow.cain.atom.AtomGoal;
+import uk.co.edstow.cain.scamp5.analogue.Scamp5PairGenFactory;
 import uk.co.edstow.cain.structures.GoalBag;
 
 import java.util.List;

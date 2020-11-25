@@ -11,17 +11,17 @@ public class Scamp5Config<G extends Goal<G>> implements Config.ConfigWithRegs {
     public final int depth;
     public final List<G> initialGoals;
 
-    PairGenFactory.PairGen<G> strategy;
+    public PairGenFactory.PairGen<G> strategy;
 
-    boolean useMov2x;
-    boolean useAdd3;
+    public boolean useMov2x;
+    public boolean useAdd3;
 
-    boolean useAddx;
-    boolean useAdd2x;
-    boolean useSubx;
-    boolean useSub2x;
+    public boolean useAddx;
+    public boolean useAdd2x;
+    public boolean useSubx;
+    public boolean useSub2x;
 
-    boolean subPowerOf2;
+    public boolean subPowerOf2;
 
     private boolean onlyCostantValues;
 

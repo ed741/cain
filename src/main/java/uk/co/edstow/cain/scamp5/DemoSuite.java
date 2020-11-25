@@ -2,6 +2,7 @@ package uk.co.edstow.cain.scamp5;
 
 import uk.co.edstow.cain.atom.Atom;
 import uk.co.edstow.cain.atom.AtomGoal;
+import uk.co.edstow.cain.scamp5.analogue.Scamp5PairGenFactory;
 import uk.co.edstow.cain.structures.*;
 import uk.co.edstow.cain.RegisterAllocator;
 import uk.co.edstow.cain.ReverseSearch;

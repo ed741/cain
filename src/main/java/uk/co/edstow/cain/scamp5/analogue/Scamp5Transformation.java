@@ -1,4 +1,4 @@
-package uk.co.edstow.cain.scamp5;
+package uk.co.edstow.cain.scamp5.analogue;
 
 import uk.co.edstow.cain.atom.Atom;
 import uk.co.edstow.cain.atom.AtomGoal;

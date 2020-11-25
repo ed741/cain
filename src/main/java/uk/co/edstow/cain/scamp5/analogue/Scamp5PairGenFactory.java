@@ -1,4 +1,4 @@
-package uk.co.edstow.cain.scamp5;
+package uk.co.edstow.cain.scamp5.analogue;
 
 import uk.co.edstow.cain.atom.pairGen.Distance;
 import uk.co.edstow.cain.atom.pairGen.SimpleTransformation;
@@ -6,6 +6,7 @@ import uk.co.edstow.cain.pairgen.*;
 import uk.co.edstow.cain.atom.Atom;
 import uk.co.edstow.cain.atom.AtomGoal;
 import uk.co.edstow.cain.Transformation;
+import uk.co.edstow.cain.scamp5.Scamp5Config;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
 import uk.co.edstow.cain.util.Tuple;
@@ -14,7 +15,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static uk.co.edstow.cain.scamp5.Scamp5Transformation.*;
+import static uk.co.edstow.cain.scamp5.analogue.Scamp5Transformation.*;
 
 public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements PairGenFactory<AtomGoal, T> {
 
