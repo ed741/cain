@@ -10,7 +10,7 @@ import uk.co.edstow.cain.structures.GoalPair;
 
 import java.util.*;
 
-public class PatternHuristic<C extends Config.ConfigWithRegs> implements CostHuristic<AtomGoal, C> {
+public class PatternHuristic implements CostHuristic<AtomGoal> {
 
     private final int[] initialDivisions;
     private final int initialDivisionsMax;
@@ -33,7 +33,7 @@ public class PatternHuristic<C extends Config.ConfigWithRegs> implements CostHur
 
 
     @Override
-    public double getCost(GoalPair<AtomGoal> pair, GoalBag<AtomGoal> goals, C config) {
+    public double getCost(GoalPair<AtomGoal> pair, GoalBag<AtomGoal> goals, Config<AtomGoal> config) {
         GoalBag<AtomGoal> proposedGoals = new GoalBag<>(goals);
         for (AtomGoal upper : pair.getUppers()) {
             proposedGoals.remove(upper);
@@ -46,7 +46,7 @@ public class PatternHuristic<C extends Config.ConfigWithRegs> implements CostHur
             toAdd.add(goal);
         }
         proposedGoals.addAll(toAdd);
-        if(proposedGoals.size() +(pair.getTransformation().ExtraRegisterCount()) > config.totalAvailableRegisters()){
+        if(proposedGoals.size() +(pair.getTransformation().ExtraRegisterCount()) > config.totalAvailableRegisters){
             return -1; // exit early if too many registers are used.
         }
         double cost = 0;

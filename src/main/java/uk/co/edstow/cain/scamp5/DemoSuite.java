@@ -2,12 +2,12 @@ package uk.co.edstow.cain.scamp5;
 
 import uk.co.edstow.cain.atom.Atom;
 import uk.co.edstow.cain.atom.AtomGoal;
+import uk.co.edstow.cain.pairgen.Config;
 import uk.co.edstow.cain.scamp5.analogue.Scamp5PairGenFactory;
 import uk.co.edstow.cain.structures.*;
 import uk.co.edstow.cain.RegisterAllocator;
 import uk.co.edstow.cain.ReverseSearch;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
-import uk.co.edstow.cain.pairgen.ConfigGetter;
 import uk.co.edstow.cain.scamp5.emulator.Scamp5Emulator;
 import uk.co.edstow.cain.traversal.DFS;
 import uk.co.edstow.cain.traversal.HOS;
@@ -36,7 +36,7 @@ class DemoSuite {
     private static class TestSetup {
         final String name;
         final RegisterAllocator.Register[] availableRegisters;
-        final Function<List<AtomGoal>, PairGenFactory<AtomGoal, Scamp5Config<AtomGoal>>> pairGenFactoryGetter;
+        final Function<List<AtomGoal>, PairGenFactory<AtomGoal>> pairGenFactoryGetter;
         final ReverseSearch.RunConfig<AtomGoal> runConfig;
 
         final int cores;
@@ -50,30 +50,41 @@ class DemoSuite {
         private TestSetup(int cores, Supplier<? extends TraversalSystem<WorkState<AtomGoal>>> traversalAlgorithm, int registerCount, int threshold, boolean allOps, int seconds){
             RegisterAllocator.Register[] allRegisters = RegisterAllocator.Register.getRegisters(registerCount);
             final RegisterAllocator.Register[] availableRegisters = Arrays.copyOfRange(allRegisters, 0, registerCount);
+            Scamp5Config.Builder<AtomGoal> scamp5ConfigBuilder = new Scamp5Config.Builder<>();
+            if(allOps) {
+                scamp5ConfigBuilder.useAll();
+                scamp5ConfigBuilder.setSubPowerOf2(true);
+            }else{
+                scamp5ConfigBuilder.useBasic();
+            }
+            Scamp5Config<AtomGoal> scamp5Config = scamp5ConfigBuilder.build();
             RegisterAllocator<AtomGoal> ra = new RegisterAllocator<>(RegisterAllocator.Register.getRegisters("A"), availableRegisters);
-            Function<List<AtomGoal>, PairGenFactory<AtomGoal, Scamp5Config<AtomGoal>>> pairGenFactoryFunction = initialGoals -> new Scamp5PairGenFactory<>(new ConfigGetter<AtomGoal, Scamp5Config<AtomGoal>>() {
-                PatternHuristic<Scamp5Config<AtomGoal>> heuristic = new PatternHuristic<>(initialGoals);
+            Function<List<AtomGoal>, PairGenFactory<AtomGoal>> pairGenFactoryFunction = initialGoals -> new Scamp5PairGenFactory<>(new Scamp5ConfigGetter<AtomGoal, Scamp5Config<AtomGoal>>() {
+                PatternHuristic heuristic = new PatternHuristic(initialGoals);
+
                 @Override
-                public Scamp5Config<AtomGoal> getConfig(GoalBag<AtomGoal> goals, int depth) {
+                public PairGenFactory.PairGen<AtomGoal> getScamp5Strategy(GoalBag<AtomGoal> goals, Config<AtomGoal> config, boolean movOnly) {
                     int max = Integer.MIN_VALUE;
-                        for (AtomGoal goal : goals) {
-                            max = Math.max(max, goal.atomCount());
-                        }
-                    Scamp5Config<AtomGoal> conf = new Scamp5Config<>(availableRegisters.length, depth, initialGoals);
-                        if(allOps) {
-                            conf.useAll();
-                            conf.useSubPowerOf2();
-                        }else{
-                            conf.useBasicOps();
-                        }
-                        conf.setStrategy(max>threshold? new Scamp5PairGenFactory.AtomDistanceSortedPairGen<>(goals, conf, heuristic): new Scamp5PairGenFactory.Scamp5ExhaustivePairGen<>(goals, conf, heuristic));
-                        return conf;
+                    for (AtomGoal goal : goals) {
+                        max = Math.max(max, goal.atomCount());
+                    }
+
+                    PairGenFactory.PairGen<AtomGoal> stratergy;
+                    if(max>threshold){
+                        stratergy = new Scamp5PairGenFactory.AtomDistanceSortedPairGen<>(goals, config, scamp5Config, heuristic);
+                    } else {
+                        stratergy = new Scamp5PairGenFactory.Scamp5ExhaustivePairGen<>(goals, config, scamp5Config, heuristic);
+                    }
+                    return stratergy;
                 }
 
                 @Override
-                public Scamp5Config<AtomGoal> getConfigForDirectSolve(GoalBag<AtomGoal> goals, int depth) {
-                    return new Scamp5Config<>(availableRegisters.length, depth, initialGoals).useAll();
+                public Scamp5Config<AtomGoal> getScamp5ConfigForDirectSolve(GoalBag<AtomGoal> goals, Config<AtomGoal> config) {
+                    return scamp5Config;
                 }
+
+
+
             });
 
             ReverseSearch.RunConfig<AtomGoal> config = new ReverseSearch.RunConfig<>();
@@ -344,7 +355,7 @@ class DemoSuite {
                 int division = test.divisions[i];
                 initialGoals.add(new AtomGoal.Factory().add(new int[]{0,0,i}, 1 << division).get());
             }
-            ReverseSearch<AtomGoal, ?> rs = new ReverseSearch<>(test.divisions, initialGoals, test.finalGoals, setup.pairGenFactoryGetter.apply(initialGoals), setup.runConfig);
+            ReverseSearch<AtomGoal> rs = new ReverseSearch<>(test.divisions, initialGoals, test.finalGoals, setup.pairGenFactoryGetter.apply(initialGoals), setup.runConfig);
             rs.search();
 
             double min = Double.MAX_VALUE;

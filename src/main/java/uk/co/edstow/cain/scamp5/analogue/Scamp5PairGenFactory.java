@@ -2,11 +2,13 @@ package uk.co.edstow.cain.scamp5.analogue;
 
 import uk.co.edstow.cain.atom.pairGen.Distance;
 import uk.co.edstow.cain.atom.pairGen.SimpleTransformation;
+import uk.co.edstow.cain.nonlinear.LinearPairGenFactory;
 import uk.co.edstow.cain.pairgen.*;
 import uk.co.edstow.cain.atom.Atom;
 import uk.co.edstow.cain.atom.AtomGoal;
 import uk.co.edstow.cain.Transformation;
 import uk.co.edstow.cain.scamp5.Scamp5Config;
+import uk.co.edstow.cain.scamp5.Scamp5ConfigGetter;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
 import uk.co.edstow.cain.util.Tuple;
@@ -17,11 +19,18 @@ import java.util.stream.Stream;
 
 import static uk.co.edstow.cain.scamp5.analogue.Scamp5Transformation.*;
 
-public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements PairGenFactory<AtomGoal, T> {
+public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements LinearPairGenFactory<AtomGoal> {
+
+    private final Scamp5ConfigGetter<AtomGoal, T> scamp5ConfGet;
+
+    public Scamp5PairGenFactory(Scamp5ConfigGetter<AtomGoal, T> confGetter) {
+        this.scamp5ConfGet = confGetter;
+    }
 
 
     @Override
-    public List<GoalPair<AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, T config, GoalBag<AtomGoal> goals){
+    public List<GoalPair<AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, Config<AtomGoal> config, GoalBag<AtomGoal> goals){
+        Scamp5Config<AtomGoal> scamp5Config = this.scamp5ConfGet.getScamp5ConfigForDirectSolve(goals, config);
         goals = new GoalBag<>(goals);
         List<GoalPair<AtomGoal>> allPairs = new ArrayList<>();
         GoalBag<AtomGoal> empties = new GoalBag<>();
@@ -30,7 +39,7 @@ public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements P
               empties.add(goals.remove(i));
           }
         }
-        if(!config.onlyConstantValues()) {
+        if(!scamp5Config.onlyMov) {
             for (int i = 0; i < empties.size(); i++) {
                 if (i + 1 < empties.size()) {
                     allPairs.add(new GoalPair<>(Arrays.asList(empties.get(i), empties.get(i + 1)), Collections.emptyList(), new Res_2(empties.get(i), empties.get(i + 1))));
@@ -40,7 +49,7 @@ public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements P
                 }
             }
         }
-        List<GoalPair<AtomGoal>> pairList = PairGenFactory.super.applyAllUnaryOpForwards(initialGoals, config, goals);
+        List<GoalPair<AtomGoal>> pairList = LinearPairGenFactory.super.applyAllUnaryOpForwards(initialGoals, config, goals);
         if(pairList==null){
             return null;
         }
@@ -49,7 +58,8 @@ public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements P
     }
 
     @Override
-    public Collection<Tuple<List<GoalPair<AtomGoal>>, AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, T config, AtomGoal goal) {
+    public Collection<Tuple<List<GoalPair<AtomGoal>>, AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, Config<AtomGoal> config, AtomGoal goal) {
+        Scamp5Config<AtomGoal> scamp5Config = this.scamp5ConfGet.getScamp5ConfigForDirectSolve(new GoalBag<>(goal), config);
         ArrayList<Tuple<List<GoalPair<AtomGoal>>, AtomGoal>> list = new ArrayList<>();
 
         if(initialGoals.contains(goal)){
@@ -57,13 +67,13 @@ public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements P
             return list;
         }
 
-        if(!config.onlyConstantValues() && goal.isEmpty()){
+        if(!scamp5Config.onlyMov && goal.isEmpty()){
             Res res = new Res(goal);
             list.add(new Tuple<>(Collections.singletonList((new GoalPair<>(goal, Collections.emptyList(), res))), initialGoals.get(0)));
             return list;
         }
 
-        if(!config.onlyConstantValues()) {
+        if(!scamp5Config.onlyMov) {
             //Negate
             Neg neg = new Neg(goal, true);
             if (initialGoals.contains(neg.a)) {
@@ -108,7 +118,7 @@ public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements P
         }
 
         //Move 2x
-        if(config.useMov2x) {
+        if(scamp5Config.useMov2x) {
             for (Dir dir1 : Dir.values()) {
                 Mov2x mov2xa = new Mov2x(goal, dir1, dir1, true);
                 if(initialGoals.contains(mov2xa.a)) {
@@ -125,39 +135,33 @@ public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements P
     }
 
 
-    private final ConfigGetter<AtomGoal, T> confGet;
-
-    public Scamp5PairGenFactory(ConfigGetter<AtomGoal, T> confGetter) {
-        this.confGet = confGetter;
-    }
-
 
 
 
     @Override
-    public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals, T conf) {
-       return conf.strategy;
+    public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals, Config<AtomGoal> config) {
+        return this.scamp5ConfGet.getScamp5Strategy(goals, config);
     }
 
     @Override
-    public T getConfig(GoalBag<AtomGoal> goals, int depth) {
-        return confGet.getConfig(goals, depth);
+    public Collection<Tuple<List<AtomGoal>, Transformation>> generateValueConstantOps(List<AtomGoal> goal, Config<AtomGoal> config) {
+        PairGen<AtomGoal> gen =  this.scamp5ConfGet.getScamp5Strategy(new GoalBag<AtomGoal>(goal), config, true);
+        return null; //TODO part of non-linear goals
+
     }
 
-    @Override
-    public T getConfigForDirectSolve(GoalBag<AtomGoal> goals, int depth) {
-        return confGet.getConfigForDirectSolve(goals, depth);
-    }
 
-    public static class Scamp5ExhaustivePairGen<T extends Scamp5Config<AtomGoal>> extends uk.co.edstow.cain.pairgen.ExhaustivePairGen<AtomGoal, T>{
+    public static class Scamp5ExhaustivePairGen<T extends Scamp5Config<AtomGoal>> extends uk.co.edstow.cain.pairgen.ExhaustivePairGen<AtomGoal>{
 
-        public Scamp5ExhaustivePairGen(GoalBag<AtomGoal> goals, T conf, CostHuristic<AtomGoal, T> huristic) {
+        Scamp5Config<AtomGoal> scamp5Config;
+        public Scamp5ExhaustivePairGen(GoalBag<AtomGoal> goals, Config<AtomGoal> conf, Scamp5Config<AtomGoal> scamp5Config, CostHuristic<AtomGoal> huristic) {
             super(goals, conf, huristic);
+            this.scamp5Config = scamp5Config;
         }
 
         protected Stream<GoalPair<AtomGoal>> getUnaryOpStream(AtomGoal upper) {
             ArrayList<GoalPair<AtomGoal>> pairs = new ArrayList<>();
-            if(!this.config.onlyConstantValues()) {
+            if(!scamp5Config.onlyMov) {
                 //Negate
                 Neg neg = new Neg(upper, true);
                 pairs.add(new GoalPair<>(upper, neg.a, neg));
@@ -200,7 +204,7 @@ public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements P
                 pairs.add(new GoalPair<>(upper, movx.a, movx));
             }
 
-            if(config.useMov2x) {
+            if(scamp5Config.useMov2x) {
                 for (Dir dir1 : Dir.values()) {
                     Mov2x mov2xa = new Mov2x(upper, dir1, dir1, true);
                     pairs.add(new GoalPair<>(upper, mov2xa.a, mov2xa));
@@ -213,13 +217,13 @@ public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements P
         }
 
         protected Stream<GoalPair<AtomGoal>> getNaryOpStream(AtomGoal upper) {
-            if(this.config.onlyConstantValues()){
+            if(this.scamp5Config.onlyMov){
                 return Stream.empty();
             }
             ArrayList<GoalPair<AtomGoal>> pairs = new ArrayList<>();
             List<AtomGoal> splits = upper.allSplits();
             int normal = splits.size();
-            if(config.subPowerOf2){
+            if(scamp5Config.subPowerOf2){
                 AtomGoal.Factory sub1 = new AtomGoal.Factory();
                 AtomGoal.Factory sub2 = new AtomGoal.Factory();
                 boolean tryPower = false;
@@ -260,7 +264,7 @@ public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements P
                 if (!skipAdd_2) {
                     Add_2 add = new Add_2(a, b);
                     pairs.add(new GoalPair<>(upper, Arrays.asList(a, b), add));
-                    if (config.useAddx) {
+                    if (scamp5Config.useAddx) {
                         for (Dir dir : Dir.values()) {
                             AtomGoal movA = a.translated(-dir.x, -dir.y, 0);
                             AtomGoal movB = b.translated(-dir.x, -dir.y, 0);
@@ -268,7 +272,7 @@ public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements P
                             pairs.add(new GoalPair<>(upper, Arrays.asList(movA, movB), addx));
                         }
                     }
-                    if (config.useAdd2x) {
+                    if (scamp5Config.useAdd2x) {
                         for (Dir dir1 : Dir.values()) {
                             AtomGoal aMovA = a.translated(-dir1.x - dir1.x, -dir1.y - dir1.y, 0);
                             AtomGoal bMovA = b.translated(-dir1.x - dir1.x, -dir1.y - dir1.y, 0);
@@ -286,14 +290,14 @@ public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements P
                 AtomGoal negB = b.negative();
                 Sub sub = new Sub(a, negB);
                 pairs.add(new GoalPair<>(upper, Arrays.asList(a, negB), sub));
-                if (config.useSubx) {
+                if (scamp5Config.useSubx) {
                     for (Dir dir : Dir.values()) {
                         AtomGoal movA = a.translated(-dir.x, -dir.y, 0);
                         Subx subx = new Subx(movA, negB, dir);
                         pairs.add(new GoalPair<>(upper, Arrays.asList(movA, negB), subx));
                     }
                 }
-                if (config.useSub2x) {
+                if (scamp5Config.useSub2x) {
                     for (Dir dir1 : Dir.values()) {
                         AtomGoal aMovA = a.translated(-dir1.x - dir1.x, -dir1.y - dir1.y, 0);
                         Sub2x sub2xa = new Sub2x(aMovA, negB, dir1, dir1);
@@ -305,7 +309,7 @@ public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements P
                     }
                 }
 
-                if (config.useAdd3) {
+                if (scamp5Config.useAdd3) {
                     Set<AtomGoal> subSeen = new HashSet<>();
 
                     Collection<AtomGoal> subSplits = a.allSplits();
@@ -356,21 +360,24 @@ public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements P
     }
 
     private static class AtomDistancePairGen<T extends Scamp5Config<AtomGoal>> implements PairGen<AtomGoal> {
-        final T config;
+        final T scamp5config;
+        final Config<AtomGoal> config;
         final GoalBag<AtomGoal> goals;
         final Iterator<Tuple<Integer, Integer>> ijGetter;
         private int count;
 
         List<GoalPair<AtomGoal>> currentList = new ArrayList<>();
 
-        private AtomDistancePairGen(GoalBag<AtomGoal> goals, T config) {
+        private AtomDistancePairGen(GoalBag<AtomGoal> goals, Config<AtomGoal> config, T scamp5config) {
             this.goals = goals;
+            this.scamp5config = scamp5config;
             this.config = config;
             this.ijGetter = new SteppedCombinationIterator(goals.size());
         }
 
-        private AtomDistancePairGen(GoalBag<AtomGoal> goals, T config, Iterator<Tuple<Integer, Integer>> ijGetter) {
+        private AtomDistancePairGen(GoalBag<AtomGoal> goals, Config<AtomGoal> config, T scamp5config, Iterator<Tuple<Integer, Integer>> ijGetter) {
             this.goals = goals;
+            this.scamp5config = scamp5config;
             this.config = config;
             this.ijGetter = ijGetter;
         }
@@ -398,18 +405,18 @@ public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements P
         protected void addPairs(AtomGoal a, boolean diagonal, List<AtomDistanceListItem> inList, List<AtomDistanceListItem> outList) {
             if(!diagonal) {
                 for (AtomDistanceListItem item : inList) {
-                    addAtomDistancePairs(item, config, outList);
+                    addAtomDistancePairs(item, scamp5config, outList);
                 }
             } else {
                 // diagonal == True
-                if(goals.size() < config.totalAvailableRegisters()) {
+                if(goals.size() < config.totalAvailableRegisters) {
                     addDirectMov(a, outList);
                 }
 
                 for (AtomDistanceListItem item : inList) {
-                    addAtomDistanceDiagonalPairs(item, config, outList);
+                    addAtomDistanceDiagonalPairs(item, scamp5config, outList);
                 }
-                if (!config.onlyConstantValues()) {
+                if (!scamp5config.onlyMov) {
                     for (AtomGoal initialGoal : config.initialGoals) {
                         if (initialGoal.hasSubGoal(a)) {
                             AtomGoal l = new AtomGoal.Factory(a).addAll(a).get();
@@ -439,7 +446,7 @@ public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements P
                     outList.add(newItem);
                 }
             }
-            if(config.useMov2x && centre.manhattanXY()>1){
+            if(scamp5config.useMov2x && centre.manhattanXY()>1){
                 SimpleTransformation.Direction d1 = centre.majorXYDirection();
                 if(d1 != null) {
                     SimpleTransformation.Direction d2 = centre.then(d1.opposite()).majorXYDirection();
@@ -472,10 +479,10 @@ public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements P
 
     public static class AtomDistanceSortedPairGen<T extends Scamp5Config<AtomGoal>> extends AtomDistancePairGen<T> {
 
-        private final CostHuristic<AtomGoal, T> huristic;
+        private final CostHuristic<AtomGoal> huristic;
 
-        public AtomDistanceSortedPairGen(GoalBag<AtomGoal> goals, T conf, CostHuristic<AtomGoal, T> huristic) {
-            super(goals, conf, new PlainCombinationIterator(goals.size()));
+        public AtomDistanceSortedPairGen(GoalBag<AtomGoal> goals, Config<AtomGoal> conf, T scamp5Config, CostHuristic<AtomGoal> huristic) {
+            super(goals, conf, scamp5Config, new PlainCombinationIterator(goals.size()));
             this.huristic = huristic;
         }
 
@@ -494,7 +501,7 @@ public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements P
                 //inList.sort(atomDistanceComparator);
                 addPairs(a, diagonal, inList, outList);
             }
-            outList.parallelStream().forEach(item -> item.cost = huristic.getCost(item.pair, goals, config));
+            outList.parallelStream().forEach(item -> item.cost = huristic.getCost(item.pair, goals, this.config));
             outList.removeIf(item -> item.cost < 0);
             outList.sort(Comparator.comparingDouble((AtomDistanceListItem item) -> item.cost).reversed());
             currentList = outList.stream().map(item -> item.pair).collect(Collectors.toList());
@@ -506,8 +513,8 @@ public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements P
 
     @SuppressWarnings("UnnecessaryLocalVariable")
     private static void addAtomDistanceDiagonalPairs(AtomDistanceListItem item,
-                                                     Scamp5Config config, List<AtomDistanceListItem> outList) {
-        if(config.onlyConstantValues()){
+                                                     Scamp5Config scamp5Config, List<AtomDistanceListItem> outList) {
+        if(scamp5Config.onlyMov){
             return;
         }
         Distance centre = new Distance(item.a.getAveragePos());
@@ -527,7 +534,7 @@ public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements P
 			outList.add(newItem);
         }
 
-        if (config.useAdd3) {
+        if (scamp5Config.useAdd3) {
             AtomGoal tmpMov = item.distance.inverse().translate(item.to);
             AtomGoal tmp = tmpMov;
             if (item.negate) {
@@ -543,7 +550,7 @@ public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements P
                 outList.add(newItem);
             }
         }
-        if(config.useAddx && centre.manhattanXY()>0){
+        if(scamp5Config.useAddx && centre.manhattanXY()>0){
             Dir dir1 = Dir.fromDirection(centre.majorXYDirection());
             AtomGoal split1 = aWithoutTo.translated(-dir1.x, -dir1.y, 0);
             AtomGoal split2 = item.to.translated(-dir1.x, -dir1.y, 0);
@@ -554,7 +561,7 @@ public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements P
         }
 
         //add2x
-        if(config.useAdd2x && centre.manhattanXY()>1){
+        if(scamp5Config.useAdd2x && centre.manhattanXY()>1){
             SimpleTransformation.Direction d1 = centre.majorXYDirection();
             SimpleTransformation.Direction d2 = centre.then(d1.opposite()).majorXYDirection();
             Dir dir1 = Dir.fromDirection(d1);
@@ -567,7 +574,7 @@ public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements P
             outList.add(newItem);
         }
 
-        if(config.useSubx && item.distance.manhattanXY()>0){
+        if(scamp5Config.useSubx && item.distance.manhattanXY()>0){
             Dir dir1 = Dir.fromDirection(item.distance.majorXYDirection()).opposite();
             AtomGoal split1 = aWithoutTo.translated(-dir1.x, -dir1.y, 0);
             AtomGoal split2 = item.to.negative();
@@ -576,7 +583,7 @@ public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements P
             outList.add(newItem);
         }
 
-        if(config.useSub2x && item.distance.manhattanXY()>1){
+        if(scamp5Config.useSub2x && item.distance.manhattanXY()>1){
             SimpleTransformation.Direction d1 = item.distance.majorXYDirection();
             SimpleTransformation.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
             Dir dir1 = Dir.fromDirection(d1).opposite();
@@ -591,14 +598,14 @@ public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements P
 
     @SuppressWarnings("UnnecessaryLocalVariable")
     private static void addAtomDistancePairs(AtomDistanceListItem item,
-                                             Scamp5Config config, List<AtomDistanceListItem> outList) {
+                                             Scamp5Config scamp5Config, List<AtomDistanceListItem> outList) {
         AtomGoal tmpMov = item.distance.inverse().translate(item.to);
         AtomGoal tmp = tmpMov;
         if(item.negate){
             tmp = tmpMov.negative();
         }
         if(tmp.same(item.a)){
-            if(config.useMov2x && item.distance.manhattanXY()>1){
+            if(scamp5Config.useMov2x && item.distance.manhattanXY()>1){
                 //mov2x
                 SimpleTransformation.Direction d1 = item.distance.majorXYDirection();
                 SimpleTransformation.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
@@ -622,7 +629,7 @@ public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements P
                 newItem.pair = new GoalPair<>(item.a, item.to, new Neg(item.to));
                 outList.add(newItem);
             }
-        } else if (!config.onlyConstantValues()){
+        } else if (!scamp5Config.onlyMov){
             AtomGoal aWithoutTmp = item.a.without(tmp);
 
             //Add_2
@@ -645,7 +652,7 @@ public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements P
             //TODO add_3 support?
 
             //addx
-            if(config.useAddx && item.distance.manhattanXY()>0){
+            if(scamp5Config.useAddx && item.distance.manhattanXY()>0){
                 Dir dir1 = Dir.fromDirection(item.distance.majorXYDirection()).opposite();
                 AtomGoal split1 = aWithoutTmp.translated(-dir1.x, -dir1.y, 0);
                 AtomGoal split2 = tmp.translated(-dir1.x, -dir1.y, 0);
@@ -656,7 +663,7 @@ public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements P
             }
 
             //add2x
-            if(config.useAdd2x && item.distance.manhattanXY()>1){
+            if(scamp5Config.useAdd2x && item.distance.manhattanXY()>1){
                 SimpleTransformation.Direction d1 = item.distance.majorXYDirection();
                 SimpleTransformation.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
                 Dir dir1 = Dir.fromDirection(d1).opposite();
@@ -670,7 +677,7 @@ public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements P
             }
 
             //Subx
-            if(config.useSubx && item.distance.manhattanXY()>0){
+            if(scamp5Config.useSubx && item.distance.manhattanXY()>0){
                 Dir dir1 = Dir.fromDirection(item.distance.majorXYDirection()).opposite();
                 AtomGoal split1 = tmp.translated(-dir1.x, -dir1.y, 0);
                 AtomGoal split2 = aWithoutTmp.negative();
@@ -681,7 +688,7 @@ public class Scamp5PairGenFactory<T extends Scamp5Config<AtomGoal>> implements P
             }
 
             //Sub2x
-            if(config.useSub2x && item.distance.manhattanXY()>1){
+            if(scamp5Config.useSub2x && item.distance.manhattanXY()>1){
                 SimpleTransformation.Direction d1 = item.distance.majorXYDirection();
                 SimpleTransformation.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
                 Dir dir1 = Dir.fromDirection(d1).opposite();

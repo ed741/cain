@@ -4,11 +4,10 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
-import uk.co.edstow.cain.pairgen.Config;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.scamp5.Scamp5Config;
 import uk.co.edstow.cain.scamp5.analogue.Scamp5PairGenFactory;
-import uk.co.edstow.cain.scamp5.ThresholdConfigGetter;
+import uk.co.edstow.cain.scamp5.ThresholdScamp5ConfigGetter;
 import uk.co.edstow.cain.atom.AtomGoal;
 import uk.co.edstow.cain.scamp5.emulator.Scamp5Verifier;
 import uk.co.edstow.cain.structures.Goal;
@@ -25,10 +24,10 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public abstract class FileRun<G extends Goal<G>, C extends Config> {
+public abstract class FileRun<G extends Goal<G>> {
     private static int verbose;
 
-    public static FileRun<?,?> loadFromJson(String path){
+    public static FileRun<?> loadFromJson(String path){
 
         JSONObject config = fromJson(path);
         verbose = config.has("verbose")? config.getInt("verbose"):10;
@@ -77,7 +76,7 @@ public abstract class FileRun<G extends Goal<G>, C extends Config> {
     protected List<RegisterAllocator.Register> outputRegisters;
     protected int approximationDepth;
 
-    protected final ReverseSearch<G,C> reverseSearch;
+    protected final ReverseSearch<G> reverseSearch;
     protected final List<G> initialGoals;
     protected RegisterAllocator<G> registerAllocator;
     protected final JSONObject config;
@@ -97,7 +96,7 @@ public abstract class FileRun<G extends Goal<G>, C extends Config> {
         printLn("");
         ReverseSearch.RunConfig<G> runConfig = makeRunConfig(config.getJSONObject("runConfig"), registerAllocator);
         printLn("");
-        PairGenFactory<G,C> pairGenFactory = makePairGenFactory(config.getJSONObject("pairGen"), registerAllocator);
+        PairGenFactory<G> pairGenFactory = makePairGenFactory(config.getJSONObject("pairGen"), registerAllocator);
         printLn("");
 
         printLn("Initialising Reverse Search:");
@@ -125,7 +124,7 @@ public abstract class FileRun<G extends Goal<G>, C extends Config> {
         printLn("");
         ReverseSearch.RunConfig<G> runConfig = makeRunConfig(config.getJSONObject("runConfig"), registerAllocator);
         printLn("");
-        PairGenFactory<G,C> pairGenFactory = makePairGenFactory(config.getJSONObject("pairGen"), registerAllocator);
+        PairGenFactory<G> pairGenFactory = makePairGenFactory(config.getJSONObject("pairGen"), registerAllocator);
         printLn("");
 
         printLn("Initialising Reverse Search:");
@@ -136,7 +135,7 @@ public abstract class FileRun<G extends Goal<G>, C extends Config> {
 
     protected abstract List<G> makeFinalGoals(JSONObject config);
     protected abstract List<G> makeInitialGoals(int[] divisions);
-    protected abstract PairGenFactory<G,C> makePairGenFactory(JSONObject pairGen, RegisterAllocator<G> registerAllocator);
+    protected abstract PairGenFactory<G> makePairGenFactory(JSONObject pairGen, RegisterAllocator<G> registerAllocator);
     protected abstract Verifier<G> makeVerifier(JSONObject config);
 
     protected RegisterAllocator<G> makeRegisterAllocator(JSONObject config) {
@@ -348,9 +347,9 @@ public abstract class FileRun<G extends Goal<G>, C extends Config> {
     }
 
 
-    private static abstract class AtomFileRun<C extends Config> extends FileRun<AtomGoal, C> {
+    private static abstract class AtomFileRun extends FileRun<AtomGoal> {
 
-        public static AtomFileRun<?> getAtomFileRun(JSONObject config){
+        public static AtomFileRun getAtomFileRun(JSONObject config){
             JSONObject json = config.getJSONObject("pairGen");
             switch (json.getString("name")) {
                 default:
@@ -478,7 +477,7 @@ public abstract class FileRun<G extends Goal<G>, C extends Config> {
 
     }
 
-    public static class Scamp5AtomFileRun extends AtomFileRun<Scamp5Config<AtomGoal>> {
+    public static class Scamp5AtomFileRun extends AtomFileRun {
 
         public Scamp5AtomFileRun(JSONObject config) {
             super(config);
@@ -488,28 +487,28 @@ public abstract class FileRun<G extends Goal<G>, C extends Config> {
         }
 
         @Override
-        protected PairGenFactory<AtomGoal, Scamp5Config<AtomGoal>> makePairGenFactory(JSONObject json, RegisterAllocator<AtomGoal> registerAllocator) {
+        protected PairGenFactory<AtomGoal> makePairGenFactory(JSONObject json, RegisterAllocator<AtomGoal> registerAllocator) {
             printLn("\t Making Pair Generation Factory:");
             printLn("Name                        : " + json.getString("name"));
             printLn("Config Getter               : " + json.getString("configGetter"));
             switch (json.getString("configGetter")) {
                 default:
-                    throw new IllegalArgumentException("Unknown Scamp5 ConfigGetter " + json.getString("configGetter"));
+                    throw new IllegalArgumentException("Unknown Scamp5 Scamp5ConfigGetter " + json.getString("configGetter"));
                 case "Threshold":
                     printLn("Instruction to use          : " + json.getString("ops"));
-                    Consumer<Scamp5Config> configConsumer;
+                    Scamp5Config<AtomGoal> scampConfig;
                     switch (json.getString("ops")) {
                         default:
                             throw new IllegalArgumentException("Unknown Instuctions option " + json.getString("ops"));
                         case "all":
-                            configConsumer = c -> c.useAll().useSubPowerOf2();
+                            scampConfig = new Scamp5Config.Builder<AtomGoal>().useAll().setSubPowerOf2(true).build();
                             break;
                         case "basic":
-                            configConsumer = c -> c.useBasicOps().useSubPowerOf2();
+                            scampConfig = new Scamp5Config.Builder<AtomGoal>().useBasic().setSubPowerOf2(true).build();
                             break;
                     }
                     printLn("Exhustive Search Threshold  : " + json.getInt("threshold"));
-                    return new Scamp5PairGenFactory<>(new ThresholdConfigGetter(initialGoals, registerAllocator.getAvailableRegistersArray(), json.getInt("threshold"), configConsumer));
+                    return new Scamp5PairGenFactory<>(new ThresholdScamp5ConfigGetter(initialGoals, json.getInt("threshold"), scampConfig));
             }
 
         }

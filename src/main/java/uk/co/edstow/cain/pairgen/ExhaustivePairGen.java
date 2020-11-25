@@ -8,13 +8,13 @@ import uk.co.edstow.cain.util.Tuple;
 import java.util.*;
 import java.util.stream.Stream;
 
-public abstract class ExhaustivePairGen<G extends Goal<G>, T extends Config> implements PairGenFactory.PairGen<G> {
+public abstract class ExhaustivePairGen<G extends Goal<G>> implements PairGenFactory.PairGen<G> {
     private final Iterator<GoalPair<G>> it;
     private int count = 0;
-    protected final T config;
+    protected final Config<G> config;
     protected final GoalBag<G> goals;
 
-    public ExhaustivePairGen(GoalBag<G> goals, T config, CostHuristic<G, T> huristic) {
+    public ExhaustivePairGen(GoalBag<G> goals, Config<G> config, CostHuristic<G> huristic) {
         this.goals = goals;
         this.config = config;
         Comparator<Tuple<GoalPair<G>, Double>> comparator = Comparator.comparingDouble(Tuple::getB);

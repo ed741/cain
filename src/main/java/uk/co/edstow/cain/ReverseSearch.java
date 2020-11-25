@@ -15,7 +15,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 
-public class ReverseSearch<G extends Goal<G>, C extends Config> {
+public class ReverseSearch<G extends Goal<G>> {
 
     @SuppressWarnings({"UnusedReturnValue", "unused"})
     public static class RunConfig<G extends Goal<G>> {
@@ -208,7 +208,7 @@ public class ReverseSearch<G extends Goal<G>, C extends Config> {
     private final ReentrantLock planLock;
     private final GoalsCache<G> cache;
 
-    private final PairGenFactory<G, C> pairGenFactory;
+    private final PairGenFactory<G> pairGenFactory;
 
     private final int workers;
     private final AtomicBoolean end;
@@ -236,7 +236,7 @@ public class ReverseSearch<G extends Goal<G>, C extends Config> {
     private final int goalReductionsTolerance;
 
 
-    public ReverseSearch(int[] divisions, List<G> initialGoals, List<G> finalGoals, PairGenFactory<G,C> pairGenFactory, RunConfig<G> runConfig) {
+    public ReverseSearch(int[] divisions, List<G> initialGoals, List<G> finalGoals, PairGenFactory<G> pairGenFactory, RunConfig<G> runConfig) {
         this.liveCounter = runConfig.liveCounter;
         this.livePrintPlans = runConfig.livePrintPlans;
         this.quiet = runConfig.quiet;
@@ -548,7 +548,7 @@ public class ReverseSearch<G extends Goal<G>, C extends Config> {
 
                 if (tryDirectSolve(depth, goals, currentPlan)) return;
 
-                goalPairs = pairGenFactory.generatePairs(goals, pairGenFactory.getConfig(goals, depth));
+                goalPairs = pairGenFactory.generatePairs(goals, new Config<>(depth, availableRegisters, initialGoals));
                 nodesExpanded++;
             }
             int childNumber = goalPairs.getNumber();
@@ -697,7 +697,7 @@ public class ReverseSearch<G extends Goal<G>, C extends Config> {
 
 
     private List<GoalPair<G>> isTransformable(GoalBag<G> goals, int depth) {
-        return this.pairGenFactory.applyAllUnaryOpForwards(initialGoals, this.pairGenFactory.getConfigForDirectSolve(goals, depth), goals);
+        return this.pairGenFactory.applyAllUnaryOpForwards(initialGoals, new Config<>(depth, availableRegisters, initialGoals), goals);
     }
 
 
