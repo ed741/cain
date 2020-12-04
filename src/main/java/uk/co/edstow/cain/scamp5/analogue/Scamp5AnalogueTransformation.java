@@ -1,4 +1,4 @@
-package uk.co.edstow.cain.scamp5;
+package uk.co.edstow.cain.scamp5.analogue;
 
 import uk.co.edstow.cain.atom.Atom;
 import uk.co.edstow.cain.atom.AtomGoal;
@@ -7,16 +7,13 @@ import uk.co.edstow.cain.Transformation;
 import uk.co.edstow.cain.atom.pairGen.SimpleTransformation;
 import uk.co.edstow.cain.util.Tuple;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
-public abstract class Scamp5Transformation extends Transformation {
+public abstract class Scamp5AnalogueTransformation extends Transformation {
     public abstract List<AtomGoal> applyOpForwards() throws TransformationApplicationException;
 
 
-    abstract static class SimpleScamp5Transformation extends Scamp5Transformation{
+    abstract static class SimpleScamp5AnalogueTransformation extends Scamp5AnalogueTransformation {
 
         @Override
         public String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
@@ -104,7 +101,7 @@ public abstract class Scamp5Transformation extends Transformation {
         }
     }
 
-    public static class Res extends SimpleScamp5Transformation{
+    public static class Res extends SimpleScamp5AnalogueTransformation {
         // u := {}
         final AtomGoal result;
 
@@ -158,7 +155,7 @@ public abstract class Scamp5Transformation extends Transformation {
     }
 
 
-    public static class Res_2 extends Scamp5Transformation{
+    public static class Res_2 extends Scamp5AnalogueTransformation {
         // u := {}
         final AtomGoal result1;
         final AtomGoal result2;
@@ -223,7 +220,7 @@ public abstract class Scamp5Transformation extends Transformation {
     }
 
 
-    public static class Mov extends SimpleScamp5Transformation {
+    public static class Mov extends SimpleScamp5AnalogueTransformation {
         //u := a
 
         final AtomGoal a;
@@ -293,7 +290,7 @@ public abstract class Scamp5Transformation extends Transformation {
     }
 
 
-    public static class Add_2 extends SimpleScamp5Transformation {
+    public static class Add_2 extends SimpleScamp5AnalogueTransformation {
         // u := a + b
 
         final AtomGoal a;
@@ -355,7 +352,7 @@ public abstract class Scamp5Transformation extends Transformation {
 
     }
 
-    public static class Add_3 extends SimpleScamp5Transformation {
+    public static class Add_3 extends SimpleScamp5AnalogueTransformation {
         // u := a + b + c
 
         final AtomGoal a;
@@ -418,7 +415,7 @@ public abstract class Scamp5Transformation extends Transformation {
         }
     }
 
-    public static class Sub extends SimpleScamp5Transformation {
+    public static class Sub extends SimpleScamp5AnalogueTransformation {
         // u := a - b
 
          final AtomGoal a;
@@ -479,7 +476,7 @@ public abstract class Scamp5Transformation extends Transformation {
         }
     }
 
-    public static class Neg extends SimpleScamp5Transformation {
+    public static class Neg extends SimpleScamp5AnalogueTransformation {
         // u := -a
 
         final AtomGoal a;
@@ -549,7 +546,7 @@ public abstract class Scamp5Transformation extends Transformation {
         }
     }
 
-    public static class Divq extends SimpleScamp5Transformation {
+    public static class Divq extends SimpleScamp5AnalogueTransformation {
         // u := a*0.5 + error
 
         final AtomGoal a;
@@ -726,7 +723,7 @@ public abstract class Scamp5Transformation extends Transformation {
 
         @Override
         public String toStringN() {
-            return String.format("MovX %s %s (%s)", dir1, dir2, this.a);
+            return String.format("Mov2X %s %s (%s)", dir1, dir2, this.a);
         }
 
     }
@@ -873,7 +870,7 @@ public abstract class Scamp5Transformation extends Transformation {
     }
 
 
-    public static class Div extends Scamp5Transformation {
+    public static class Div extends Scamp5AnalogueTransformation {
         // u := a*0.5 + error
 
         final AtomGoal a;

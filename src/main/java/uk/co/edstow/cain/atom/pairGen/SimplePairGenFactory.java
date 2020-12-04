@@ -11,7 +11,7 @@ import uk.co.edstow.cain.Transformation;
 
 import java.util.*;
 
-public class SimplePairGenFactory implements PairGenFactory<AtomGoal, Config> {
+public class SimplePairGenFactory implements PairGenFactory<AtomGoal> {
 
     private final AtomGoal.AtomBounds bounds;
 
@@ -46,23 +46,13 @@ public class SimplePairGenFactory implements PairGenFactory<AtomGoal, Config> {
     }
 
     @Override
-    public Collection<Tuple<List<GoalPair<AtomGoal>>, AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, Config conf, AtomGoal goal) {
+    public Collection<Tuple<List<GoalPair<AtomGoal>>, AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, Config<AtomGoal> conf, AtomGoal goal) {
         return applyAllUnaryOps(initialGoals.get(0), goal);
     }
 
     @Override
-    public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals, Config conf) {
+    public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals, Config<AtomGoal> conf) {
         return new SimplePairGen(goals);
-    }
-
-    @Override
-    public Config getConfig(GoalBag<AtomGoal> goals, int depth) {
-        return new Config(){};
-    }
-
-    @Override
-    public Config getConfigForDirectSolve(GoalBag<AtomGoal> goals, int depth) {
-        return new Config(){};
     }
 
     public class SimplePairGen implements PairGen<AtomGoal> {

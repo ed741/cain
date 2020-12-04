@@ -1,9 +1,20 @@
 package uk.co.edstow.cain.pairgen;
 
 
-public interface Config {
+import uk.co.edstow.cain.structures.Goal;
 
-    interface ConfigWithRegs extends Config{
-        int totalAvailableRegisters();
+import java.util.List;
+
+public class Config<G extends Goal<G>> {
+
+
+    public final int searchDepth;
+    public final int totalAvailableRegisters;
+    public final List<G> initialGoals;
+
+    public Config(int searchDepth, int totalAvailableRegisters, List<G> initialGoals) {
+        this.searchDepth = searchDepth;
+        this.totalAvailableRegisters = totalAvailableRegisters;
+        this.initialGoals = initialGoals;
     }
 }

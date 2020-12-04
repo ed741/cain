@@ -1,4 +1,4 @@
-{"name":"Sobel",
+{"name":"boxDigital",
   "goalSystem":"Atom",
   "maxApproximationDepth":3,
   "maxApproximationError":0,
@@ -6,19 +6,13 @@
   "filter":{
     "A": {"depth":0,
       "array":
-      [[1, 0, -1],
-        [2, 0, -2],
-        [1, 0, -1]
-      ]},
-    "B": {"depth":0,
-      "array":
-      [[1, 2, 1],
-        [0, 0, 0],
-        [-1, -2, -1]
+      [[1, 1, 1],
+        [1, 1, 1],
+        [1, 1, 1]
       ]}
   },
 
-  "availableRegisters":["A","B","C","D","E","F"],
+  "availableRegisters":["A","B","C"],
   "initialRegisters":["A"],
 
   "runConfig":{
@@ -26,26 +20,33 @@
     "timeOut":true,
     "workers":4,
     "traversalAlgorithm":"SOT",
-    "costFunction":"CircuitDepthThenLength",
+    "costFunction":"InstructionCost",
     "liveCounter":true,
     "livePrintPlans":100,
     "quiet": false,
     "initialMaxDepth":200,
-    "forcedDepthReduction":1,
+    "forcedDepthReduction":-100,
     "initialMaxCost":2147483647,
-    "forcedCostReduction":0,
+    "forcedCostReduction":1,
     "allowableAtomsCoefficient":2,
     "goalReductionsPerStep":1,
     "goalReductionsTolerance":1
   },
 
   "pairGen":{
-    "name": "Scamp5",
+    "name": "Scamp5Digital",
     "configGetter": "Threshold",
-    "ops":"all",
-    "threshold":10
+    "threshold":8,
+    "bits":2,
+    "scratchRegs":["S1", "S2", "S3", "S4", "S5"],
+    "regMapping":{
+      "A":["DA1","DA2"],
+      "B":["DB1","DB2"],
+      "C":["DC1","DC2"],
+      "D":["DD1","DD2"]
+    }
   },
 
-  "verifier":"Scamp5Emulator"
+  "verifier":"None"
 
 }

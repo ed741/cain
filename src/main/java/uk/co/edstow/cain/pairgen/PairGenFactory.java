@@ -9,8 +9,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-public interface PairGenFactory<G extends Goal<G>, T extends Config> extends ConfigGetter<G,T> {
-    default List<GoalPair<G>> applyAllUnaryOpForwards(List<G> initialGoals, T config, GoalBag<G> goals){
+public interface PairGenFactory<G extends Goal<G>> {
+    default List<GoalPair<G>> applyAllUnaryOpForwards(List<G> initialGoals, Config<G> config, GoalBag<G> goals){
         List<GoalPair<G>> allPairs = new ArrayList<>();
         int found = 0;
         for(G goal: goals) {
@@ -26,13 +26,13 @@ public interface PairGenFactory<G extends Goal<G>, T extends Config> extends Con
         }
         return found!=goals.size()?null:allPairs;
     }
-    Collection<Tuple<List<GoalPair<G>>, G>> applyAllUnaryOpForwards(List<G> initialGoals, T config, G goal);
+    Collection<Tuple<List<GoalPair<G>>, G>> applyAllUnaryOpForwards(List<G> initialGoals, Config<G> config, G goal);
 
     interface PairGen<G extends Goal<G>>{
         GoalPair<G> next();
         int getNumber();
     }
 
-    PairGen<G> generatePairs(GoalBag<G> goals, T config);
+    PairGen<G> generatePairs(GoalBag<G> goals, Config<G> config);
 
 }

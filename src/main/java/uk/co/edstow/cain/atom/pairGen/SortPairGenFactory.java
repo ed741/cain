@@ -17,7 +17,7 @@ public class SortPairGenFactory extends SimplePairGenFactory {
     }
 
     @Override
-    public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals, Config config) {
+    public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals, Config<AtomGoal> config) {
         return new AddSortPairGen(goals);
     }
 

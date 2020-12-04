@@ -120,6 +120,7 @@ public class Plan<G extends Goal<G>> {
         private Step(GoalPair<G> t, GoalBag<G> currentGoals, List<G> translation, int child) {
             goalPair = t;
             this.currentGoals = new GoalBag<>(currentGoals);
+            this.currentGoals.setImmutable();
             this.translation = translation;
             this.child = child;
 

@@ -6,7 +6,7 @@
 
     <groupId>uk.co.edstow.cain</groupId>
     <artifactId>cain</artifactId>
-    <version>3.0</version>
+    <version>3.1</version>
 
     <properties>
         <maven.compiler.target>1.8</maven.compiler.target>

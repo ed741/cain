@@ -1,6 +1,5 @@
 package uk.co.edstow.cain.atom.pairGen;
 
-import uk.co.edstow.cain.ReverseSearch;
 import uk.co.edstow.cain.atom.Atom;
 import uk.co.edstow.cain.atom.AtomGoal;
 import uk.co.edstow.cain.pairgen.Config;
@@ -11,30 +10,21 @@ import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 
-public class V2PairGenFactory implements PairGenFactory<AtomGoal, Config> {
+public class V2PairGenFactory implements PairGenFactory<AtomGoal> {
 
     private static final Comparator<Tuple<Distance, AtomGoal>> entryComparator = Comparator.comparingInt((Tuple<Distance, AtomGoal> t) -> t.getB().size()).thenComparingInt(t -> -t.getA().manhattanXY());
 
 
     @Override
-    public Collection<Tuple<List<GoalPair<AtomGoal>>, AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, Config config, AtomGoal goal) {
+    public Collection<Tuple<List<GoalPair<AtomGoal>>, AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, Config<AtomGoal> config, AtomGoal goal) {
         return SimplePairGenFactory.applyAllUnaryOps(initialGoals.get(0), goal);
     }
 
     @Override
-    public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals, Config config) {
+    public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals, Config<AtomGoal> config) {
         return new V2PairGen(goals);
     }
 
-    @Override
-    public Config getConfig(GoalBag<AtomGoal> goals, int depth) {
-        return new Config() {};
-    }
-
-    @Override
-    public Config getConfigForDirectSolve(GoalBag<AtomGoal> goals, int depth) {
-        return new Config() {};
-    }
 
     protected class V2PairGen implements PairGen<AtomGoal> {
         final GoalBag<AtomGoal> goals;

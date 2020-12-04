@@ -15,16 +15,16 @@ import java.util.stream.Collectors;
 import static uk.co.edstow.cain.nonlinear.NonLinearGoal.idOfGoal;
 import static uk.co.edstow.cain.nonlinear.NonLinearGoal.idOfGoals;
 
-public class NonLinearPairGenFactory<G extends Goal<G>, C extends Config> implements PairGenFactory<NonLinearGoal<G>, C>{
+public class NonLinearPairGenFactory<G extends Goal<G>> implements PairGenFactory<NonLinearGoal<G>>{
 
-    final LinearPairGenFactory<G, C> linearPairGenFactory;
+    final LinearPairGenFactory<G> linearPairGenFactory;
 
-    public NonLinearPairGenFactory(LinearPairGenFactory<G, C> linearPairGenFactory) {
+    public NonLinearPairGenFactory(LinearPairGenFactory<G> linearPairGenFactory) {
         this.linearPairGenFactory = linearPairGenFactory;
     }
 
     @Override
-    public Collection<Tuple<List<GoalPair<NonLinearGoal<G>>>, NonLinearGoal<G>>> applyAllUnaryOpForwards(List<NonLinearGoal<G>> initialGoals, C config, NonLinearGoal<G> goal) {
+    public Collection<Tuple<List<GoalPair<NonLinearGoal<G>>>, NonLinearGoal<G>>> applyAllUnaryOpForwards(List<NonLinearGoal<G>> initialGoals, Config<NonLinearGoal<G>> config, NonLinearGoal<G> goal) {
         G id = goal.identity();
         if(id != null){
             List<G> initGoals = new ArrayList<>();
@@ -34,7 +34,7 @@ public class NonLinearPairGenFactory<G extends Goal<G>, C extends Config> implem
                     initGoals.add(ig);
                 }
             }
-            return linearPairGenFactory.applyAllUnaryOpForwards(initGoals, config, id).stream()
+            return linearPairGenFactory.applyAllUnaryOpForwards(initGoals, new Config<G>(config.searchDepth, config.totalAvailableRegisters, initGoals), id).stream()
                     .map(tuple -> new Tuple<>(
                             tuple.getA().stream().map(pair -> new GoalPair<>(idOfGoals(pair.getUppers()), idOfGoals(pair.getLowers()), pair.getTransformation())).collect(Collectors.toList()),
                             idOfGoal(tuple.getB())))
@@ -44,44 +44,26 @@ public class NonLinearPairGenFactory<G extends Goal<G>, C extends Config> implem
     }
 
     @Override
-    public PairGen<NonLinearGoal<G>> generatePairs(GoalBag<NonLinearGoal<G>> goals, C config) {
-
-        return new NonLinearPairGen<>(goals, linearPairGenFactory, config);
-    }
-
-    @Override
-    public C getConfig(GoalBag<NonLinearGoal<G>> goals, int depth) {
-        GoalBag<G> bag = new GoalBag<>();
-        goals.forEach(g -> {
-            G id = g.identity();
-            if(id!=null){
-                bag.add(id);
+    public PairGen<NonLinearGoal<G>> generatePairs(GoalBag<NonLinearGoal<G>> goals, Config<NonLinearGoal<G>> config) {
+        List<G> initGoals = new ArrayList<>();
+        for (NonLinearGoal<G> initialGoal : config.initialGoals) {
+            G ig = initialGoal.identity();
+            if (ig != null){
+                initGoals.add(ig);
             }
-        });
-        C conf = linearPairGenFactory.getConfig(bag, depth);
-        return conf;
+        }
+        return new NonLinearPairGen<>(goals, linearPairGenFactory, new Config<G>(config.searchDepth, config.totalAvailableRegisters, initGoals));
     }
 
-    @Override
-    public C getConfigForDirectSolve(GoalBag<NonLinearGoal<G>> goals, int depth) {
-        GoalBag<G> bag = new GoalBag<>();
-        goals.forEach(g -> {
-            G id = g.identity();
-            if(id!=null){
-                bag.add(id);
-            }
-        });
-        C conf = linearPairGenFactory.getConfigForDirectSolve(bag, depth);
-        return conf;
-    }
 
-    private static class NonLinearPairGen<G extends Goal<G>, C extends Config> implements PairGen<NonLinearGoal<G>>{
+    private static class NonLinearPairGen<G extends Goal<G>> implements PairGen<NonLinearGoal<G>>{
         private final GoalBag<NonLinearGoal<G>> goals;
-        private final PairGenFactory<G,C> linearPairGenFactory;
-        private final C config;
+        private final PairGenFactory<G> linearPairGenFactory;
+        private final Config<G> config;
         private int count = 0;
         private List<GoalPair<NonLinearGoal<G>>> currentList;
-        public NonLinearPairGen(GoalBag<NonLinearGoal<G>> goals, PairGenFactory<G,C> linearPairGenFactory, C config) {
+
+        public NonLinearPairGen(GoalBag<NonLinearGoal<G>> goals, PairGenFactory<G> linearPairGenFactory, Config<G> config) {
             this.goals = goals;
             this.linearPairGenFactory = linearPairGenFactory;
             this.config = config;
