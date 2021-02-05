@@ -35,6 +35,7 @@ public abstract class ExhaustivePairGen<G extends Goal<G>> implements PairGenFac
         }
     }
 
+
     @Override
     public GoalPair<G> next() {
         count++;

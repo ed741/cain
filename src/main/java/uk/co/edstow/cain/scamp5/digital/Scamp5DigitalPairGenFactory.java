@@ -21,11 +21,11 @@ import java.util.stream.Stream;
 
 import static uk.co.edstow.cain.scamp5.digital.Scamp5DigitalTransformation.*;
 
-public class Scamp5DigitalPairGenFactory<T extends Scamp5DigitalConfig<AtomGoal>> implements LinearPairGenFactory<AtomGoal> {
+public class Scamp5DigitalPairGenFactory implements LinearPairGenFactory<AtomGoal> {
 
-    private final Scamp5ConfigGetter<AtomGoal, T> scamp5ConfGet;
+    private final Scamp5ConfigGetter<AtomGoal, Scamp5DigitalConfig<AtomGoal>> scamp5ConfGet;
 
-    public Scamp5DigitalPairGenFactory(Scamp5ConfigGetter<AtomGoal, T> confGetter) {
+    public Scamp5DigitalPairGenFactory(Scamp5ConfigGetter<AtomGoal, Scamp5DigitalConfig<AtomGoal>> confGetter) {
         this.scamp5ConfGet = confGetter;
     }
 

@@ -5,13 +5,13 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
+import uk.co.edstow.cain.scamp5.PatternHuristic;
+import uk.co.edstow.cain.scamp5.ThresholdScamp5ConfigGetter;
 import uk.co.edstow.cain.scamp5.analogue.Scamp5AnalougeConfig;
 import uk.co.edstow.cain.scamp5.analogue.Scamp5AnaloguePairGenFactory;
-import uk.co.edstow.cain.scamp5.analogue.ThresholdScamp5AnalogueConfigGetter;
 import uk.co.edstow.cain.atom.AtomGoal;
 import uk.co.edstow.cain.scamp5.digital.Scamp5DigitalConfig;
 import uk.co.edstow.cain.scamp5.digital.Scamp5DigitalPairGenFactory;
-import uk.co.edstow.cain.scamp5.digital.ThresholdScamp5DigitalConfigGetter;
 import uk.co.edstow.cain.scamp5.emulator.Scamp5Verifier;
 import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.structures.GoalBag;
@@ -513,7 +513,14 @@ public abstract class FileRun<G extends Goal<G>> {
                             break;
                     }
                     printLn("Exhustive Search Threshold  : " + json.getInt("threshold"));
-                    return new Scamp5AnaloguePairGenFactory<>(new ThresholdScamp5AnalogueConfigGetter(initialGoals, json.getInt("threshold"), scampConfig));
+                    return new Scamp5AnaloguePairGenFactory(
+                            new ThresholdScamp5ConfigGetter<>(
+                                    initialGoals, json.getInt("threshold"),
+                                    new PatternHuristic(initialGoals), scampConfig,
+                                    (goals, conf, scamp5Config, heuristic) -> new Scamp5AnaloguePairGenFactory.AtomDistanceSortedPairGen<>(goals, conf, scampConfig, heuristic),
+                                    (goals, conf, scamp5Config, heuristic) -> new Scamp5AnaloguePairGenFactory.Scamp5ExhaustivePairGen<>(goals, conf, scampConfig, heuristic)
+                            )
+                    );
             }
 
         }
@@ -560,7 +567,14 @@ public abstract class FileRun<G extends Goal<G>> {
                 case "Threshold":
                     Scamp5DigitalConfig<AtomGoal> scampConfig = new Scamp5DigitalConfig<AtomGoal>(true, true, true, true, true, true, true, regMapping, scratchRegs, bits);
                     printLn("Exhustive Search Threshold  : " + json.getInt("threshold"));
-                    return new Scamp5DigitalPairGenFactory<>(new ThresholdScamp5DigitalConfigGetter(initialGoals, json.getInt("threshold"), scampConfig));
+                    return new Scamp5DigitalPairGenFactory(
+                            new ThresholdScamp5ConfigGetter<>(
+                                    initialGoals, json.getInt("threshold"),
+                                    new PatternHuristic(initialGoals), scampConfig,
+                                    (goals, conf, scamp5Config, heuristic) -> new Scamp5DigitalPairGenFactory.AtomDistanceSortedPairGen<>(goals, conf, scampConfig, heuristic),
+                                    (goals, conf, scamp5Config, heuristic) -> new Scamp5DigitalPairGenFactory.Scamp5ExhaustivePairGen<>(goals, conf, scampConfig, heuristic)
+                            )
+                    );
             }
 
         }

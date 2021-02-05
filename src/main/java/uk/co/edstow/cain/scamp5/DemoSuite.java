@@ -60,7 +60,7 @@ class DemoSuite {
             }
             Scamp5AnalougeConfig<AtomGoal> scamp5AnalougeConfig = scamp5ConfigBuilder.build();
             RegisterAllocator<AtomGoal> ra = new RegisterAllocator<>(RegisterAllocator.Register.getRegisters("A"), availableRegisters);
-            Function<List<AtomGoal>, PairGenFactory<AtomGoal>> pairGenFactoryFunction = initialGoals -> new Scamp5AnaloguePairGenFactory<>(new Scamp5ConfigGetter<AtomGoal, Scamp5AnalougeConfig<AtomGoal>>() {
+            Function<List<AtomGoal>, PairGenFactory<AtomGoal>> pairGenFactoryFunction = initialGoals -> new Scamp5AnaloguePairGenFactory(new Scamp5ConfigGetter<AtomGoal, Scamp5AnalougeConfig<AtomGoal>>() {
                 PatternHuristic heuristic = new PatternHuristic(initialGoals);
 
                 @Override
