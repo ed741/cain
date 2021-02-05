@@ -3,6 +3,7 @@ package uk.co.edstow.cain;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.OptionalInt;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -59,7 +60,9 @@ class FileRunTest {
             FileRun<?> fileRun = FileRun.loadFromJson(json);
             fileRun.run();
             List<? extends FileRun<?>.Result> results = fileRun.getResults();
-            assertTrue(results.stream().mapToInt(r -> r.depth).min().getAsInt()<=5);
+            OptionalInt min = results.stream().mapToInt(r -> r.cost).min();
+            assertTrue(min.isPresent());
+            assertTrue(min.getAsInt()<=140);
         } catch (Exception e){
             e.printStackTrace();
             e.getMessage();
@@ -134,7 +137,9 @@ class FileRunTest {
             fileRun.run();
             List<? extends FileRun<?>.Result> results = fileRun.getResults();
 //            System.out.println((fileRun.getBest()));
-            assertTrue(results.stream().mapToInt(r -> r.cost).min().getAsInt()<=140);
+            OptionalInt min = results.stream().mapToInt(r -> r.cost).min();
+            assertTrue(min.isPresent());
+            assertTrue(min.getAsInt()<=140);
         } catch (Exception e){
             e.printStackTrace();
             e.getMessage();
