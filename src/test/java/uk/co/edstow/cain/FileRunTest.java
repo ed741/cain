@@ -72,7 +72,7 @@ class FileRunTest {
     void testDigitalBox() {
         String json =
                 "{\"name\":\"DigitalBox\",\n" +
-                        "  \"verbose\":6,\n" +
+                        "  \"verbose\":-1,\n" +
                         "  \"goalSystem\":Atom,\n" +
                         "  \"maxApproximationDepth\":3,\n" +
                         "  \"maxApproximationError\":0,\n" +
@@ -102,7 +102,7 @@ class FileRunTest {
                         "    \"traversalAlgorithm\":\"SOT\",\n" +
                         "    \"costFunction\":\"InstructionCost\",\n" +
                         "    \"liveCounter\":false,\n" +
-                        "    \"quiet\":false,\n" +
+                        "    \"quiet\":true,\n" +
                         "    \"livePrintPlans\":0,\n" +
                         "    \"initialMaxDepth\":200,\n" +
                         "    \"forcedDepthReduction\":0,\n" +
@@ -133,7 +133,7 @@ class FileRunTest {
             FileRun<?> fileRun = FileRun.loadFromJson(json);
             fileRun.run();
             List<? extends FileRun<?>.Result> results = fileRun.getResults();
-            System.out.println((fileRun.getBest()));
+//            System.out.println((fileRun.getBest()));
             assertTrue(results.stream().mapToInt(r -> r.cost).min().getAsInt()<=140);
         } catch (Exception e){
             e.printStackTrace();

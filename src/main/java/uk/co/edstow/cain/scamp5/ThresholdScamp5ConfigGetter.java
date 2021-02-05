@@ -1,7 +1,7 @@
 package uk.co.edstow.cain.scamp5;
 
 import uk.co.edstow.cain.atom.AtomGoal;
-import uk.co.edstow.cain.pairgen.Config;
+import uk.co.edstow.cain.pairgen.Context;
 import uk.co.edstow.cain.pairgen.CostHuristic;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.structures.Goal;
@@ -29,27 +29,27 @@ public class ThresholdScamp5ConfigGetter<G extends Goal<G>, C extends Scamp5Conf
 
 
     @Override
-    public PairGenFactory.PairGen<G> getScamp5Strategy(GoalBag<G> goals, Config<G> config, boolean movOnly) {
+    public PairGenFactory.PairGen<G> getScamp5Strategy(GoalBag<G> goals, Context<G> context, boolean movOnly) {
         int max = Integer.MIN_VALUE;
         for (G goal : goals) {
             max = (int) Math.max(max, goal.total());
         }
         PairGenFactory.PairGen<G> stratergy;
         if(max>threshold){
-            stratergy = above.get(goals, config, movOnly? scamp5ConfigMovOnly : scamp5Config, heuristic);
+            stratergy = above.get(goals, context, movOnly? scamp5ConfigMovOnly : scamp5Config, heuristic);
         } else {
-            stratergy = below.get(goals, config, movOnly? scamp5ConfigMovOnly : scamp5Config, heuristic);
+            stratergy = below.get(goals, context, movOnly? scamp5ConfigMovOnly : scamp5Config, heuristic);
         }
         return stratergy;
     }
 
     @Override
-    public C getScamp5ConfigForDirectSolve(GoalBag<G> goals, Config<G> config) {
+    public C getScamp5ConfigForDirectSolve(GoalBag<G> goals, Context<G> context) {
         return scamp5Config;
     }
 
     @FunctionalInterface
     public interface GenGetter<G extends Goal<G>, C extends Scamp5ConfigGetter.Scamp5Config<G, C>>{
-        PairGenFactory.PairGen<G> get(GoalBag<G> goals, Config<G> conf, C scamp5Config, CostHuristic<G> heuristic);
+        PairGenFactory.PairGen<G> get(GoalBag<G> goals, Context<G> conf, C scamp5Config, CostHuristic<G> heuristic);
     }
 }

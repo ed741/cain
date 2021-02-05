@@ -8,7 +8,6 @@ import uk.co.edstow.cain.atom.Atom;
 import uk.co.edstow.cain.atom.AtomGoal;
 import uk.co.edstow.cain.Transformation;
 import uk.co.edstow.cain.scamp5.Scamp5ConfigGetter;
-import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
 import uk.co.edstow.cain.util.Tuple;
@@ -29,8 +28,8 @@ public class Scamp5AnaloguePairGenFactory implements LinearPairGenFactory<AtomGo
 
 
     @Override
-    public List<GoalPair<AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, Config<AtomGoal> config, GoalBag<AtomGoal> goals){
-        Scamp5AnalougeConfig<AtomGoal> scamp5AnalougeConfig = this.scamp5ConfGet.getScamp5ConfigForDirectSolve(goals, config);
+    public List<GoalPair<AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, Context<AtomGoal> context, GoalBag<AtomGoal> goals){
+        Scamp5AnalougeConfig<AtomGoal> scamp5AnalougeConfig = this.scamp5ConfGet.getScamp5ConfigForDirectSolve(goals, context);
         goals = new GoalBag<>(goals);
         List<GoalPair<AtomGoal>> allPairs = new ArrayList<>();
         GoalBag<AtomGoal> empties = new GoalBag<>();
@@ -49,7 +48,7 @@ public class Scamp5AnaloguePairGenFactory implements LinearPairGenFactory<AtomGo
                 }
             }
         }
-        List<GoalPair<AtomGoal>> pairList = LinearPairGenFactory.super.applyAllUnaryOpForwards(initialGoals, config, goals);
+        List<GoalPair<AtomGoal>> pairList = LinearPairGenFactory.super.applyAllUnaryOpForwards(initialGoals, context, goals);
         if(pairList==null){
             return null;
         }
@@ -58,8 +57,8 @@ public class Scamp5AnaloguePairGenFactory implements LinearPairGenFactory<AtomGo
     }
 
     @Override
-    public Collection<Tuple<List<GoalPair<AtomGoal>>, AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, Config<AtomGoal> config, AtomGoal goal) {
-        Scamp5AnalougeConfig<AtomGoal> scamp5AnalougeConfig = this.scamp5ConfGet.getScamp5ConfigForDirectSolve(new GoalBag<>(goal), config);
+    public Collection<Tuple<List<GoalPair<AtomGoal>>, AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, Context<AtomGoal> context, AtomGoal goal) {
+        Scamp5AnalougeConfig<AtomGoal> scamp5AnalougeConfig = this.scamp5ConfGet.getScamp5ConfigForDirectSolve(new GoalBag<>(goal), context);
         ArrayList<Tuple<List<GoalPair<AtomGoal>>, AtomGoal>> list = new ArrayList<>();
 
         if(initialGoals.contains(goal)){
@@ -175,13 +174,13 @@ public class Scamp5AnaloguePairGenFactory implements LinearPairGenFactory<AtomGo
 
 
     @Override
-    public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals, Config<AtomGoal> config) {
-        return this.scamp5ConfGet.getScamp5Strategy(goals, config);
+    public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals, Context<AtomGoal> context) {
+        return this.scamp5ConfGet.getScamp5Strategy(goals, context);
     }
 
     @Override
-    public Collection<Tuple<List<AtomGoal>, Transformation>> generateValueConstantOps(List<AtomGoal> goal, Config<AtomGoal> config) {
-        PairGen<AtomGoal> gen =  this.scamp5ConfGet.getScamp5Strategy(new GoalBag<AtomGoal>(goal), config, true);
+    public Collection<Tuple<List<AtomGoal>, Transformation>> generateValueConstantOps(List<AtomGoal> goal, Context<AtomGoal> context) {
+        PairGen<AtomGoal> gen =  this.scamp5ConfGet.getScamp5Strategy(new GoalBag<AtomGoal>(goal), context, true);
         return null; //TODO part of non-linear goals
 
     }
@@ -190,7 +189,7 @@ public class Scamp5AnaloguePairGenFactory implements LinearPairGenFactory<AtomGo
     public static class Scamp5ExhaustivePairGen<T extends Scamp5AnalougeConfig<AtomGoal>> extends uk.co.edstow.cain.pairgen.ExhaustivePairGen<AtomGoal>{
 
         Scamp5AnalougeConfig<AtomGoal> scamp5AnalougeConfig;
-        public Scamp5ExhaustivePairGen(GoalBag<AtomGoal> goals, Config<AtomGoal> conf, Scamp5AnalougeConfig<AtomGoal> scamp5AnalougeConfig, CostHuristic<AtomGoal> huristic) {
+        public Scamp5ExhaustivePairGen(GoalBag<AtomGoal> goals, Context<AtomGoal> conf, Scamp5AnalougeConfig<AtomGoal> scamp5AnalougeConfig, CostHuristic<AtomGoal> huristic) {
             super(goals, conf, huristic);
             this.scamp5AnalougeConfig = scamp5AnalougeConfig;
         }
@@ -417,24 +416,24 @@ public class Scamp5AnaloguePairGenFactory implements LinearPairGenFactory<AtomGo
 
     private static class AtomDistancePairGen<T extends Scamp5AnalougeConfig<AtomGoal>> implements PairGen<AtomGoal> {
         final T scamp5config;
-        final Config<AtomGoal> config;
+        final Context<AtomGoal> context;
         final GoalBag<AtomGoal> goals;
         final Iterator<Tuple<Integer, Integer>> ijGetter;
         private int count;
 
         List<GoalPair<AtomGoal>> currentList = new ArrayList<>();
 
-        private AtomDistancePairGen(GoalBag<AtomGoal> goals, Config<AtomGoal> config, T scamp5config) {
+        private AtomDistancePairGen(GoalBag<AtomGoal> goals, Context<AtomGoal> context, T scamp5config) {
             this.goals = goals;
             this.scamp5config = scamp5config;
-            this.config = config;
+            this.context = context;
             this.ijGetter = new SteppedCombinationIterator(goals.size());
         }
 
-        private AtomDistancePairGen(GoalBag<AtomGoal> goals, Config<AtomGoal> config, T scamp5config, Iterator<Tuple<Integer, Integer>> ijGetter) {
+        private AtomDistancePairGen(GoalBag<AtomGoal> goals, Context<AtomGoal> context, T scamp5config, Iterator<Tuple<Integer, Integer>> ijGetter) {
             this.goals = goals;
             this.scamp5config = scamp5config;
-            this.config = config;
+            this.context = context;
             this.ijGetter = ijGetter;
         }
 
@@ -465,7 +464,7 @@ public class Scamp5AnaloguePairGenFactory implements LinearPairGenFactory<AtomGo
                 }
             } else {
                 // diagonal == True
-                if(goals.size() < config.totalAvailableRegisters) {
+                if(goals.size() < context.totalAvailableRegisters) {
                     addDirectMov(a, outList);
                 }
 
@@ -473,7 +472,7 @@ public class Scamp5AnaloguePairGenFactory implements LinearPairGenFactory<AtomGo
                     addAtomDistanceDiagonalPairs(item, scamp5config, outList);
                 }
                 if (scamp5config.useDivq) {
-                    for (AtomGoal initialGoal : config.initialGoals) {
+                    for (AtomGoal initialGoal : context.initialGoals) {
                         if (initialGoal.hasSubGoal(a)) {
                             AtomGoal l = new AtomGoal.Factory(a).addAll(a).get();
                             AtomDistanceListItem newItem = new AtomDistanceListItem();
@@ -537,7 +536,7 @@ public class Scamp5AnaloguePairGenFactory implements LinearPairGenFactory<AtomGo
 
         private final CostHuristic<AtomGoal> huristic;
 
-        public AtomDistanceSortedPairGen(GoalBag<AtomGoal> goals, Config<AtomGoal> conf, T scamp5Config, CostHuristic<AtomGoal> huristic) {
+        public AtomDistanceSortedPairGen(GoalBag<AtomGoal> goals, Context<AtomGoal> conf, T scamp5Config, CostHuristic<AtomGoal> huristic) {
             super(goals, conf, scamp5Config, new PlainCombinationIterator(goals.size()));
             this.huristic = huristic;
         }
@@ -557,7 +556,7 @@ public class Scamp5AnaloguePairGenFactory implements LinearPairGenFactory<AtomGo
                 //inList.sort(atomDistanceComparator);
                 addPairs(a, diagonal, inList, outList);
             }
-            outList.parallelStream().forEach(item -> item.cost = huristic.getCost(item.pair, goals, this.config));
+            outList.parallelStream().forEach(item -> item.cost = huristic.getCost(item.pair, goals, this.context));
             outList.removeIf(item -> item.cost < 0);
             outList.sort(Comparator.comparingDouble((AtomDistanceListItem item) -> item.cost).reversed());
             currentList = outList.stream().map(item -> item.pair).collect(Collectors.toList());

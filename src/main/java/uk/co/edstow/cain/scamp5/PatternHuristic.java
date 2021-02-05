@@ -1,6 +1,6 @@
 package uk.co.edstow.cain.scamp5;
 
-import uk.co.edstow.cain.pairgen.Config;
+import uk.co.edstow.cain.pairgen.Context;
 import uk.co.edstow.cain.pairgen.CostHuristic;
 import uk.co.edstow.cain.atom.pairGen.Distance;
 import uk.co.edstow.cain.atom.Atom;
@@ -33,7 +33,7 @@ public class PatternHuristic implements CostHuristic<AtomGoal> {
 
 
     @Override
-    public double getCost(GoalPair<AtomGoal> pair, GoalBag<AtomGoal> goals, Config<AtomGoal> config) {
+    public double getCost(GoalPair<AtomGoal> pair, GoalBag<AtomGoal> goals, Context<AtomGoal> context) {
         GoalBag<AtomGoal> proposedGoals = new GoalBag<>(goals);
         for (AtomGoal upper : pair.getUppers()) {
             proposedGoals.remove(upper);
@@ -46,7 +46,7 @@ public class PatternHuristic implements CostHuristic<AtomGoal> {
             toAdd.add(goal);
         }
         proposedGoals.addAll(toAdd);
-        if(proposedGoals.size() +(pair.getTransformation().ExtraRegisterCount()) > config.totalAvailableRegisters){
+        if(proposedGoals.size() +(pair.getTransformation().ExtraRegisterCount()) > context.totalAvailableRegisters){
             return -1; // exit early if too many registers are used.
         }
         double cost = 0;

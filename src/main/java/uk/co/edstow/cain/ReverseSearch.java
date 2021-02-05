@@ -1,6 +1,6 @@
 package uk.co.edstow.cain;
 
-import uk.co.edstow.cain.pairgen.Config;
+import uk.co.edstow.cain.pairgen.Context;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.structures.*;
 import uk.co.edstow.cain.traversal.SOT;
@@ -548,7 +548,7 @@ public class ReverseSearch<G extends Goal<G>> {
 
                 if (tryDirectSolve(depth, goals, currentPlan)) return;
 
-                goalPairs = pairGenFactory.generatePairs(goals, new Config<>(depth, availableRegisters, initialGoals));
+                goalPairs = pairGenFactory.generatePairs(goals, new Context<>(depth, availableRegisters, initialGoals));
                 nodesExpanded++;
             }
             int childNumber = goalPairs.getNumber();
@@ -697,7 +697,7 @@ public class ReverseSearch<G extends Goal<G>> {
 
 
     private List<GoalPair<G>> isTransformable(GoalBag<G> goals, int depth) {
-        return this.pairGenFactory.applyAllUnaryOpForwards(initialGoals, new Config<>(depth, availableRegisters, initialGoals), goals);
+        return this.pairGenFactory.applyAllUnaryOpForwards(initialGoals, new Context<>(depth, availableRegisters, initialGoals), goals);
     }
 
 
