@@ -2,7 +2,7 @@ package uk.co.edstow.cain.scamp5;
 
 import uk.co.edstow.cain.atom.Atom;
 import uk.co.edstow.cain.atom.AtomGoal;
-import uk.co.edstow.cain.pairgen.Config;
+import uk.co.edstow.cain.pairgen.Context;
 import uk.co.edstow.cain.scamp5.analogue.Scamp5AnaloguePairGenFactory;
 import uk.co.edstow.cain.scamp5.analogue.Scamp5AnalougeConfig;
 import uk.co.edstow.cain.structures.*;
@@ -60,11 +60,11 @@ class DemoSuite {
             }
             Scamp5AnalougeConfig<AtomGoal> scamp5AnalougeConfig = scamp5ConfigBuilder.build();
             RegisterAllocator<AtomGoal> ra = new RegisterAllocator<>(RegisterAllocator.Register.getRegisters("A"), availableRegisters);
-            Function<List<AtomGoal>, PairGenFactory<AtomGoal>> pairGenFactoryFunction = initialGoals -> new Scamp5AnaloguePairGenFactory<>(new Scamp5ConfigGetter<AtomGoal, Scamp5AnalougeConfig<AtomGoal>>() {
+            Function<List<AtomGoal>, PairGenFactory<AtomGoal>> pairGenFactoryFunction = initialGoals -> new Scamp5AnaloguePairGenFactory(new Scamp5ConfigGetter<AtomGoal, Scamp5AnalougeConfig<AtomGoal>>() {
                 PatternHuristic heuristic = new PatternHuristic(initialGoals);
 
                 @Override
-                public PairGenFactory.PairGen<AtomGoal> getScamp5Strategy(GoalBag<AtomGoal> goals, Config<AtomGoal> config, boolean movOnly) {
+                public PairGenFactory.PairGen<AtomGoal> getScamp5Strategy(GoalBag<AtomGoal> goals, Context<AtomGoal> config, boolean movOnly) {
                     int max = Integer.MIN_VALUE;
                     for (AtomGoal goal : goals) {
                         max = Math.max(max, goal.atomCount());
@@ -80,7 +80,7 @@ class DemoSuite {
                 }
 
                 @Override
-                public Scamp5AnalougeConfig<AtomGoal> getScamp5ConfigForDirectSolve(GoalBag<AtomGoal> goals, Config<AtomGoal> config) {
+                public Scamp5AnalougeConfig<AtomGoal> getScamp5ConfigForDirectSolve(GoalBag<AtomGoal> goals, Context<AtomGoal> config) {
                     return scamp5AnalougeConfig;
                 }
 

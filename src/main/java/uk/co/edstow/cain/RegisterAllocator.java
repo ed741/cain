@@ -267,6 +267,9 @@ public class RegisterAllocator<G extends Goal<G>> {
 
 
     public static class Register{
+
+        public final String name;
+
         public static Register[] getRegisters(String... names){
             Register[] out = new Register[names.length];
             for (int i = 0; i < names.length; i++) {
@@ -295,7 +298,6 @@ public class RegisterAllocator<G extends Goal<G>> {
             this.name = name;
         }
 
-        public final String name;
 
         @Override
         public boolean equals(Object o) {

@@ -8,7 +8,7 @@ import uk.co.edstow.cain.structures.Goal;
 import java.util.List;
 import java.util.Map;
 
-public class Scamp5DigitalConfig<G extends Goal<G>> implements Scamp5ConfigGetter.Scamp5Config<G> {
+public class Scamp5DigitalConfig<G extends Goal<G>> implements Scamp5ConfigGetter.Scamp5Config<G, Scamp5DigitalConfig<G>> {
     public Scamp5DigitalConfig(boolean useMov, boolean useMovx, boolean useAdd, boolean useAddSelf, boolean useDiv, boolean useRes, boolean useRes2, Map<RegisterAllocator.Register, List<String>> registerMapping, List<String> scratchRegisters, int bits) {
         this.useMov = useMov;
         this.useMovx = useMovx;
@@ -67,5 +67,10 @@ public class Scamp5DigitalConfig<G extends Goal<G>> implements Scamp5ConfigGette
     @Override
     public boolean onlyMov() {
         return onlyMov;
+    }
+
+    @Override
+    public Scamp5DigitalConfig<G> getMovOnlyVersion() {
+        return new Scamp5DigitalConfig<>(this, true);
     }
 }

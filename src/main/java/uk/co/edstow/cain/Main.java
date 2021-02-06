@@ -8,6 +8,7 @@ class Main {
         for (int i = 0; i < args.length; i++) {
             FileRun fileRun = FileRun.loadFromJson(args[i]);
             fileRun.run();
+
             String code = fileRun.getBest();
             System.out.println(code);
         }

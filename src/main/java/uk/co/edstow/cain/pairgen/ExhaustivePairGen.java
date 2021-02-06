@@ -11,12 +11,12 @@ import java.util.stream.Stream;
 public abstract class ExhaustivePairGen<G extends Goal<G>> implements PairGenFactory.PairGen<G> {
     private final Iterator<GoalPair<G>> it;
     private int count = 0;
-    protected final Config<G> config;
+    protected final Context<G> context;
     protected final GoalBag<G> goals;
 
-    public ExhaustivePairGen(GoalBag<G> goals, Config<G> config, CostHuristic<G> huristic) {
+    public ExhaustivePairGen(GoalBag<G> goals, Context<G> context, CostHuristic<G> huristic) {
         this.goals = goals;
-        this.config = config;
+        this.context = context;
         Comparator<Tuple<GoalPair<G>, Double>> comparator = Comparator.comparingDouble(Tuple::getB);
         Stream<GoalPair<G>> stream = goals.asList().parallelStream()
                 .flatMap((G upper) ->
@@ -26,7 +26,7 @@ public abstract class ExhaustivePairGen<G extends Goal<G>> implements PairGenFac
                         )
                 );
         if (huristic != null) {
-            this.it = stream.map(pair -> new Tuple<>(pair, huristic.getCost(pair, goals, config))).filter(t -> t.getB() >= 0)
+            this.it = stream.map(pair -> new Tuple<>(pair, huristic.getCost(pair, goals, context))).filter(t -> t.getB() >= 0)
                     .sorted(comparator)
                     .map(Tuple::getA)
                     .iterator();
@@ -34,6 +34,7 @@ public abstract class ExhaustivePairGen<G extends Goal<G>> implements PairGenFac
             this.it = stream.iterator();
         }
     }
+
 
     @Override
     public GoalPair<G> next() {

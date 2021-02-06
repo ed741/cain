@@ -3,7 +3,7 @@ package uk.co.edstow.cain.scamp5.analogue;
 import uk.co.edstow.cain.scamp5.Scamp5ConfigGetter;
 import uk.co.edstow.cain.structures.Goal;
 
-public class Scamp5AnalougeConfig<G extends Goal<G>> implements Scamp5ConfigGetter.Scamp5Config<G> {
+public class Scamp5AnalougeConfig<G extends Goal<G>> implements Scamp5ConfigGetter.Scamp5Config<G, Scamp5AnalougeConfig<G>> {
 
     public final boolean useMov;
     public final boolean useMovx;
@@ -80,6 +80,11 @@ public class Scamp5AnalougeConfig<G extends Goal<G>> implements Scamp5ConfigGett
     @Override
     public boolean onlyMov() {
         return onlyMov;
+    }
+
+    @Override
+    public Scamp5AnalougeConfig<G> getMovOnlyVersion() {
+        return new Builder<>(this).setOnlyMov().build();
     }
 
     public static class Builder<G extends Goal<G>> {

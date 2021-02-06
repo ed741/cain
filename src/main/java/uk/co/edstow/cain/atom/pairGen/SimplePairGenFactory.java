@@ -2,7 +2,7 @@ package uk.co.edstow.cain.atom.pairGen;
 
 import uk.co.edstow.cain.atom.Atom;
 import uk.co.edstow.cain.atom.AtomGoal;
-import uk.co.edstow.cain.pairgen.Config;
+import uk.co.edstow.cain.pairgen.Context;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
@@ -46,12 +46,12 @@ public class SimplePairGenFactory implements PairGenFactory<AtomGoal> {
     }
 
     @Override
-    public Collection<Tuple<List<GoalPair<AtomGoal>>, AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, Config<AtomGoal> conf, AtomGoal goal) {
+    public Collection<Tuple<List<GoalPair<AtomGoal>>, AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, Context<AtomGoal> conf, AtomGoal goal) {
         return applyAllUnaryOps(initialGoals.get(0), goal);
     }
 
     @Override
-    public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals, Config<AtomGoal> conf) {
+    public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals, Context<AtomGoal> conf) {
         return new SimplePairGen(goals);
     }
 

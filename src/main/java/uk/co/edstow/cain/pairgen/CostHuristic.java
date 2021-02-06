@@ -5,7 +5,7 @@ import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
 
 public interface CostHuristic<G extends Goal<G>> {
-    double getCost(GoalPair<G> pair, GoalBag<G> goals, Config<G> config);
+    double getCost(GoalPair<G> pair, GoalBag<G> goals, Context<G> context);
 
 
 }
