@@ -60,9 +60,9 @@ class FileRunTest {
             FileRun<?> fileRun = FileRun.loadFromJson(json);
             fileRun.run();
             List<? extends FileRun<?>.Result> results = fileRun.getResults();
-            OptionalInt min = results.stream().mapToInt(r -> r.cost).min();
+            OptionalInt min = results.stream().mapToInt(r -> r.depth).min();
             assertTrue(min.isPresent());
-            assertTrue(min.getAsInt()<=140);
+            assertTrue(min.getAsInt()<=5);
         } catch (Exception e){
             e.printStackTrace();
             e.getMessage();
