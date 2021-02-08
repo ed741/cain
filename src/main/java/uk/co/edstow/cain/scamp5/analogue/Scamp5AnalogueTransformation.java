@@ -1,10 +1,10 @@
 package uk.co.edstow.cain.scamp5.analogue;
 
-import uk.co.edstow.cain.atom.Atom;
-import uk.co.edstow.cain.atom.AtomGoal;
+import uk.co.edstow.cain.atomGoal.Atom;
+import uk.co.edstow.cain.atomGoal.AtomGoal;
 import uk.co.edstow.cain.RegisterAllocator;
 import uk.co.edstow.cain.Transformation;
-import uk.co.edstow.cain.atom.pairGen.SimpleTransformation;
+import uk.co.edstow.cain.atomGoal.pairGen.SimpleTransformation;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;

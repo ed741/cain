@@ -1,7 +1,7 @@
 package uk.co.edstow.cain.scamp5.emulator;
 
 import uk.co.edstow.cain.RegisterAllocator;
-import uk.co.edstow.cain.atom.AtomGoal;
+import uk.co.edstow.cain.atomGoal.AtomGoal;
 import uk.co.edstow.cain.util.Tuple;
 
 import javax.imageio.ImageIO;
@@ -12,7 +12,6 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class Scamp5Emulator {
     @SuppressWarnings("WeakerAccess")

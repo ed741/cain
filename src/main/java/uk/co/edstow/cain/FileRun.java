@@ -9,7 +9,7 @@ import uk.co.edstow.cain.scamp5.PatternHuristic;
 import uk.co.edstow.cain.scamp5.ThresholdScamp5ConfigGetter;
 import uk.co.edstow.cain.scamp5.analogue.Scamp5AnalougeConfig;
 import uk.co.edstow.cain.scamp5.analogue.Scamp5AnaloguePairGenFactory;
-import uk.co.edstow.cain.atom.AtomGoal;
+import uk.co.edstow.cain.atomGoal.AtomGoal;
 import uk.co.edstow.cain.scamp5.digital.Scamp5DigitalConfig;
 import uk.co.edstow.cain.scamp5.digital.Scamp5DigitalPairGenFactory;
 import uk.co.edstow.cain.scamp5.emulator.Scamp5Verifier;

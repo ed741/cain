@@ -1,7 +1,7 @@
-package uk.co.edstow.cain.atom.pairGen;
+package uk.co.edstow.cain.atomGoal.pairGen;
 
-import uk.co.edstow.cain.atom.Atom;
-import uk.co.edstow.cain.atom.AtomGoal;
+import uk.co.edstow.cain.atomGoal.Atom;
+import uk.co.edstow.cain.atomGoal.AtomGoal;
 import uk.co.edstow.cain.pairgen.Context;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;

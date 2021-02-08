@@ -1,6 +1,6 @@
 package uk.co.edstow.cain;
 
-import uk.co.edstow.cain.atom.AtomGoal;
+import uk.co.edstow.cain.atomGoal.AtomGoal;
 
 import java.util.ArrayList;
 import java.util.HashMap;

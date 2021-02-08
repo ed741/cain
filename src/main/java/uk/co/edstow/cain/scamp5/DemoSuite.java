@@ -1,7 +1,7 @@
 package uk.co.edstow.cain.scamp5;
 
-import uk.co.edstow.cain.atom.Atom;
-import uk.co.edstow.cain.atom.AtomGoal;
+import uk.co.edstow.cain.atomGoal.Atom;
+import uk.co.edstow.cain.atomGoal.AtomGoal;
 import uk.co.edstow.cain.pairgen.Context;
 import uk.co.edstow.cain.scamp5.analogue.Scamp5AnaloguePairGenFactory;
 import uk.co.edstow.cain.scamp5.analogue.Scamp5AnalougeConfig;

@@ -1,7 +1,5 @@
-package uk.co.edstow.cain.atom;
+package uk.co.edstow.cain.atomGoal;
 
-import uk.co.edstow.cain.atom.Atom;
-import uk.co.edstow.cain.atom.AtomGoal;
 import uk.co.edstow.cain.util.Tuple;
 import org.junit.jupiter.api.Test;
 

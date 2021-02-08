@@ -1,10 +1,10 @@
 package uk.co.edstow.cain.scamp5.digital;
 
 import uk.co.edstow.cain.Transformation;
-import uk.co.edstow.cain.atom.Atom;
-import uk.co.edstow.cain.atom.AtomGoal;
-import uk.co.edstow.cain.atom.pairGen.Distance;
-import uk.co.edstow.cain.atom.pairGen.SimpleTransformation;
+import uk.co.edstow.cain.atomGoal.Atom;
+import uk.co.edstow.cain.atomGoal.AtomGoal;
+import uk.co.edstow.cain.atomGoal.pairGen.Distance;
+import uk.co.edstow.cain.atomGoal.pairGen.SimpleTransformation;
 import uk.co.edstow.cain.nonlinear.LinearPairGenFactory;
 import uk.co.edstow.cain.pairgen.Context;
 import uk.co.edstow.cain.pairgen.CostHuristic;
