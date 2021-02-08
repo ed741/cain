@@ -6,7 +6,7 @@ import java.util.stream.Collectors;
 public class GoalBag<G extends Goal<G>> implements Iterable<G>{
     private final ArrayList<G> arrayList;
     private boolean immutable = false;
-    private int atomCount = -1;
+    private double sumTotal = Double.NaN;
     private static final Comparator<Goal> halfComp = (a, b) -> {
         if(a==b){
             return 0;
@@ -49,16 +49,15 @@ public class GoalBag<G extends Goal<G>> implements Iterable<G>{
         return immutable;
     }
 
-    @Deprecated
-    public int atomCount(){
-        if (isImmutable() && atomCount >=0){
-            return atomCount;
+    public double sumTotal(){
+        if (isImmutable() && !Double.isNaN(sumTotal)){
+            return sumTotal;
         }
-        int a = 0;
+        double a = 0;
         for(G g: arrayList){
             a += g.total();
         }
-        atomCount = a;
+        sumTotal = a;
         return a;
     }
 

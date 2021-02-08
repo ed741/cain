@@ -273,7 +273,7 @@ public abstract class FileRun<G extends Goal<G>> {
         runConfig.setForcedCostReduction(json.getInt("forcedCostReduction"));
 
         printLn("Allowable Atoms Coefficient : " + json.getInt("allowableAtomsCoefficient"));
-        runConfig.setAllowableAtomsCoefficient(json.getInt("allowableAtomsCoefficient"));
+        runConfig.setAllowableSumTotalCoefficient(json.getInt("allowableAtomsCoefficient"));
 
         printLn("AtomGoal Reductions Per Step    : " + json.getInt("goalReductionsPerStep"));
         runConfig.setGoalReductionsPerStep(json.getInt("goalReductionsPerStep"));

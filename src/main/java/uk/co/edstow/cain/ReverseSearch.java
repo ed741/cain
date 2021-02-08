@@ -42,11 +42,11 @@ public class ReverseSearch<G extends Goal<G>> {
         private Function<Plan<G>, Integer> costFunction;
 
         // Search Heuristics
-        private int allowableAtomsCoefficient; // cull plans that use more atoms than: "finalGoal * allowableAtomsCoefficient + initialGoals".
+        private int allowableSumTotalCoefficient; // cull plans that have higher totals than: "finalGoal * allowableSumTotalCoefficient + initialGoals".
         private int goalReductionsPerStep; // cull plans that have more active goals than steps before max maxDepth to reduce the number to one.
         private int goalReductionsTolerance; // add a tolerance to allow for a "less conservative" (lower) goalReductionsPerStep if larger reductions are unlikely.
 
-        public RunConfig(boolean liveCounter, int livePrintPlans, boolean quiet, int workers, int searchTime, long maxNodes, boolean timeOut, Supplier<TraversalSystem<WorkState<G>>> traversalAlgorithm, Function<Plan<G>, Integer> costFunction, int initialMaxDepth, int forcedDepthReduction, int initialMaxCost, int forcedCostReduction, RegisterAllocator<G> registerAllocator, int allowableAtomsCoefficient, int goalReductionsPerStep, int goalReductionsTolerance) {
+        public RunConfig(boolean liveCounter, int livePrintPlans, boolean quiet, int workers, int searchTime, long maxNodes, boolean timeOut, Supplier<TraversalSystem<WorkState<G>>> traversalAlgorithm, Function<Plan<G>, Integer> costFunction, int initialMaxDepth, int forcedDepthReduction, int initialMaxCost, int forcedCostReduction, RegisterAllocator<G> registerAllocator, int allowableSumTotalCoefficient, int goalReductionsPerStep, int goalReductionsTolerance) {
             this.liveCounter = liveCounter;
             this.livePrintPlans = livePrintPlans;
             this.quiet = quiet;
@@ -61,7 +61,7 @@ public class ReverseSearch<G extends Goal<G>> {
             this.initialMaxCost = initialMaxCost;
             this.forcedCostReduction = forcedCostReduction;
             this.registerAllocator=registerAllocator;
-            this.allowableAtomsCoefficient = allowableAtomsCoefficient;
+            this.allowableSumTotalCoefficient = allowableSumTotalCoefficient;
             this.goalReductionsPerStep = goalReductionsPerStep;
             this.goalReductionsTolerance = goalReductionsTolerance;
         }
@@ -80,7 +80,7 @@ public class ReverseSearch<G extends Goal<G>> {
             this.forcedDepthReduction = 1;
             this.initialMaxCost = Integer.MAX_VALUE;
             this.forcedCostReduction = 0;
-            this.allowableAtomsCoefficient = 2;
+            this.allowableSumTotalCoefficient = 2;
             this.goalReductionsPerStep = 1;
             this.goalReductionsTolerance = 1;
         }
@@ -166,11 +166,11 @@ public class ReverseSearch<G extends Goal<G>> {
             return this;
         }
 
-        public RunConfig<G> setAllowableAtomsCoefficient(int allowableAtomsCoefficient) {
-            if(allowableAtomsCoefficient < 0){
+        public RunConfig<G> setAllowableSumTotalCoefficient(int allowableSumTotalCoefficient) {
+            if(allowableSumTotalCoefficient < 0){
                 throw new IllegalArgumentException("allowableAtomsCoefficient must be non-negative");
             }
-            this.allowableAtomsCoefficient = allowableAtomsCoefficient;
+            this.allowableSumTotalCoefficient = allowableSumTotalCoefficient;
             return this;
         }
 
@@ -200,7 +200,7 @@ public class ReverseSearch<G extends Goal<G>> {
     private final int initialGoalsAtomCount;
     private final int inputs;
     private final List<G> finalGoals;
-    private final int finalGoalAtoms;
+    private final double finalGoalSumTotal;
 
     private final List<Plan<G>> plans;
     private final List<Long> planTimes;
@@ -229,7 +229,7 @@ public class ReverseSearch<G extends Goal<G>> {
     private final Supplier<? extends TraversalSystem<WorkState<G>>> traversalAlgorithm;
     public final Function<Plan<G>, Integer> costFunction;
 
-    private final int allowableAtomsCoefficent;
+    private final int allowableSumTotalCoefficent;
     private final int forcedDepthReduction;
     private final int forcedCostReduction;
     private final int goalReductionsPerStep;
@@ -243,7 +243,7 @@ public class ReverseSearch<G extends Goal<G>> {
 
         // Set up final and initial Goals
         this.finalGoals = Collections.unmodifiableList(new ArrayList<>(finalGoals));
-        this.finalGoalAtoms = new GoalBag<>(this.finalGoals).atomCount();
+        this.finalGoalSumTotal = new GoalBag<>(this.finalGoals).sumTotal();
         this.divisions = divisions;
         this.inputs = divisions.length;
         this.initialGoals = initialGoals;
@@ -278,7 +278,7 @@ public class ReverseSearch<G extends Goal<G>> {
         this.registerAllocator = runConfig.registerAllocator;
 
         // Init Heuristics
-        this.allowableAtomsCoefficent = runConfig.allowableAtomsCoefficient;
+        this.allowableSumTotalCoefficent = runConfig.allowableSumTotalCoefficient;
         this.forcedDepthReduction = runConfig.forcedDepthReduction;
         this.forcedCostReduction = runConfig.forcedCostReduction;
         this.goalReductionsPerStep = runConfig.goalReductionsPerStep;
@@ -535,7 +535,7 @@ public class ReverseSearch<G extends Goal<G>> {
 
             if(goalPairs == null) {
 
-                if (goals.atomCount() >= ((allowableAtomsCoefficent * finalGoalAtoms) + initialGoalsAtomCount)) {
+                if (goals.sumTotal() >= ((allowableSumTotalCoefficent * finalGoalSumTotal) + initialGoalsAtomCount)) {
                     return;
                 }
 
