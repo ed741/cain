@@ -2,9 +2,9 @@ package uk.co.edstow.cain.scamp5.digital;
 
 import uk.co.edstow.cain.RegisterAllocator;
 import uk.co.edstow.cain.Transformation;
-import uk.co.edstow.cain.atomGoal.Atom;
-import uk.co.edstow.cain.atomGoal.AtomGoal;
-import uk.co.edstow.cain.atomGoal.pairGen.SimpleTransformation;
+import uk.co.edstow.cain.goals.atomGoal.Atom;
+import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
+import uk.co.edstow.cain.goals.atomGoal.pairGen.SimpleTransformation;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
@@ -429,7 +429,7 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
         @Override
         public List<AtomGoal> applyOpForwards() throws TransformationApplicationException {
             if (this.sum == null){
-                this.sum = new AtomGoal.Factory(a).addAll(b).get();
+                this.sum = a.added(a);
             }
             return Collections.singletonList(this.sum);
         }
@@ -544,7 +544,7 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
         @Override
         public List<AtomGoal> applyOpForwards() throws TransformationApplicationException {
             if (this.sum == null){
-                this.sum = new AtomGoal.Factory(a).addAll(a).get();
+                this.sum = a.added(a);
             }
             return Collections.singletonList(this.sum);
         }
@@ -570,7 +570,7 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
                 this.a = in;
                 this.div = null;
             } else {
-                this.a = new AtomGoal.Factory(in).addAll(in).get();
+                this.a = in.added(in);;
                 this.div = in;
             }
         }

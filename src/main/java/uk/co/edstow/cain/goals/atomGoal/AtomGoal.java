@@ -1,13 +1,14 @@
-package uk.co.edstow.cain.atomGoal;
+package uk.co.edstow.cain.goals.atomGoal;
 
+import uk.co.edstow.cain.goals.Goal3DAtomLike;
+import uk.co.edstow.cain.goals.atomGoal.pairGen.Distance;
 import uk.co.edstow.cain.structures.Bounds;
-import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 
 
-public class AtomGoal implements List<Atom>, Goal<AtomGoal> {
+public class AtomGoal implements List<Atom>, Goal3DAtomLike<AtomGoal> {
 
     private final List<Atom> list;
 
@@ -74,6 +75,35 @@ public class AtomGoal implements List<Atom>, Goal<AtomGoal> {
         return toStringN();
     }
 
+    @Override
+    public boolean allZero() {
+        return isEmpty();
+    }
+
+    @Override
+    public int get(int x, int y, int z) {
+        int count = 0;
+        for (Atom a : this.list) {
+            if (a.x == x && a.y == y && a.z == z) {
+                count += a.positive ? 1 : -1;
+            } else if (count != 0) {
+                return count;
+            }
+        }
+        return count;
+    }
+
+    @Override
+    public int totalI() {
+        return atomCount();
+    }
+
+    @Override
+    public AtomGoal copy() {
+        return new AtomGoal(this);
+    }
+
+    @Override
     public AtomGoal without(AtomGoal goal) {
         AtomGoal.Factory factory = new AtomGoal.Factory();
         List<Atom> tmp = new ArrayList<>(goal);
@@ -83,6 +113,23 @@ public class AtomGoal implements List<Atom>, Goal<AtomGoal> {
             }
         }
         return factory.get();
+    }
+
+    @Override
+    public AtomGoal added(AtomGoal goal) {
+        return new Factory(this).add(goal).get();
+    }
+
+    @Override
+    public AtomGoal subtracted(AtomGoal goal) {
+        return new AtomGoal.Factory(list).subAll(goal).get();
+    }
+
+    @Override
+    public AtomGoal negated() {
+        ArrayList<Atom> list = new ArrayList<>();
+        this.forEach(a->list.add(a.negate()));
+        return new AtomGoal(list, false);
     }
 
     @Override
@@ -107,12 +154,6 @@ public class AtomGoal implements List<Atom>, Goal<AtomGoal> {
     @Override
     public double total() {
         return atomCount();
-    }
-
-    public AtomGoal negative(){
-        ArrayList<Atom> list = new ArrayList<>();
-        this.forEach(a->list.add(a.negate()));
-        return new AtomGoal(list, false);
     }
 
     public AtomGoal translated(int x, int y, int z){
@@ -155,6 +196,7 @@ public class AtomGoal implements List<Atom>, Goal<AtomGoal> {
         return out;
     }
 
+    @Override
     public List<AtomGoal> allSplits(){
         try {
             List<List<Atom>> lists = new ArrayList<>();
@@ -176,7 +218,7 @@ public class AtomGoal implements List<Atom>, Goal<AtomGoal> {
                 }
             }
             ArrayList<AtomGoal> out = new ArrayList<>();
-            for (int i = 1; i < lists.size(); i++) {
+            for (int i = 0; i < lists.size(); i++) {
                 List<Atom> atoms = lists.get(i);
                 out.add(new AtomGoal(atoms));
             }
@@ -274,16 +316,24 @@ public class AtomGoal implements List<Atom>, Goal<AtomGoal> {
         return maxCount;
     }
 
-    public AveragePosition getAveragePos(){
-        double x=0, y=0, z=0;
-        for (Atom a : list) {
-            x += a.x;
-            y += a.y;
-            z += a.z;
+    @Override
+    public boolean isTranslation(AtomGoal pattern) {
+        if (pattern.get(0).positive == this.get(0).positive) {
+            Distance d = new Distance(pattern.get(0), this.get(0));
+            int i = 0;
+            for (; i < pattern.size(); i++) {
+                if (pattern.get(i).positive != this.get(i).positive || !d.same(pattern.get(i), this.get(i))) {
+                    break;
+                }
+            }
+            if (i == pattern.size()) {
+                return true;
+            }
         }
-        return new AveragePosition(x/list.size(), y/list.size(), z/list.size());
+        return false;
     }
 
+    @Override
     public boolean allSame() {
         if(isEmpty()){
             return true;
@@ -297,21 +347,20 @@ public class AtomGoal implements List<Atom>, Goal<AtomGoal> {
         return true;
     }
 
-    public AtomGoal subtract(AtomGoal a) {
-        return new AtomGoal.Factory(list).subAll(a).get();
+    @Override
+    public AveragePosition getAveragePos(){
+        double x=0, y=0, z=0;
+        for (Atom a : list) {
+            x += a.x;
+            y += a.y;
+            z += a.z;
+        }
+        return new AveragePosition(x/list.size(), y/list.size(), z/list.size());
     }
 
-
-
-    public static class AveragePosition {
-        public final double x, y, z;
-
-        @SuppressWarnings("WeakerAccess")
-        public AveragePosition(double x, double y, double z) {
-            this.x = x;
-            this.y = y;
-            this.z = z;
-        }
+    @Override
+    public Goal3DAtomLikeFactory<AtomGoal> newFactory() {
+        return new Factory();
     }
 
     public String[][] getCharTable(boolean topBorder, boolean bottomBorder, boolean centreDot, boolean colourNeg){
@@ -413,7 +462,23 @@ public class AtomGoal implements List<Atom>, Goal<AtomGoal> {
 
     @Override
     public int compareTo(AtomGoal goal) {
-        return Integer.compare(goal.size(), this.size());
+        int c =  Integer.compare(goal.size(), this.size());
+        if (c != 0) return c;
+        for (int i = 0; i < this.size(); i++) {
+            c = goal.get(i).compareTo(this.get(i));
+            if (c != 0) return c;
+        }
+        return 0;
+    }
+
+    @Override
+    public int hashCode() {
+        return list.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof AtomGoal && same((AtomGoal) o);
     }
 
     public int atomCount() {
@@ -455,7 +520,7 @@ public class AtomGoal implements List<Atom>, Goal<AtomGoal> {
     }
 
 
-    public static class Factory {
+    public static class Factory implements Goal3DAtomLikeFactory<AtomGoal> {
         private ArrayList<Atom> list;
 
         public Factory(List<Atom> list) {
@@ -507,18 +572,52 @@ public class AtomGoal implements List<Atom>, Goal<AtomGoal> {
             return this;
         }
 
+        @Override
         public AtomGoal get(){
             AtomGoal g = new AtomGoal(list);
             list = null;
             return g;
         }
 
+        @Override
+        public AtomGoal.Factory add(int x, int y, int z, int v) {
+            for (int i = 0; i < Math.abs(v); i++) {
+                add(new Atom(x, y, z, v>=0));
+            }
+            return this;
+        }
+
+        @Override
+        public AtomGoal.Factory sub(int x, int y, int z, int v) {
+            for (int i = 0; i < Math.abs(v); i++) {
+                sub(new Atom(x, y, z, v>=0));
+            }
+            return this;
+        }
+
+        @Override
+        public AtomGoal.Factory add(AtomGoal goal) {
+            list.addAll(goal);
+            return this;
+        }
+
+        @Override
+        public AtomGoal.Factory sub(AtomGoal goal) {
+            for (Atom atom : goal) {
+                list.add(atom.negate());
+            }
+            return this;
+        }
+
         public AtomGoal.Factory add(Atom a){
             list.add(a); return this;
         }
 
-        public AtomGoal.Factory addAll(Collection<Atom> a){
-            list.addAll(a); return this;
+        public AtomGoal.Factory addAll(Collection<AtomGoal> a){
+            for (AtomGoal goal : a) {
+                list.addAll(goal);
+            }
+            return this;
         }
 
         public AtomGoal.Factory sub(Atom a){
@@ -741,16 +840,6 @@ public class AtomGoal implements List<Atom>, Goal<AtomGoal> {
         return list.subList(i, i1);
     }
 
-    @Override
-    public int hashCode() {
-        return list.hashCode();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return o instanceof AtomGoal && same((AtomGoal) o);
-    }
-
     @SuppressWarnings("WeakerAccess")
     public static class AtomBounds implements Bounds {
         public final int xMax;
@@ -832,6 +921,9 @@ public class AtomGoal implements List<Atom>, Goal<AtomGoal> {
         }
 
         public static AtomBounds BoundsFromGoal(Collection<Atom> c) {
+            if(c.size()==0){
+                return new AtomBounds(0,0,0,0,0,0);
+            }
             int xMax = Integer.MIN_VALUE;
             int xMin = Integer.MAX_VALUE;
             int yMax = Integer.MIN_VALUE;

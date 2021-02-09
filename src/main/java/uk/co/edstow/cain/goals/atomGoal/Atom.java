@@ -1,4 +1,4 @@
-package uk.co.edstow.cain.atomGoal;
+package uk.co.edstow.cain.goals.atomGoal;
 
 import java.util.Comparator;
 

@@ -1,13 +1,15 @@
 package uk.co.edstow.cain;
 
-import uk.co.edstow.cain.atomGoal.AtomGoal;
+import uk.co.edstow.cain.goals.Goal3DAtomLike;
+import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
-public class Approximater {
+public class Approximater<G extends Goal3DAtomLike<G>> {
     private class Vector {
         final int[] val;
         private Vector(int... val) {
@@ -39,7 +41,7 @@ public class Approximater {
         minCoefficient = Math.min(minCoefficient, Math.abs(coefficient));
     }
 
-    public List<AtomGoal> solve(){
+    public List<G> solve(Supplier<Goal3DAtomLike.Goal3DAtomLikeFactory<G>> factoryfactory){
         depth = maxDepth;
         double totalError = 0;
         for (int i = -10; i <= maxDepth; i++) {
@@ -58,17 +60,17 @@ public class Approximater {
         }
         error = totalError;
 
-        List<AtomGoal> out = new ArrayList<>(input.size());
+        List<G> out = new ArrayList<>(input.size());
         for (Map<Vector, Double> vecDoubleMap : input) {
-            AtomGoal.Factory factory = new AtomGoal.Factory();
+            Goal3DAtomLike.Goal3DAtomLikeFactory<G> factory = factoryfactory.get();
             for (Map.Entry<Vector, Double> entry : vecDoubleMap.entrySet()) {
                 if(entry.getValue()>=0){
-                    factory.add(entry.getKey().val, getCount(depth, entry.getValue()));
+                    factory.add(entry.getKey().val[0], entry.getKey().val[1], entry.getKey().val[2], getCount(depth, entry.getValue()));
                 } else {
-                    factory.add(entry.getKey().val, -getCount(depth, entry.getValue()));
+                    factory.add(entry.getKey().val[0], entry.getKey().val[1], entry.getKey().val[2], -getCount(depth, entry.getValue()));
                 }
             }
-            AtomGoal g = factory.get();
+            G g = factory.get();
             out.add(g);
         }
         input.clear();

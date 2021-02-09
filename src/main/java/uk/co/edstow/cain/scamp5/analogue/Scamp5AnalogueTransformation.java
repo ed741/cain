@@ -1,19 +1,19 @@
 package uk.co.edstow.cain.scamp5.analogue;
 
-import uk.co.edstow.cain.atomGoal.Atom;
-import uk.co.edstow.cain.atomGoal.AtomGoal;
+import uk.co.edstow.cain.goals.Goal3DAtomLike;
 import uk.co.edstow.cain.RegisterAllocator;
 import uk.co.edstow.cain.Transformation;
-import uk.co.edstow.cain.atomGoal.pairGen.SimpleTransformation;
+import uk.co.edstow.cain.goals.atomGoal.Atom;
+import uk.co.edstow.cain.goals.atomGoal.pairGen.SimpleTransformation;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 
-public abstract class Scamp5AnalogueTransformation extends Transformation {
-    public abstract List<AtomGoal> applyOpForwards() throws TransformationApplicationException;
+public abstract class Scamp5AnalogueTransformation<G extends Goal3DAtomLike<G>> extends Transformation {
+    public abstract List<G> applyOpForwards() throws TransformationApplicationException;
 
 
-    abstract static class SimpleScamp5AnalogueTransformation extends Scamp5AnalogueTransformation {
+    abstract static class SimpleScamp5AnalogueTransformation<G extends Goal3DAtomLike<G>> extends Scamp5AnalogueTransformation<G> {
 
         @Override
         public String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
@@ -26,8 +26,8 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
 
         abstract String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers);
 
-        public abstract AtomGoal applyForwards() throws TransformationApplicationException;
-        public List<AtomGoal> applyOpForwards() throws TransformationApplicationException{
+        public abstract G applyForwards() throws TransformationApplicationException;
+        public List<G> applyOpForwards() throws TransformationApplicationException{
             return Collections.singletonList(applyForwards());
         }
 
@@ -96,16 +96,18 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
                 case E: return East;
                 case S: return South;
                 case W: return West;
-                default: return null;
             }
+            assert false;
+            System.exit(-1);
+            return null;
         }
     }
 
-    public static class Res extends SimpleScamp5AnalogueTransformation {
+    public static class Res<G extends Goal3DAtomLike<G>> extends SimpleScamp5AnalogueTransformation<G> {
         // u := {}
-        final AtomGoal result;
+        final G result;
 
-        public Res(AtomGoal result) {
+        public Res(G result) {
             this.result = result;
         }
 
@@ -121,7 +123,7 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
         }
 
         @Override
-        public AtomGoal applyForwards() {
+        public G applyForwards() {
             return result;
         }
 
@@ -155,12 +157,12 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
     }
 
 
-    public static class Res_2 extends Scamp5AnalogueTransformation {
+    public static class Res_2<G extends Goal3DAtomLike<G>> extends Scamp5AnalogueTransformation<G> {
         // u := {}
-        final AtomGoal result1;
-        final AtomGoal result2;
+        final G result1;
+        final G result2;
 
-        public Res_2(AtomGoal a, AtomGoal b) {
+        public Res_2(G a, G b) {
             this.result1 = a;
             this.result2 = b;
         }
@@ -182,7 +184,7 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
         }
 
         @Override
-        public List<AtomGoal> applyOpForwards() {
+        public List<G> applyOpForwards() {
             return Arrays.asList(result1, result2);
         }
 
@@ -220,21 +222,21 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
     }
 
 
-    public static class Mov extends SimpleScamp5AnalogueTransformation {
+    public static class Mov<G extends Goal3DAtomLike<G>> extends SimpleScamp5AnalogueTransformation<G> {
         //u := a
 
-        final AtomGoal a;
-        AtomGoal moved = null;
+        final G a;
+        G moved = null;
 
         @SuppressWarnings("WeakerAccess")
-        public Mov(AtomGoal a) {
+        public Mov(G a) {
             this.a = a;
         }
 
         @SuppressWarnings("WeakerAccess")
-        public Mov(AtomGoal in, boolean upper) {
+        public Mov(G in, boolean upper) {
             if (upper) {
-                this.a = new AtomGoal(in);
+                this.a = in.copy();
                 this.moved = in;
             } else {
                 this.a = in;
@@ -253,9 +255,9 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
         }
 
         @Override
-        public AtomGoal applyForwards() {
+        public G applyForwards() {
             if(this.moved == null){
-                this.moved = new AtomGoal(a);
+                this.moved = a.copy();
             }
             return this.moved;
         }
@@ -290,15 +292,15 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
     }
 
 
-    public static class Add_2 extends SimpleScamp5AnalogueTransformation {
+    public static class Add_2<G extends Goal3DAtomLike<G>> extends SimpleScamp5AnalogueTransformation<G> {
         // u := a + b
 
-        final AtomGoal a;
-        final AtomGoal b;
-        AtomGoal sum;
+        final G a;
+        final G b;
+        G sum;
 
 
-        public Add_2(AtomGoal a, AtomGoal b) {
+        public Add_2(G a, G b) {
             this.a = a;
             this.b = b;
             this.sum = null;
@@ -315,9 +317,9 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
         }
 
         @Override
-        public AtomGoal applyForwards() {
+        public G applyForwards() {
             if (this.sum == null){
-                this.sum = new AtomGoal.Factory(a).addAll(b).get();
+                this.sum = a.added(b);
             }
             return this.sum;
         }
@@ -352,16 +354,16 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
 
     }
 
-    public static class Add_3 extends SimpleScamp5AnalogueTransformation {
+    public static class Add_3<G extends Goal3DAtomLike<G>> extends SimpleScamp5AnalogueTransformation<G> {
         // u := a + b + c
 
-        final AtomGoal a;
-        final AtomGoal b;
-        final AtomGoal c;
-        AtomGoal sum;
+        final G a;
+        final G b;
+        final G c;
+        G sum;
 
 
-        public Add_3(AtomGoal a, AtomGoal b, AtomGoal c) {
+        public Add_3(G a, G b, G c) {
             this.a = a;
             this.b = b;
             this.c = c;
@@ -379,9 +381,9 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
         }
 
         @Override
-        public AtomGoal applyForwards() {
+        public G applyForwards() {
             if (this.sum == null){
-                this.sum = new AtomGoal.Factory(a).addAll(b).addAll(c).get();
+                this.sum = a.newFactory().add(a).add(b).add(c).get();
             }
             return this.sum;
         }
@@ -415,15 +417,15 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
         }
     }
 
-    public static class Sub extends SimpleScamp5AnalogueTransformation {
+    public static class Sub<G extends Goal3DAtomLike<G>> extends SimpleScamp5AnalogueTransformation<G> {
         // u := a - b
 
-         final AtomGoal a;
-         final AtomGoal b;
-         AtomGoal difference;
+         final G a;
+         final G b;
+         G difference;
 
 
-         public Sub(AtomGoal a, AtomGoal b) {
+         public Sub(G a, G b) {
              this.a = a;
              this.b = b;
              this.difference = null;
@@ -440,9 +442,9 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
          }
 
          @Override
-         public AtomGoal applyForwards() {
+         public G applyForwards() {
              if (this.difference == null){
-                 this.difference = new AtomGoal.Factory(a).subAll(b).get();
+                 this.difference = a.subtracted(b);
              }
              return this.difference;
          }
@@ -476,21 +478,21 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
         }
     }
 
-    public static class Neg extends SimpleScamp5AnalogueTransformation {
+    public static class Neg<G extends Goal3DAtomLike<G>> extends SimpleScamp5AnalogueTransformation<G> {
         // u := -a
 
-        final AtomGoal a;
-        AtomGoal neg;
+        final G a;
+        G neg;
 
-        public Neg(AtomGoal a) {
+        public Neg(G a) {
             this.a = a;
             this.neg = null;
 
         }
 
-        public Neg(AtomGoal in, boolean upper){
+        public Neg(G in, boolean upper){
             if (upper) {
-                this.a = in.negative();
+                this.a = in.negated();
                 this.neg = in;
             } else {
                this.a = in;
@@ -510,9 +512,9 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
         }
 
         @Override
-        public AtomGoal applyForwards(){
+        public G applyForwards(){
             if(this.neg == null){
-                this.neg = a.negative();
+                this.neg = a.negated();
             }
             return this.neg;
         }
@@ -546,23 +548,23 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
         }
     }
 
-    public static class Divq extends SimpleScamp5AnalogueTransformation {
+    public static class Divq<G extends Goal3DAtomLike<G>> extends SimpleScamp5AnalogueTransformation<G> {
         // u := a*0.5 + error
 
-        final AtomGoal a;
-        AtomGoal div;
+        final G a;
+        G div;
 
-        public Divq(AtomGoal a) {
+        public Divq(G a) {
             this.a = a;
             this.div = null;
         }
 
-        public Divq(AtomGoal in, boolean upper){
+        public Divq(G in, boolean upper){
             if(!upper){
                 this.a = in;
                 this.div = null;
             } else {
-                this.a = new AtomGoal.Factory(in).addAll(in).get();
+                this.a = in.added(in);
                 this.div = in;
             }
         }
@@ -593,28 +595,17 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
 
         @SuppressWarnings("ConstantConditions")
         @Override
-        public AtomGoal applyForwards() throws TransformationApplicationException {
+        public G applyForwards() throws TransformationApplicationException {
             if(this.div == null){
-                AtomGoal.Factory factory = new AtomGoal.Factory();
-                if (!this.a.isEmpty()) {
-                    int count = 1;
-                    Atom last = a.get(0);
-                    for (int i = 1; i < a.size()+1; i++) {
-                        Atom c = i < a.size()?a.get(i):null;
-                        if(c == null || !last.equals(c)){
-                            if(count/2 != (count+1)/2){
-                                throw new TransformationApplicationException("Cannot divide uneven number of atoms!");
-                            } else {
-                                for (int j = 0; j < count / 2; j++) {
-                                    factory.add(last);
-                                }
-                            }
-                            last = c;
-                            count = 1;
-                        } else {
-                            count++;
-                        }
+                Goal3DAtomLike.Goal3DAtomLikeFactory<G> factory = a.newFactory();
+                Iterator<Tuple<Atom, Integer>> it = a.uniqueCountIterator();
+                while(it.hasNext()){
+                    Tuple<Atom, Integer> t = it.next();
+                    int count = t.getB();
+                    if(count < 2 || count % 2 != 0){
+                        throw new TransformationApplicationException("Cannot divide uneven number of atoms!");
                     }
+                    factory.add(t.getA().x, t.getA().y, t.getA().z, count/2);
                 }
                 this.div = factory.get();
             }
@@ -651,17 +642,17 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
     }
 
 
-    public static class Movx extends Mov {
+    public static class Movx<G extends Goal3DAtomLike<G>> extends Mov<G> {
         //u := a_dir
 
         final Dir dir;
 
-        public Movx(AtomGoal a, Dir dir) {
+        public Movx(G a, Dir dir) {
             super(a);
             this.dir = dir;
         }
 
-        public Movx(AtomGoal in, Dir dir, boolean upper) {
+        public Movx(G in, Dir dir, boolean upper) {
             super(upper?in.translated(-dir.x, -dir.y, 0):in);
             this.moved = upper?in:null;
             this.dir = dir;
@@ -674,7 +665,7 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
         }
 
         @Override
-        public AtomGoal applyForwards() {
+        public G applyForwards() {
             if(this.moved == null){
                 this.moved = a.translated(dir.x, dir.y, 0);
             }
@@ -688,19 +679,19 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
     }
 
 
-    public static class Mov2x extends Mov{
+    public static class Mov2x<G extends Goal3DAtomLike<G>> extends Mov<G>{
         // u := a_dir1_dir2
 
         final Dir dir1;
         final Dir dir2;
 
-        public Mov2x(AtomGoal a, Dir dir1, Dir dir2) {
+        public Mov2x(G a, Dir dir1, Dir dir2) {
             super(a);
             this.dir1 = dir1;
             this.dir2 = dir2;
         }
 
-        public Mov2x(AtomGoal in, Dir dir1, Dir dir2, boolean upper) {
+        public Mov2x(G in, Dir dir1, Dir dir2, boolean upper) {
             super(upper?in.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0):in);
             this.moved = upper?in:null;
             this.dir1 = dir1;
@@ -714,7 +705,7 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
         }
 
         @Override
-        public AtomGoal applyForwards() {
+        public G applyForwards() {
             if(this.moved == null){
                 this.moved = a.translated(dir1.x +dir2.x, dir1.y +dir2.y, 0);
             }
@@ -729,12 +720,12 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
     }
 
 
-    public static class Addx extends Add_2 {
+    public static class Addx<G extends Goal3DAtomLike<G>> extends Add_2<G> {
         // u := a_dir + b_dir
 
         final Dir dir;
 
-        public Addx(AtomGoal a, AtomGoal b, Dir dir) {
+        public Addx(G a, G b, Dir dir) {
             super(a, b);
             this.dir = dir;
         }
@@ -746,12 +737,9 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
         }
 
         @Override
-        public AtomGoal applyForwards() {
+        public G applyForwards() {
             if(this.sum == null){
-                AtomGoal.Factory factory = new AtomGoal.Factory();
-                this.a.forEach(atom -> factory.add(atom.moved(dir.x, +dir.y, 0)));
-                this.b.forEach(atom -> factory.add(atom.moved(dir.x, +dir.y, 0)));
-                this.sum = factory.get();
+                this.sum = this.a.added(this.b).translated(dir.x, dir.y, 0);
             }
             return this.sum;
         }
@@ -765,12 +753,12 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
     }
 
 
-    public static class Add2x extends Add_2 {
+    public static class Add2x<G extends Goal3DAtomLike<G>> extends Add_2<G> {
         // u := a_dir1_dir2 + b_dir1_dir2
         final Dir dir1;
         final Dir dir2;
 
-        public Add2x(AtomGoal a, AtomGoal b, Dir dir1, Dir dir2) {
+        public Add2x(G a, G b, Dir dir1, Dir dir2) {
             super(a, b);
             this.dir1 = dir1;
             this.dir2 = dir2;
@@ -783,12 +771,9 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
         }
 
         @Override
-        public AtomGoal applyForwards() {
+        public G applyForwards() {
             if(this.sum == null){
-                AtomGoal.Factory factory = new AtomGoal.Factory();
-                this.a.forEach(atom -> factory.add(atom.moved(dir1.x+dir2.x, dir1.y+dir2.y, 0)));
-                this.b.forEach(atom -> factory.add(atom.moved(dir1.x+dir2.x, dir1.y+dir2.y, 0)));
-                this.sum = factory.get();
+                this.sum = this.a.added(b).translated(dir1.x+dir2.x, dir1.y+dir2.y, 0);
             }
             return this.sum;
         }
@@ -800,12 +785,12 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
     }
 
 
-    public static class Subx extends Sub {
+    public static class Subx<G extends Goal3DAtomLike<G>> extends Sub<G> {
         // u := a_dir - b
 
         final Dir dir;
 
-        public Subx(AtomGoal a, AtomGoal b, Dir dir) {
+        public Subx(G a, G b, Dir dir) {
             super(a, b);
             this.dir = dir;
         }
@@ -817,12 +802,9 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
         }
 
         @Override
-        public AtomGoal applyForwards() {
+        public G applyForwards() {
             if (this.difference == null){
-                AtomGoal.Factory factory = new AtomGoal.Factory();
-                this.a.forEach(atom -> factory.add(atom.moved(dir.x, dir.y, 0)));
-                factory.subAll(b);
-                this.difference = factory.get();
+                this.difference = a.translated(dir.x, dir.y, 0).subtracted(b);
             }
             return this.difference;
         }
@@ -834,13 +816,13 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
     }
 
 
-    public static class Sub2x extends Sub {
+    public static class Sub2x<G extends Goal3DAtomLike<G>> extends Sub<G> {
         // u := a_dir1_dir2 - b
 
         final Dir dir1;
         final Dir dir2;
 
-        public Sub2x(AtomGoal a, AtomGoal b, Dir dir1, Dir dir2) {
+        public Sub2x(G a, G b, Dir dir1, Dir dir2) {
             super(a, b);
             this.dir1 = dir1;
             this.dir2 = dir2;
@@ -853,12 +835,9 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
         }
 
         @Override
-        public AtomGoal applyForwards() {
+        public G applyForwards() {
             if (this.difference == null){
-                AtomGoal.Factory factory = new AtomGoal.Factory();
-                this.a.forEach(atom -> factory.add(atom.moved(dir1.x+dir2.x, dir1.y+dir2.y, 0)));
-                factory.subAll(b);
-                this.difference = factory.get();
+                this.difference = a.translated(dir1.x+dir2.x, dir1.y+dir2.y, 0).subtracted(b);
             }
             return this.difference;
         }
@@ -870,27 +849,27 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
     }
 
 
-    public static class Div extends Scamp5AnalogueTransformation {
+    public static class Div<G extends Goal3DAtomLike<G>> extends Scamp5AnalogueTransformation<G> {
         // u := a*0.5 + error
 
-        final AtomGoal a;
+        final G a;
         final boolean clobber;
-        AtomGoal div;
+        G div;
 
 
-        public Div(AtomGoal a, boolean clobber) {
+        public Div(G a, boolean clobber) {
             this.a = a;
             this.div = null;
             this.clobber = clobber;
         }
 
-        public Div(AtomGoal in, boolean upper, boolean clobber){
+        public Div(G in, boolean upper, boolean clobber){
             this.clobber = clobber;
             if(!upper){
                 this.a = in;
                 this.div = null;
             } else {
-                this.a = new AtomGoal.Factory(in).addAll(in).get();
+                this.a = in.added(in);
                 this.div = in;
             }
         }
@@ -961,34 +940,23 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
 
         @SuppressWarnings("ConstantConditions")
         @Override
-        public List<AtomGoal> applyOpForwards() throws TransformationApplicationException {
+        public List<G> applyOpForwards() throws TransformationApplicationException {
             if(this.div==null) {
                 this.div = applyDiv(this.a);
             }
             return Collections.singletonList(this.div);
         }
 
-        private AtomGoal applyDiv(AtomGoal in) throws TransformationApplicationException {
-            AtomGoal.Factory factory = new AtomGoal.Factory();
-            if (!in.isEmpty()) {
-                int count = 1;
-                Atom last = in.get(0);
-                for (int i = 1; i < in.size()+1; i++) {
-                    Atom c = i < in.size()?in.get(i):null;
-                    if(c == null || !last.equals(c)){
-                        if(count/2 != (count+1)/2){
-                            throw new TransformationApplicationException("Cannot divide uneven number of atoms!");
-                        } else {
-                            for (int j = 0; j < count / 2; j++) {
-                                factory.add(last);
-                            }
-                        }
-                        last = c;
-                        count = 1;
-                    } else {
-                        count++;
-                    }
+        private G applyDiv(G in) throws TransformationApplicationException {
+            Goal3DAtomLike.Goal3DAtomLikeFactory<G> factory = a.newFactory();
+            Iterator<Tuple<Atom, Integer>> it = a.uniqueCountIterator();
+            while(it.hasNext()){
+                Tuple<Atom, Integer> t = it.next();
+                int count = t.getB();
+                if(count < 2 || count % 2 != 0){
+                    throw new TransformationApplicationException("Cannot divide uneven number of atoms!");
                 }
+                factory.add(t.getA().x, t.getA().y, t.getA().z, count/2);
             }
             return factory.get();
         }

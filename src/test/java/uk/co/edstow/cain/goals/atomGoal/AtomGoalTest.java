@@ -1,5 +1,6 @@
-package uk.co.edstow.cain.atomGoal;
+package uk.co.edstow.cain.goals.atomGoal;
 
+import uk.co.edstow.cain.goals.arrayGoal.ArrayGoal;
 import uk.co.edstow.cain.util.Tuple;
 import org.junit.jupiter.api.Test;
 
@@ -40,7 +41,7 @@ class AtomGoalTest {
     }
 
     @Test
-    void testNegative() {
+    void testNegated() {
         AtomGoal g1 = new AtomGoal(
                 new Atom(0,0,0, true),
                 new Atom(0,0,0, true),
@@ -51,7 +52,7 @@ class AtomGoalTest {
                 new Atom(0,0,0, false),
                 new Atom(1,0,0, true));
 
-        assertEquals(ge, g1.negative());
+        assertEquals(ge, g1.negated());
     }
 
     @Test
@@ -87,7 +88,7 @@ class AtomGoalTest {
         assertTrue(allSplits.contains(ge1));
         assertTrue(allSplits.contains(ge2));
         assertTrue(allSplits.contains(ge3));
-        assertTrue(allSplits.size()==3);
+        assertEquals(3, allSplits.size());
     }
 
     @Test
@@ -125,9 +126,13 @@ class AtomGoalTest {
         AtomGoal g2 = new AtomGoal(
                 new Atom(0,1,0, true),
                 new Atom(1,1,0, false));
+        AtomGoal g3 = new AtomGoal(
+                new Atom(0,0,0, true),
+                new Atom(1,1,1, false));
 
         assertEquals(g1.compareTo(g2), -g2.compareTo(g1));
         assertEquals(0, g1.compareTo(g1));
+        assertNotEquals(0, g2.compareTo(g3));
     }
 
     @Test
@@ -240,9 +245,9 @@ class AtomGoalTest {
                 new Atom(1,1,0, false),
                 new Atom(1,1,0, false));
 
-        assertTrue(g1.equals(g1));
-        assertTrue(g2.equals(g2));
-        assertFalse(g1.equals(g2));
+        assertEquals(g1, g1);
+        assertEquals(g2, g2);
+        assertNotEquals(g2, g1);
 
     }
 
@@ -272,6 +277,8 @@ class AtomGoalTest {
                 new Atom(4,1,0, true));
         List<AtomGoal> lists = g1.allSplits();
 
+        assertTrue(lists.contains(new AtomGoal()));
+
         assertTrue(lists.contains(new AtomGoal(new Atom(1,1,0,true))));
         assertTrue(lists.contains(new AtomGoal(new Atom(2,1,0,true))));
         assertTrue(lists.contains(new AtomGoal(new Atom(3,1,0,true))));
@@ -293,7 +300,7 @@ class AtomGoalTest {
 
         assertTrue(lists.contains(new AtomGoal(new Atom(1,1,0,true), new Atom(2,1,0,true), new Atom(3,1,0,true), new Atom(4,1,0,true))));
 
-        assertEquals(15, lists.size());
+        assertEquals(16, lists.size());
     }
 
     @Test
@@ -361,6 +368,6 @@ class AtomGoalTest {
                 new Atom(0,1,0, true),
                 new Atom(0,1,0, true),
                 new Atom(0,1,0, true));
-        assertEquals(new AtomGoal(new Atom(1,1,0, false), new Atom(0,1,0, false), new Atom(0,1,0, false)), g1.subtract(g2));
+        assertEquals(new AtomGoal(new Atom(1,1,0, false), new Atom(0,1,0, false), new Atom(0,1,0, false)), g1.subtracted(g2));
     }
 }

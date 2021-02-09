@@ -1,6 +1,5 @@
 package uk.co.edstow.cain.scamp5;
 
-import uk.co.edstow.cain.atomGoal.AtomGoal;
 import uk.co.edstow.cain.pairgen.Context;
 import uk.co.edstow.cain.pairgen.CostHuristic;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
@@ -18,7 +17,7 @@ public class ThresholdScamp5ConfigGetter<G extends Goal<G>, C extends Scamp5Conf
     private final GenGetter<G,C> below;
 
 
-    public ThresholdScamp5ConfigGetter(List<AtomGoal> initialGoals, int threshold, CostHuristic<G> heuristic, C scamp5Config, GenGetter<G, C> above, GenGetter<G, C> below) {
+    public ThresholdScamp5ConfigGetter(List<G> initialGoals, int threshold, CostHuristic<G> heuristic, C scamp5Config, GenGetter<G, C> above, GenGetter<G, C> below) {
         this.heuristic = heuristic;
         this.scamp5Config = scamp5Config;
         this.scamp5ConfigMovOnly = scamp5Config.getMovOnlyVersion();

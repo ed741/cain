@@ -4,12 +4,14 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
+import uk.co.edstow.cain.goals.Goal3DAtomLike;
+import uk.co.edstow.cain.goals.arrayGoal.ArrayGoal;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.scamp5.PatternHuristic;
 import uk.co.edstow.cain.scamp5.ThresholdScamp5ConfigGetter;
 import uk.co.edstow.cain.scamp5.analogue.Scamp5AnalougeConfig;
 import uk.co.edstow.cain.scamp5.analogue.Scamp5AnaloguePairGenFactory;
-import uk.co.edstow.cain.atomGoal.AtomGoal;
+import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
 import uk.co.edstow.cain.scamp5.digital.Scamp5DigitalConfig;
 import uk.co.edstow.cain.scamp5.digital.Scamp5DigitalPairGenFactory;
 import uk.co.edstow.cain.scamp5.emulator.Scamp5Verifier;
@@ -24,6 +26,7 @@ import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public abstract class FileRun<G extends Goal<G>> {
@@ -348,15 +351,17 @@ public abstract class FileRun<G extends Goal<G>> {
     }
 
 
-    private static abstract class AtomFileRun extends FileRun<AtomGoal> {
+    private static abstract class AtomFileRun<G extends Goal3DAtomLike<G>> extends FileRun<G> {
 
-        public static AtomFileRun getAtomFileRun(JSONObject config) {
+        public static  AtomFileRun<?> getAtomFileRun(JSONObject config) {
             JSONObject json = config.getJSONObject("pairGen");
             switch (json.getString("name")) {
                 default:
                     throw new IllegalArgumentException("Unknown PairGen Factory " + json.getString("name"));
                 case "Scamp5":
-                    return new Scamp5AnalogueAtomFileRun(config);
+                    return new Scamp5AnalogueAtomFileRunAtom(config);
+                case "Scamp5ArrayGoal":
+                    return new Scamp5AnalogueAtomFileRunArray(config);
                 case "Scamp5Digital":
                     return new Scamp5DigitalAtomFileRun(config);
             }
@@ -366,19 +371,21 @@ public abstract class FileRun<G extends Goal<G>> {
             super(config);
         }
 
-        public AtomFileRun(JSONObject config, List<AtomGoal> finalGoals, int approximationDepth) {
+        public AtomFileRun(JSONObject config, List<G> finalGoals, int approximationDepth) {
             super(config, finalGoals, approximationDepth);
         }
 
+        abstract Goal3DAtomLike.Goal3DAtomLikeFactory<G> getGoalFactory();
+
         @Override
-        protected List<AtomGoal> makeFinalGoals(JSONObject config) {
+        protected List<G> makeFinalGoals(JSONObject config) {
 
             int maxApproximationDepth = config.getInt("maxApproximationDepth");
             printLn("Max Approximation Depth : " + maxApproximationDepth);
             double maxApproximationError = config.getDouble("maxApproximationError");
             printLn("Max Approximation Error : " + maxApproximationError);
 
-            Approximater goalAprox = new Approximater(maxApproximationDepth, maxApproximationError);
+            Approximater<G> goalAprox = new Approximater<G>(maxApproximationDepth, maxApproximationError);
 
 
             boolean threeDimentional = config.getBoolean("3d");
@@ -403,7 +410,7 @@ public abstract class FileRun<G extends Goal<G>> {
                 }
             }
 
-            List<AtomGoal> finalGoals = goalAprox.solve();
+            List<G> finalGoals = goalAprox.solve(this::getGoalFactory);
             this.approximationDepth = goalAprox.getDepth();
             this.outputRegisters = getOutputRegisters(config);
             printLn("Output Registers        : " + this.outputRegisters.toString());
@@ -416,20 +423,20 @@ public abstract class FileRun<G extends Goal<G>> {
         }
 
         @Override
-        protected List<AtomGoal> makeInitialGoals(int[] divisions) {
-            List<AtomGoal> initialGoals = new ArrayList<>();
+        protected List<G> makeInitialGoals(int[] divisions) {
+            List<G> initialGoals = new ArrayList<>();
             for (int i = 0; i < divisions.length; i++) {
                 int division = divisions[i];
-                initialGoals.add(new AtomGoal.Factory().add(new int[]{0, 0, i}, 1 << division).get());
+                initialGoals.add(getGoalFactory().add(0,0,i, 1 << division).get());
             }
             return initialGoals;
         }
 
-        protected Verifier<AtomGoal> makeVerifier(JSONObject config) {
+        protected Verifier<G> makeVerifier(JSONObject config) {
             String verf = config.getString("verifier");
             switch (verf) {
                 case "Scamp5Emulator":
-                    Verifier<AtomGoal> v = new Scamp5Verifier();
+                    Verifier<G> v = new Scamp5Verifier<>();
                     v.verbose(verbose);
                     return v;
                 case "None":
@@ -439,7 +446,7 @@ public abstract class FileRun<G extends Goal<G>> {
             }
         }
 
-        private static void addGoal(Approximater goalAprox, JSONArray jsonArray, boolean threeDimentional, double scale) {
+        private static <G extends Goal3DAtomLike<G>> void addGoal(Approximater<G> goalAprox, JSONArray jsonArray, boolean threeDimentional, double scale) {
             int xMax = 0;
             int yMax = jsonArray.length();
             int zMax = 0;
@@ -481,18 +488,50 @@ public abstract class FileRun<G extends Goal<G>> {
 
     }
 
-    public static class Scamp5AnalogueAtomFileRun extends AtomFileRun {
+    public static class Scamp5AnalogueAtomFileRunAtom extends FileRun.Scamp5AnalogueAtomFileRun<AtomGoal> {
+        public Scamp5AnalogueAtomFileRunAtom(JSONObject config) {
+            super(config);
+        }
+
+        public Scamp5AnalogueAtomFileRunAtom(JSONObject config, List<AtomGoal> finalGoals, int approximationDepth) {
+            super(config, finalGoals, approximationDepth);
+        }
+
+        @Override
+        Goal3DAtomLike.Goal3DAtomLikeFactory<AtomGoal> getGoalFactory() {
+            return new AtomGoal.Factory();
+        }
+    }
+
+    public static class Scamp5AnalogueAtomFileRunArray extends FileRun.Scamp5AnalogueAtomFileRun<ArrayGoal> {
+        public Scamp5AnalogueAtomFileRunArray(JSONObject config) {
+            super(config);
+        }
+
+        public Scamp5AnalogueAtomFileRunArray(JSONObject config, List<ArrayGoal> finalGoals, int approximationDepth) {
+            super(config, finalGoals, approximationDepth);
+        }
+
+        @Override
+        Goal3DAtomLike.Goal3DAtomLikeFactory<ArrayGoal> getGoalFactory() {
+            return new ArrayGoal.Factory();
+        }
+    }
+
+
+    public abstract static class Scamp5AnalogueAtomFileRun<G extends Goal3DAtomLike<G>> extends AtomFileRun<G> {
+
 
         public Scamp5AnalogueAtomFileRun(JSONObject config) {
             super(config);
         }
 
-        public Scamp5AnalogueAtomFileRun(JSONObject config, List<AtomGoal> finalGoals, int approximationDepth) {
+        public Scamp5AnalogueAtomFileRun(JSONObject config, List<G> finalGoals, int approximationDepth) {
             super(config, finalGoals, approximationDepth);
         }
 
         @Override
-        protected PairGenFactory<AtomGoal> makePairGenFactory(JSONObject json, RegisterAllocator<AtomGoal> registerAllocator) {
+        protected PairGenFactory<G> makePairGenFactory(JSONObject json, RegisterAllocator<G> registerAllocator) {
             printLn("\t Making Pair Generation Factory:");
             printLn("Name                        : " + json.getString("name"));
             printLn("Config Getter               : " + json.getString("configGetter"));
@@ -501,22 +540,22 @@ public abstract class FileRun<G extends Goal<G>> {
                     throw new IllegalArgumentException("Unknown Scamp5 Scamp5ConfigGetter " + json.getString("configGetter"));
                 case "Threshold":
                     printLn("Instruction to use          : " + json.getString("ops"));
-                    Scamp5AnalougeConfig<AtomGoal> scampConfig;
+                    Scamp5AnalougeConfig<G> scampConfig;
                     switch (json.getString("ops")) {
                         default:
                             throw new IllegalArgumentException("Unknown Instuctions option " + json.getString("ops"));
                         case "all":
-                            scampConfig = new Scamp5AnalougeConfig.Builder<AtomGoal>().useAll().setSubPowerOf2(true).build();
+                            scampConfig = new Scamp5AnalougeConfig.Builder<G>().useAll().setSubPowerOf2(true).build();
                             break;
                         case "basic":
-                            scampConfig = new Scamp5AnalougeConfig.Builder<AtomGoal>().useBasic().setSubPowerOf2(true).build();
+                            scampConfig = new Scamp5AnalougeConfig.Builder<G>().useBasic().setSubPowerOf2(true).build();
                             break;
                     }
                     printLn("Exhustive Search Threshold  : " + json.getInt("threshold"));
-                    return new Scamp5AnaloguePairGenFactory(
+                    return new Scamp5AnaloguePairGenFactory<>(
                             new ThresholdScamp5ConfigGetter<>(
                                     initialGoals, json.getInt("threshold"),
-                                    new PatternHuristic(initialGoals), scampConfig,
+                                    new PatternHuristic<>(initialGoals), scampConfig,
                                     (goals, conf, scamp5Config, heuristic) -> new Scamp5AnaloguePairGenFactory.AtomDistanceSortedPairGen<>(goals, conf, scampConfig, heuristic),
                                     (goals, conf, scamp5Config, heuristic) -> new Scamp5AnaloguePairGenFactory.Scamp5ExhaustivePairGen<>(goals, conf, scampConfig, heuristic)
                             )
@@ -526,7 +565,7 @@ public abstract class FileRun<G extends Goal<G>> {
         }
     }
 
-    public static class Scamp5DigitalAtomFileRun extends AtomFileRun {
+    public static class Scamp5DigitalAtomFileRun extends AtomFileRun<AtomGoal> {
 
         public Scamp5DigitalAtomFileRun(JSONObject config) {
             super(config);
@@ -534,6 +573,11 @@ public abstract class FileRun<G extends Goal<G>> {
 
         public Scamp5DigitalAtomFileRun(JSONObject config, List<AtomGoal> finalGoals, int approximationDepth) {
             super(config, finalGoals, approximationDepth);
+        }
+
+        @Override
+        Goal3DAtomLike.Goal3DAtomLikeFactory<AtomGoal> getGoalFactory() {
+            return new AtomGoal.Factory();
         }
 
         @Override
@@ -570,7 +614,7 @@ public abstract class FileRun<G extends Goal<G>> {
                     return new Scamp5DigitalPairGenFactory(
                             new ThresholdScamp5ConfigGetter<>(
                                     initialGoals, json.getInt("threshold"),
-                                    new PatternHuristic(initialGoals), scampConfig,
+                                    new PatternHuristic<>(initialGoals), scampConfig,
                                     (goals, conf, scamp5Config, heuristic) -> new Scamp5DigitalPairGenFactory.AtomDistanceSortedPairGen<>(goals, conf, scampConfig, heuristic),
                                     (goals, conf, scamp5Config, heuristic) -> new Scamp5DigitalPairGenFactory.Scamp5ExhaustivePairGen<>(goals, conf, scampConfig, heuristic)
                             )
@@ -673,7 +717,7 @@ public abstract class FileRun<G extends Goal<G>> {
     }
 
     private static void printLnVerbose(String s, Object... args) {
-        if (verbose > 10) System.out.println(String.format(s, args));
+        if (verbose > 10) System.out.printf((s) + "%n", args);
     }
 
     private static void printLn(String s) {
@@ -681,7 +725,7 @@ public abstract class FileRun<G extends Goal<G>> {
     }
 
     private static void printLn(String s, Object... args) {
-        if (verbose > 5) System.out.println(String.format(s, args));
+        if (verbose > 5) System.out.printf((s) + "%n", args);
     }
 
     private static void printLnImportant(String s) {
@@ -689,7 +733,7 @@ public abstract class FileRun<G extends Goal<G>> {
     }
 
     private static void printLnImportant(String s, Object... args) {
-        if (verbose > 0) System.out.println(String.format(s, args));
+        if (verbose > 0) System.out.printf((s) + "%n", args);
     }
 
     private static void printLnCritial(String s) {
@@ -697,6 +741,6 @@ public abstract class FileRun<G extends Goal<G>> {
     }
 
     private static void printLnCritial(String s, Object... args) {
-        if (verbose >= 0) System.out.println(String.format(s, args));
+        if (verbose >= 0) System.out.printf((s) + "%n", args);
     }
 }

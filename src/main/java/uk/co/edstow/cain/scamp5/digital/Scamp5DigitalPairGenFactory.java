@@ -1,10 +1,10 @@
 package uk.co.edstow.cain.scamp5.digital;
 
 import uk.co.edstow.cain.Transformation;
-import uk.co.edstow.cain.atomGoal.Atom;
-import uk.co.edstow.cain.atomGoal.AtomGoal;
-import uk.co.edstow.cain.atomGoal.pairGen.Distance;
-import uk.co.edstow.cain.atomGoal.pairGen.SimpleTransformation;
+import uk.co.edstow.cain.goals.atomGoal.Atom;
+import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
+import uk.co.edstow.cain.goals.atomGoal.pairGen.Distance;
+import uk.co.edstow.cain.goals.atomGoal.pairGen.SimpleTransformation;
 import uk.co.edstow.cain.nonlinear.LinearPairGenFactory;
 import uk.co.edstow.cain.pairgen.Context;
 import uk.co.edstow.cain.pairgen.CostHuristic;
@@ -239,7 +239,7 @@ public class Scamp5DigitalPairGenFactory implements LinearPairGenFactory<AtomGoa
                 if(i<normal){
                     b = upper.without(a);
                 } else {
-                    b = upper.subtract(a);
+                    b = upper.subtracted(a);
                 }
                 seen.add(b);
 
@@ -342,7 +342,7 @@ public class Scamp5DigitalPairGenFactory implements LinearPairGenFactory<AtomGoa
                 if (scamp5config.useDiv) {
                     for (AtomGoal initialGoal : context.initialGoals) {
                         if (initialGoal.hasSubGoal(a)) {
-                            AtomGoal l = new AtomGoal.Factory(a).addAll(a).get();
+                            AtomGoal l = a.added(a);
                             AtomDistanceListItem newItem = new AtomDistanceListItem();
                             newItem.a = a;
                             newItem.distance = new Distance(0, 0, 0);
@@ -444,7 +444,7 @@ public class Scamp5DigitalPairGenFactory implements LinearPairGenFactory<AtomGoa
         AtomGoal tmpMov = item.distance.inverse().translate(item.to);
         AtomGoal tmp = tmpMov;
         if(item.negate){
-            tmp = tmpMov.negative();
+            tmp = tmpMov.negated();
         }
         if(tmp.same(item.a)){
             if (scamp5DigitalConfig.useMovx && item.distance.manhattanXY() > 0){

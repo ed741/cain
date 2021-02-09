@@ -1,9 +1,9 @@
-package uk.co.edstow.cain.atomGoal.pairGen;
+package uk.co.edstow.cain.goals.atomGoal.pairGen;
 
 import uk.co.edstow.cain.RegisterAllocator;
 import uk.co.edstow.cain.Transformation;
-import uk.co.edstow.cain.atomGoal.Atom;
-import uk.co.edstow.cain.atomGoal.AtomGoal;
+import uk.co.edstow.cain.goals.atomGoal.Atom;
+import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
@@ -86,8 +86,10 @@ public abstract class SimpleTransformation extends Transformation{
                 case W: return E;
                 case U: return D;
                 case D: return U;
-                default: return null;
             }
+            assert false;
+            System.exit(-1);
+            return null;
         }
     }
 
@@ -235,9 +237,7 @@ public abstract class SimpleTransformation extends Transformation{
         private final AtomGoal b;
 
         private static AtomGoal getForwardsApplication(AtomGoal a, AtomGoal b){
-            AtomGoal.Factory factory = new AtomGoal.Factory(a);
-            factory.addAll(b);
-            return factory.get();
+            return a.added(b);
         }
 
         public Add(AtomGoal a, AtomGoal b) {

@@ -1,16 +1,19 @@
 package uk.co.edstow.cain.scamp5;
 
+import uk.co.edstow.cain.goals.Goal3DAtomLike;
 import uk.co.edstow.cain.pairgen.Context;
 import uk.co.edstow.cain.pairgen.CostHuristic;
-import uk.co.edstow.cain.atomGoal.pairGen.Distance;
-import uk.co.edstow.cain.atomGoal.Atom;
-import uk.co.edstow.cain.atomGoal.AtomGoal;
+import uk.co.edstow.cain.goals.atomGoal.pairGen.Distance;
+import uk.co.edstow.cain.goals.atomGoal.Atom;
+import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
+import uk.co.edstow.cain.structures.Bounds;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
+import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 
-public class PatternHuristic implements CostHuristic<AtomGoal> {
+public class PatternHuristic<G extends Goal3DAtomLike<G>> implements CostHuristic<G> {
 
     private final int[] initialDivisions;
     private final int initialDivisionsMax;
@@ -21,10 +24,10 @@ public class PatternHuristic implements CostHuristic<AtomGoal> {
         this.initialDivisionsMax = Arrays.stream(this.initialDivisions).max().getAsInt();
         this.initialDivisionsMin = Arrays.stream(this.initialDivisions).min().getAsInt();
     }
-    public PatternHuristic(List<AtomGoal> initialGoals) {
+    public PatternHuristic(List<G> initialGoals) {
         int[] initialDivisions = new int[initialGoals.size()];
         for (int i = 0; i < initialDivisions.length; i++) {
-            initialDivisions[i] = 31 - Integer.numberOfLeadingZeros( initialGoals.get(i).atomCount() );
+            initialDivisions[i] = 31 - Integer.numberOfLeadingZeros( initialGoals.get(i).totalI() );
         }
         this.initialDivisions = initialDivisions;
         this.initialDivisionsMax = Arrays.stream(this.initialDivisions).max().getAsInt();
@@ -33,15 +36,15 @@ public class PatternHuristic implements CostHuristic<AtomGoal> {
 
 
     @Override
-    public double getCost(GoalPair<AtomGoal> pair, GoalBag<AtomGoal> goals, Context<AtomGoal> context) {
-        GoalBag<AtomGoal> proposedGoals = new GoalBag<>(goals);
-        for (AtomGoal upper : pair.getUppers()) {
+    public double getCost(GoalPair<G> pair, GoalBag<G> goals, Context<G> context) {
+        GoalBag<G> proposedGoals = new GoalBag<>(goals);
+        for (G upper : pair.getUppers()) {
             proposedGoals.remove(upper);
         }
 
 
-        List<AtomGoal> toAdd = new ArrayList<>();
-        for (AtomGoal goal : pair.getLowers()) {
+        List<G> toAdd = new ArrayList<>();
+        for (G goal : pair.getLowers()) {
             proposedGoals.remove(goal);
             toAdd.add(goal);
         }
@@ -51,9 +54,9 @@ public class PatternHuristic implements CostHuristic<AtomGoal> {
         }
         double cost = 0;
 //        cost += Math.pow(proposedGoals.size(), (5-Math.min(5, config.availableRegisters-proposedGoals.size())));
-        for (AtomGoal g : proposedGoals) {
+        for (G g : proposedGoals) {
             int subset = 0;
-            for(AtomGoal g2 : proposedGoals){
+            for(G g2 : proposedGoals){
                 if(g2.hasSubGoal(g)){
                     subset++;
                 }
@@ -62,9 +65,13 @@ public class PatternHuristic implements CostHuristic<AtomGoal> {
                 }
             }
             double atomDistanceCost = 0;
-            for (Atom a : g) {
-                atomDistanceCost += Math.abs(a.x) + Math.abs(a.y) + Math.abs(a.z) + (a.positive?0:1);
-                cost +=1;
+            for (Iterator<Tuple<Atom, Integer>> it = g.uniqueCountIterator(); it.hasNext(); ) {
+                Tuple<Atom, Integer> t = it.next();
+                Atom a = t.getA();
+                for (int i = 0; i < t.getB(); i++) {
+                    atomDistanceCost += Math.abs(a.x) + Math.abs(a.y) + Math.abs(a.z) + (a.positive?0:1);
+                    cost +=1;
+                }
             }
             cost += atomDistanceCost/subset;
         }
@@ -72,10 +79,10 @@ public class PatternHuristic implements CostHuristic<AtomGoal> {
         int min = Integer.MAX_VALUE;
         int max = 0;
 
-        List<AtomGoal> goalList = new ArrayList<>(proposedGoals.asList());
+        List<G> goalList = new ArrayList<>(proposedGoals.asList());
         for (int i = 0; i < goalList.size(); i++) {
-            AtomGoal goal = goalList.get(i);
-            List<AtomGoal> toRemove = patternRepeated(goalList, goal);
+            G goal = goalList.get(i);
+            List<G> toRemove = patternRepeated(goalList, goal);
             goalList.removeAll(toRemove);
             if(i > goalList.size()){
                 System.out.println("I " + i);
@@ -87,7 +94,7 @@ public class PatternHuristic implements CostHuristic<AtomGoal> {
             }
             goalList.add(i, goal);
             if(!goal.allSame()) {
-                cost += Math.pow(goal.atomCount(), 2);
+                cost += Math.pow(goal.totalI(), 2);
             }
 
             if(min>1){
@@ -105,26 +112,17 @@ public class PatternHuristic implements CostHuristic<AtomGoal> {
         return cost;
     }
 
-    private static List<AtomGoal> patternRepeated(Collection<AtomGoal> goals, AtomGoal pattern){
-        List<AtomGoal> matches = new ArrayList<>();
-        for (AtomGoal goal : goals) {
+    private static <G extends Goal3DAtomLike<G>> List<G> patternRepeated(Collection<G> goals, G pattern){
+        List<G> matches = new ArrayList<>();
+        for (G goal : goals) {
             if (pattern.equivalent(goal)) {
                 matches.add(goal);
-            } else if (goal.atomCount() == pattern.atomCount()){
-                if(pattern.atomCount() == 0){
+            } else if (goal.totalI() == pattern.totalI()){
+                if(pattern.totalI() == 0){
                     matches.add(goal);
                 } else {
-                    if (pattern.get(0).positive == goal.get(0).positive) {
-                        Distance d = new Distance(pattern.get(0), goal.get(0));
-                        int i = 0;
-                        for (; i < pattern.size(); i++) {
-                            if (pattern.get(i).positive != goal.get(i).positive || !d.same(pattern.get(i), goal.get(i))) {
-                                break;
-                            }
-                        }
-                        if (i == pattern.size()) {
-                            matches.add(goal);
-                        }
+                    if(goal.isTranslation(pattern)){
+                        matches.add(goal);
                     }
                 }
             }

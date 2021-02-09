@@ -3,8 +3,9 @@ package uk.co.edstow.cain.scamp5.emulator;
 import uk.co.edstow.cain.RegisterAllocator;
 import uk.co.edstow.cain.ReverseSearch;
 import uk.co.edstow.cain.Verifier;
-import uk.co.edstow.cain.atomGoal.Atom;
-import uk.co.edstow.cain.atomGoal.AtomGoal;
+import uk.co.edstow.cain.goals.Goal3DAtomLike;
+import uk.co.edstow.cain.goals.atomGoal.Atom;
+import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
 import uk.co.edstow.cain.structures.Bounds;
 import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.structures.GoalBag;
@@ -17,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class Scamp5Verifier implements Verifier<AtomGoal> {
+public class Scamp5Verifier<G extends Goal3DAtomLike<G>> implements Verifier<G> {
     int verbose = 0;
     @Override
     public void verbose(int v) {
@@ -25,8 +26,8 @@ public class Scamp5Verifier implements Verifier<AtomGoal> {
     }
 
     @Override
-    public String verify(String code, ReverseSearch<AtomGoal> reverseSearch, Plan<AtomGoal> plan, RegisterAllocator<AtomGoal> registerAllocator) {
-        List<AtomGoal> finalGoals = reverseSearch.getFinalGoals();
+    public String verify(String code, ReverseSearch<G> reverseSearch, Plan<G> plan, RegisterAllocator<G> registerAllocator) {
+        List<G> finalGoals = reverseSearch.getFinalGoals();
         int[] divisions = reverseSearch.getInitialDivisions();
         List<Bounds> coverage = new ArrayList<>();
         double noise = 0;

@@ -9,7 +9,7 @@ import java.util.*;
 import java.util.stream.Stream;
 
 public abstract class ExhaustivePairGen<G extends Goal<G>> implements PairGenFactory.PairGen<G> {
-    private final Iterator<GoalPair<G>> it;
+    protected final Iterator<GoalPair<G>> it;
     private int count = 0;
     protected final Context<G> context;
     protected final GoalBag<G> goals;

@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 public class GoalBag<G extends Goal<G>> implements Iterable<G>{
     private final ArrayList<G> arrayList;
     private boolean immutable = false;
+    private final boolean fullsort;
     private double sumTotal = Double.NaN;
     private static final Comparator<Goal> halfComp = (a, b) -> {
         if(a==b){
@@ -16,10 +17,12 @@ public class GoalBag<G extends Goal<G>> implements Iterable<G>{
 
     public GoalBag(GoalBag<G> b) {
         arrayList = new ArrayList<>(b.arrayList);
+        fullsort = b.fullsort;
     }
 
     public GoalBag() {
         arrayList = new ArrayList<>();
+        fullsort = false;
     }
 
     public GoalBag(G goal) {
@@ -28,11 +31,14 @@ public class GoalBag<G extends Goal<G>> implements Iterable<G>{
     }
 
     public GoalBag(GoalBag<G> b, boolean fullSort) {
-        this(b);
+        this.arrayList = new ArrayList<>(b.arrayList);
         if(fullSort) {
             arrayList.sort(G::compareTo);
             immutable = true;
+
         }
+        this.fullsort = fullSort;
+
     }
 
     public GoalBag(Collection<G> goals) {
@@ -84,22 +90,6 @@ public class GoalBag<G extends Goal<G>> implements Iterable<G>{
         return c;
     }
 
-    @Deprecated
-    public boolean addIfUnique(G goal){
-        assert !immutable;
-        for (int i = 0; i < arrayList.size(); i++) {
-            int c = halfComp.compare(arrayList.get(i),goal);
-            if(c > 0){
-                arrayList.add(i, goal);
-                return true;
-            } else if(c==0){
-                return false;
-            }
-        }
-        arrayList.add(goal);
-        return true;
-    }
-
     public boolean remove(G goal){
         assert !immutable;
 
@@ -131,6 +121,8 @@ public class GoalBag<G extends Goal<G>> implements Iterable<G>{
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         GoalBag<?> goalBag = (GoalBag<?>) o;
+        assert this.fullsort;
+        assert goalBag.fullsort;
         return Objects.equals(arrayList, goalBag.arrayList);
     }
 

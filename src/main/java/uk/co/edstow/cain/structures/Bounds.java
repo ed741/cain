@@ -2,6 +2,7 @@ package uk.co.edstow.cain.structures;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 public interface Bounds {
     int getXMax();
@@ -84,6 +85,21 @@ public interface Bounds {
             this.zMin = zMin;
         }
 
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            SimpleBounds that = (SimpleBounds) o;
+            return getXMax() == that.getXMax() && getXMin() == that.getXMin() &&
+                    getYMax() == that.getYMax() && getYMin() == that.getYMin() &&
+                    getZMax() == that.getZMax() && getZMin() == that.getZMin();
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(getXMax(), getXMin(), getYMax(), getYMin(), getZMax(), getZMin());
+        }
+
         public SimpleBounds(List<Bounds> boundsList) {
             if(boundsList.isEmpty()) throw new IllegalArgumentException();
             int xMax = Integer.MIN_VALUE;
@@ -94,6 +110,31 @@ public interface Bounds {
             int zMin = Integer.MAX_VALUE;
 
             boolean found = false;
+            for (Bounds b: boundsList){
+                xMax = Math.max(xMax, b.getXMax());
+                xMin = Math.min(xMin, b.getXMin());
+                yMax = Math.max(yMax, b.getYMax());
+                yMin = Math.min(yMin, b.getYMin());
+                zMax = Math.max(zMax, b.getZMax());
+                zMin = Math.min(zMin, b.getZMin());
+            }
+            this.xMax = xMax;
+            this.xMin = xMin;
+            this.yMax = yMax;
+            this.yMin = yMin;
+            this.zMax = zMax;
+            this.zMin = zMin;
+        }
+
+        public SimpleBounds(Bounds... boundsList) {
+            if(boundsList.length == 0) throw new IllegalArgumentException();
+            int xMax = Integer.MIN_VALUE;
+            int xMin = Integer.MAX_VALUE;
+            int yMax = Integer.MIN_VALUE;
+            int yMin = Integer.MAX_VALUE;
+            int zMax = Integer.MIN_VALUE;
+            int zMin = Integer.MAX_VALUE;
+
             for (Bounds b: boundsList){
                 xMax = Math.max(xMax, b.getXMax());
                 xMin = Math.min(xMin, b.getXMin());

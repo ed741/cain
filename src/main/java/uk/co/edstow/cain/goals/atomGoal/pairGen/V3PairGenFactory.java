@@ -1,6 +1,6 @@
-package uk.co.edstow.cain.atomGoal.pairGen;
+package uk.co.edstow.cain.goals.atomGoal.pairGen;
 
-import uk.co.edstow.cain.atomGoal.AtomGoal;
+import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
 import uk.co.edstow.cain.pairgen.Context;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
@@ -66,7 +66,7 @@ public class V3PairGenFactory extends V2PairGenFactory{
                         } else {
                             int div = a.divide(tmp);
                             if (div > 1 && (((div - 1) & div) == 0)) {
-                                AtomGoal lower = new AtomGoal.Factory(b).addAll(b).get();
+                                AtomGoal lower = b.added(b);
                                 SimpleTransformation.Div divide = new SimpleTransformation.Div(1, lower);
                                 GoalPair<AtomGoal> pair = new GoalPair<>(b, lower, divide);
                                 double v = V1PairGenFactory.getValue(goals, pair, bounds);
