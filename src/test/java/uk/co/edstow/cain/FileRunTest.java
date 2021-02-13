@@ -13,7 +13,7 @@ class FileRunTest {
         String json =
                 "{\"name\":\"Sobel\",\n" +
                 "  \"verbose\":-1,\n" +
-                "  \"goalSystem\":Atom,\n" +
+                "  \"goalSystem\":Kernel3D,\n" +
                 "  \"maxApproximationDepth\":3,\n" +
                 "  \"maxApproximationError\":0,\n" +
                 "  \"3d\": false,\n" +
@@ -48,7 +48,7 @@ class FileRunTest {
                 "  },\n" +
                 "\n" +
                 "  \"pairGen\":{\n" +
-                "    \"name\": \"Scamp5\",\n" +
+                "    \"name\": \"Scamp5AnalogueAtomGoal\",\n" +
                 "    \"configGetter\": \"Threshold\",\n" +
                 "    \"ops\":\"all\",\n" +
                 "    \"threshold\":10\n" +
@@ -75,7 +75,7 @@ class FileRunTest {
         String json =
                 "{\"name\":\"Sobel\",\n" +
                         "  \"verbose\":-1,\n" +
-                        "  \"goalSystem\":Atom,\n" +
+                        "  \"goalSystem\":Kernel3D,\n" +
                         "  \"maxApproximationDepth\":3,\n" +
                         "  \"maxApproximationError\":0,\n" +
                         "  \"3d\": false,\n" +
@@ -110,7 +110,7 @@ class FileRunTest {
                         "  },\n" +
                         "\n" +
                         "  \"pairGen\":{\n" +
-                        "    \"name\": \"Scamp5ArrayGoal\",\n" +
+                        "    \"name\": \"Scamp5AnalogueArrayGoal\",\n" +
                         "    \"configGetter\": \"Threshold\",\n" +
                         "    \"ops\":\"all\",\n" +
                         "    \"threshold\":10\n" +
@@ -137,7 +137,7 @@ class FileRunTest {
         String json =
                 "{\"name\":\"DigitalBox\",\n" +
                         "  \"verbose\":-1,\n" +
-                        "  \"goalSystem\":Atom,\n" +
+                        "  \"goalSystem\":Kernel3D,\n" +
                         "  \"maxApproximationDepth\":3,\n" +
                         "  \"maxApproximationError\":0,\n" +
                         "  \"3d\": false,\n" +
@@ -178,7 +178,7 @@ class FileRunTest {
                         "  },\n" +
                         "\n" +
                         "  \"pairGen\":{\n" +
-                        "    \"name\": \"Scamp5Digital\",\n" +
+                        "    \"name\": \"Scamp5DigitalAtomGoal\",\n" +
                         "    \"configGetter\": \"Threshold\",\n" +
                         "    \"threshold\":10,\n" +
                         "    \"bits\":2,\n" +

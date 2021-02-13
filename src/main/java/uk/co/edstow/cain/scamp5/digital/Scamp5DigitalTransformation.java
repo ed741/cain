@@ -2,26 +2,26 @@ package uk.co.edstow.cain.scamp5.digital;
 
 import uk.co.edstow.cain.RegisterAllocator;
 import uk.co.edstow.cain.Transformation;
+import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
-import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
 import uk.co.edstow.cain.goals.atomGoal.pairGen.SimpleTransformation;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 
-public abstract class Scamp5DigitalTransformation extends Transformation {
-    protected final Scamp5DigitalConfig<AtomGoal> config;
+public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> extends Transformation {
+    protected final Scamp5DigitalConfig<G> config;
 
-    protected Scamp5DigitalTransformation(Scamp5DigitalConfig<AtomGoal> scamp5DigitalConfig) {
+    protected Scamp5DigitalTransformation(Scamp5DigitalConfig<G> scamp5DigitalConfig) {
         this.config = scamp5DigitalConfig;
     }
 
-    public abstract List<AtomGoal> applyOpForwards() throws TransformationApplicationException;
+    public abstract List<G> applyOpForwards() throws TransformationApplicationException;
 
 
-    abstract static class SimpleScamp5DigitalTransformation extends Scamp5DigitalTransformation {
+    abstract static class SimpleScamp5DigitalTransformation<G extends Kernel3DGoal<G>> extends Scamp5DigitalTransformation<G> {
 
-        SimpleScamp5DigitalTransformation(Scamp5DigitalConfig<AtomGoal> config) {
+        SimpleScamp5DigitalTransformation(Scamp5DigitalConfig<G> config) {
             super(config);
         }
 
@@ -36,8 +36,8 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
 
         abstract String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers);
 
-        public abstract AtomGoal applyForwards() throws TransformationApplicationException;
-        public List<AtomGoal> applyOpForwards() throws TransformationApplicationException{
+        public abstract G applyForwards() throws TransformationApplicationException;
+        public List<G> applyOpForwards() throws TransformationApplicationException{
             return Collections.singletonList(applyForwards());
         }
 
@@ -111,11 +111,11 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
         }
     }
 
-    public static class Res extends SimpleScamp5DigitalTransformation {
+    public static class Res<G extends Kernel3DGoal<G>> extends SimpleScamp5DigitalTransformation<G> {
         // u := {}
-        final AtomGoal result;
+        final G result;
 
-        public Res(AtomGoal result, Scamp5DigitalConfig<AtomGoal> scamp5DigitalConfig) {
+        public Res(G result, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
             super(scamp5DigitalConfig);
             this.result = result;
         }
@@ -146,7 +146,7 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
         }
 
         @Override
-        public AtomGoal applyForwards() {
+        public G applyForwards() {
             return result;
         }
 
@@ -180,12 +180,12 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
     }
 
 
-    public static class Res_2 extends Scamp5DigitalTransformation {
+    public static class Res_2 <G extends Kernel3DGoal<G>>extends Scamp5DigitalTransformation<G> {
         // u := {}
-        final AtomGoal result1;
-        final AtomGoal result2;
+        final G result1;
+        final G result2;
 
-        public Res_2(AtomGoal a, AtomGoal b, Scamp5DigitalConfig<AtomGoal> scamp5DigitalConfig) {
+        public Res_2(G a, G b, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
             super(scamp5DigitalConfig);
             this.result1 = a;
             this.result2 = b;
@@ -224,7 +224,7 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
         }
 
         @Override
-        public List<AtomGoal> applyOpForwards() {
+        public List<G> applyOpForwards() {
             return Arrays.asList(result1, result2);
         }
 
@@ -262,23 +262,23 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
     }
 
 
-    public static class Mov extends SimpleScamp5DigitalTransformation {
+    public static class Mov<G extends Kernel3DGoal<G>> extends SimpleScamp5DigitalTransformation<G> {
         //u := a
 
-        final AtomGoal a;
-        AtomGoal moved = null;
+        final G a;
+        G moved = null;
 
         @SuppressWarnings("WeakerAccess")
-        public Mov(AtomGoal a, Scamp5DigitalConfig<AtomGoal> scamp5DigitalConfig) {
+        public Mov(G a, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
             super(scamp5DigitalConfig);
             this.a = a;
         }
 
         @SuppressWarnings("WeakerAccess")
-        public Mov(AtomGoal in, boolean upper, Scamp5DigitalConfig<AtomGoal> scamp5DigitalConfig) {
+        public Mov(G in, boolean upper, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
             super(scamp5DigitalConfig);
             if (upper) {
-                this.a = new AtomGoal(in);
+                this.a = in.copy();
                 this.moved = in;
             } else {
                 this.a = in;
@@ -303,9 +303,9 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
         }
 
         @Override
-        public AtomGoal applyForwards() {
+        public G applyForwards() {
             if(this.moved == null){
-                this.moved = new AtomGoal(a);
+                this.moved = a.copy();
             }
             return this.moved;
         }
@@ -340,15 +340,15 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
     }
 
 
-    public static class Add_2 extends Scamp5DigitalTransformation {
+    public static class Add_2<G extends Kernel3DGoal<G>> extends Scamp5DigitalTransformation<G> {
         // u := a + b
 
-        final AtomGoal a;
-        final AtomGoal b;
-        AtomGoal sum;
+        final G a;
+        final G b;
+        G sum;
 
 
-        public Add_2(AtomGoal a, AtomGoal b, Scamp5DigitalConfig<AtomGoal> scamp5DigitalConfig) {
+        public Add_2(G a, G b, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
             super(scamp5DigitalConfig);
 
             this.a = a;
@@ -427,7 +427,7 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
         }
 
         @Override
-        public List<AtomGoal> applyOpForwards() throws TransformationApplicationException {
+        public List<G> applyOpForwards() throws TransformationApplicationException {
             if (this.sum == null){
                 this.sum = a.added(a);
             }
@@ -435,45 +435,46 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
         }
     }
 
-    public static class AddSelf extends Scamp5DigitalTransformation {
+    public static class AddSelf<G extends Kernel3DGoal<G>> extends Scamp5DigitalTransformation<G> {
         // u := a + a
 
-        final AtomGoal a;
-        AtomGoal sum;
+        final G a;
+        G sum;
 
 
-        public AddSelf(AtomGoal a, Scamp5DigitalConfig<AtomGoal> scamp5DigitalConfig) {
+        public AddSelf(G a, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
             super(scamp5DigitalConfig);
 
             this.a = a;
             this.sum = null;
         }
-        public AddSelf(AtomGoal a, AtomGoal sum, Scamp5DigitalConfig<AtomGoal> scamp5DigitalConfig) {
+        public AddSelf(G a, G sum, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
             super(scamp5DigitalConfig);
 
             this.a = a;
             this.sum = sum;
         }
 
-        public AddSelf(AtomGoal in, boolean upper, Scamp5DigitalConfig<AtomGoal> scamp5DigitalConfig) {
+        public AddSelf(G in, boolean upper, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
             super(scamp5DigitalConfig);
 
             if(!upper){
                 this.a = in;
                 this.sum = null;
             } else {
-                boolean divisable = true;
-                AtomGoal.Factory factory = new AtomGoal.Factory();
-                for (Iterator<Tuple<Atom, Integer>> it = in.uniqueCountIterator(); it.hasNext(); ) {
+                Kernel3DGoal.Goal3DAtomLikeFactory<G> factory = in.newFactory();
+                Iterator<Tuple<Atom, Integer>> it = in.uniqueCountIterator();
+                while(it.hasNext()){
                     Tuple<Atom, Integer> t = it.next();
-                    divisable &= (t.getB()%2)==0;
-                    factory.add(t.getA(), t.getB()/2);
+                    int count = t.getB();
+                    if(count < 2 || count % 2 != 0){
+                        this.a = null;
+                        this.sum = in;
+                        return;
+                    }
+                    factory.add(t.getA().x, t.getA().y, t.getA().z, t.getA().positive?count/2:(-count/2));
                 }
-                if(divisable) {
-                    a = factory.get();
-                } else {
-                    a = null;
-                }
+                this.a = factory.get();
                 this.sum = in;
             }
 
@@ -542,7 +543,7 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
         }
 
         @Override
-        public List<AtomGoal> applyOpForwards() throws TransformationApplicationException {
+        public List<G> applyOpForwards() throws TransformationApplicationException {
             if (this.sum == null){
                 this.sum = a.added(a);
             }
@@ -550,20 +551,20 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
         }
     }
 
-    public static class Div extends SimpleScamp5DigitalTransformation {
+    public static class Div<G extends Kernel3DGoal<G>> extends SimpleScamp5DigitalTransformation<G> {
         // u := a*0.5 + error
 
-        final AtomGoal a;
-        AtomGoal div;
+        final G a;
+        G div;
 
-        public Div(AtomGoal a, Scamp5DigitalConfig<AtomGoal> scamp5DigitalConfig) {
+        public Div(G a, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
             super(scamp5DigitalConfig);
 
             this.a = a;
             this.div = null;
         }
 
-        public Div(AtomGoal in, boolean upper, Scamp5DigitalConfig<AtomGoal> scamp5DigitalConfig) {
+        public Div(G in, boolean upper, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
             super(scamp5DigitalConfig);
 
             if(!upper){
@@ -609,28 +610,17 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
 
         @SuppressWarnings("ConstantConditions")
         @Override
-        public AtomGoal applyForwards() throws TransformationApplicationException {
+        public G applyForwards() throws TransformationApplicationException {
             if(this.div == null){
-                AtomGoal.Factory factory = new AtomGoal.Factory();
-                if (!this.a.isEmpty()) {
-                    int count = 1;
-                    Atom last = a.get(0);
-                    for (int i = 1; i < a.size()+1; i++) {
-                        Atom c = i < a.size()?a.get(i):null;
-                        if(c == null || !last.equals(c)){
-                            if(count/2 != (count+1)/2){
-                                throw new TransformationApplicationException("Cannot divide uneven number of atoms!");
-                            } else {
-                                for (int j = 0; j < count / 2; j++) {
-                                    factory.add(last);
-                                }
-                            }
-                            last = c;
-                            count = 1;
-                        } else {
-                            count++;
-                        }
+                Kernel3DGoal.Goal3DAtomLikeFactory<G> factory = a.newFactory();
+                Iterator<Tuple<Atom, Integer>> it = a.uniqueCountIterator();
+                while(it.hasNext()){
+                    Tuple<Atom, Integer> t = it.next();
+                    int count = t.getB();
+                    if(count < 2 || count % 2 != 0){
+                        throw new TransformationApplicationException("Cannot divide uneven number of atoms!");
                     }
+                    factory.add(t.getA().x, t.getA().y, t.getA().z, t.getA().positive?count/2:(-count/2));
                 }
                 this.div = factory.get();
             }
@@ -667,17 +657,17 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
     }
 
 
-    public static class Movx extends Mov {
+    public static class Movx<G extends Kernel3DGoal<G>> extends Mov<G> {
         //u := a_dir
 
         final Dir dir;
 
-        public Movx(AtomGoal a, Dir dir, Scamp5DigitalConfig<AtomGoal> scamp5DigitalConfig) {
+        public Movx(G a, Dir dir, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
             super(a, scamp5DigitalConfig);
             this.dir = dir;
         }
 
-        public Movx(AtomGoal in, Dir dir, boolean upper, Scamp5DigitalConfig<AtomGoal> scamp5DigitalConfig) {
+        public Movx(G in, Dir dir, boolean upper, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
 
             super(upper?in.translated(-dir.x, -dir.y, 0):in, scamp5DigitalConfig);
             this.moved = upper?in:null;
@@ -699,7 +689,7 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
         }
 
         @Override
-        public AtomGoal applyForwards() {
+        public G applyForwards() {
             if(this.moved == null){
                 this.moved = a.translated(dir.x, dir.y, 0);
             }

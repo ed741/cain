@@ -1,6 +1,6 @@
 package uk.co.edstow.cain.goals.atomGoal;
 
-import uk.co.edstow.cain.goals.Goal3DAtomLike;
+import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.goals.atomGoal.pairGen.Distance;
 import uk.co.edstow.cain.structures.Bounds;
 import uk.co.edstow.cain.util.Tuple;
@@ -8,7 +8,7 @@ import uk.co.edstow.cain.util.Tuple;
 import java.util.*;
 
 
-public class AtomGoal implements List<Atom>, Goal3DAtomLike<AtomGoal> {
+public class AtomGoal implements List<Atom>, Kernel3DGoal<AtomGoal> {
 
     private final List<Atom> list;
 

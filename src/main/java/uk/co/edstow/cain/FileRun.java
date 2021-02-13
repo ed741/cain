@@ -4,16 +4,10 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
-import uk.co.edstow.cain.goals.Goal3DAtomLike;
-import uk.co.edstow.cain.goals.arrayGoal.ArrayGoal;
+import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
-import uk.co.edstow.cain.scamp5.PatternHuristic;
-import uk.co.edstow.cain.scamp5.ThresholdScamp5ConfigGetter;
-import uk.co.edstow.cain.scamp5.analogue.Scamp5AnalougeConfig;
-import uk.co.edstow.cain.scamp5.analogue.Scamp5AnaloguePairGenFactory;
-import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
-import uk.co.edstow.cain.scamp5.digital.Scamp5DigitalConfig;
-import uk.co.edstow.cain.scamp5.digital.Scamp5DigitalPairGenFactory;
+import uk.co.edstow.cain.scamp5.analogue.Scamp5AnalogueFileRun;
+import uk.co.edstow.cain.scamp5.digital.Scamp5DigitalFileRun;
 import uk.co.edstow.cain.scamp5.emulator.Scamp5Verifier;
 import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.structures.GoalBag;
@@ -26,7 +20,6 @@ import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.*;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public abstract class FileRun<G extends Goal<G>> {
@@ -41,8 +34,8 @@ public abstract class FileRun<G extends Goal<G>> {
 
         String goalSystem = config.getString("goalSystem");
         switch (goalSystem) {
-            case "Atom":
-                return AtomFileRun.getAtomFileRun(config);
+            case "Kernel3D":
+                return Kernel3DFileRun.getKernel3DFileRun(config);
             default:
                 throw new IllegalArgumentException("GoalSystem Unknown");
         }
@@ -351,31 +344,33 @@ public abstract class FileRun<G extends Goal<G>> {
     }
 
 
-    private static abstract class AtomFileRun<G extends Goal3DAtomLike<G>> extends FileRun<G> {
+    public static abstract class Kernel3DFileRun<G extends Kernel3DGoal<G>> extends FileRun<G> {
 
-        public static  AtomFileRun<?> getAtomFileRun(JSONObject config) {
+        public static Kernel3DFileRun<?> getKernel3DFileRun(JSONObject config) {
             JSONObject json = config.getJSONObject("pairGen");
             switch (json.getString("name")) {
                 default:
                     throw new IllegalArgumentException("Unknown PairGen Factory " + json.getString("name"));
-                case "Scamp5":
-                    return new Scamp5AnalogueAtomFileRunAtom(config);
-                case "Scamp5ArrayGoal":
-                    return new Scamp5AnalogueAtomFileRunArray(config);
-                case "Scamp5Digital":
-                    return new Scamp5DigitalAtomFileRun(config);
+                case "Scamp5AnalogueAtomGoal":
+                    return new Scamp5AnalogueFileRun.AtomGoalFileRun(config);
+                case "Scamp5AnalogueArrayGoal":
+                    return new Scamp5AnalogueFileRun.ArrayGoalFileRun(config);
+                case "Scamp5DigitalAtomGoal":
+                    return new Scamp5DigitalFileRun.AtomGoalFileRun(config);
+                case "Scamp5DigitalArrayGoal":
+                    return new Scamp5DigitalFileRun.ArrayGoalFileRun(config);
             }
         }
 
-        public AtomFileRun(JSONObject config) {
+        public Kernel3DFileRun(JSONObject config) {
             super(config);
         }
 
-        public AtomFileRun(JSONObject config, List<G> finalGoals, int approximationDepth) {
+        public Kernel3DFileRun(JSONObject config, List<G> finalGoals, int approximationDepth) {
             super(config, finalGoals, approximationDepth);
         }
 
-        abstract Goal3DAtomLike.Goal3DAtomLikeFactory<G> getGoalFactory();
+        protected abstract Kernel3DGoal.Goal3DAtomLikeFactory<G> getGoalFactory();
 
         @Override
         protected List<G> makeFinalGoals(JSONObject config) {
@@ -446,7 +441,7 @@ public abstract class FileRun<G extends Goal<G>> {
             }
         }
 
-        private static <G extends Goal3DAtomLike<G>> void addGoal(Approximater<G> goalAprox, JSONArray jsonArray, boolean threeDimentional, double scale) {
+        private static <G extends Kernel3DGoal<G>> void addGoal(Approximater<G> goalAprox, JSONArray jsonArray, boolean threeDimentional, double scale) {
             int xMax = 0;
             int yMax = jsonArray.length();
             int zMax = 0;
@@ -488,141 +483,9 @@ public abstract class FileRun<G extends Goal<G>> {
 
     }
 
-    public static class Scamp5AnalogueAtomFileRunAtom extends FileRun.Scamp5AnalogueAtomFileRun<AtomGoal> {
-        public Scamp5AnalogueAtomFileRunAtom(JSONObject config) {
-            super(config);
-        }
-
-        public Scamp5AnalogueAtomFileRunAtom(JSONObject config, List<AtomGoal> finalGoals, int approximationDepth) {
-            super(config, finalGoals, approximationDepth);
-        }
-
-        @Override
-        Goal3DAtomLike.Goal3DAtomLikeFactory<AtomGoal> getGoalFactory() {
-            return new AtomGoal.Factory();
-        }
-    }
-
-    public static class Scamp5AnalogueAtomFileRunArray extends FileRun.Scamp5AnalogueAtomFileRun<ArrayGoal> {
-        public Scamp5AnalogueAtomFileRunArray(JSONObject config) {
-            super(config);
-        }
-
-        public Scamp5AnalogueAtomFileRunArray(JSONObject config, List<ArrayGoal> finalGoals, int approximationDepth) {
-            super(config, finalGoals, approximationDepth);
-        }
-
-        @Override
-        Goal3DAtomLike.Goal3DAtomLikeFactory<ArrayGoal> getGoalFactory() {
-            return new ArrayGoal.Factory();
-        }
-    }
 
 
-    public abstract static class Scamp5AnalogueAtomFileRun<G extends Goal3DAtomLike<G>> extends AtomFileRun<G> {
 
-
-        public Scamp5AnalogueAtomFileRun(JSONObject config) {
-            super(config);
-        }
-
-        public Scamp5AnalogueAtomFileRun(JSONObject config, List<G> finalGoals, int approximationDepth) {
-            super(config, finalGoals, approximationDepth);
-        }
-
-        @Override
-        protected PairGenFactory<G> makePairGenFactory(JSONObject json, RegisterAllocator<G> registerAllocator) {
-            printLn("\t Making Pair Generation Factory:");
-            printLn("Name                        : " + json.getString("name"));
-            printLn("Config Getter               : " + json.getString("configGetter"));
-            switch (json.getString("configGetter")) {
-                default:
-                    throw new IllegalArgumentException("Unknown Scamp5 Scamp5ConfigGetter " + json.getString("configGetter"));
-                case "Threshold":
-                    printLn("Instruction to use          : " + json.getString("ops"));
-                    Scamp5AnalougeConfig<G> scampConfig;
-                    switch (json.getString("ops")) {
-                        default:
-                            throw new IllegalArgumentException("Unknown Instuctions option " + json.getString("ops"));
-                        case "all":
-                            scampConfig = new Scamp5AnalougeConfig.Builder<G>().useAll().setSubPowerOf2(true).build();
-                            break;
-                        case "basic":
-                            scampConfig = new Scamp5AnalougeConfig.Builder<G>().useBasic().setSubPowerOf2(true).build();
-                            break;
-                    }
-                    printLn("Exhustive Search Threshold  : " + json.getInt("threshold"));
-                    return new Scamp5AnaloguePairGenFactory<>(
-                            new ThresholdScamp5ConfigGetter<>(
-                                    initialGoals, json.getInt("threshold"),
-                                    new PatternHuristic<>(initialGoals), scampConfig,
-                                    (goals, conf, scamp5Config, heuristic) -> new Scamp5AnaloguePairGenFactory.AtomDistanceSortedPairGen<>(goals, conf, scampConfig, heuristic),
-                                    (goals, conf, scamp5Config, heuristic) -> new Scamp5AnaloguePairGenFactory.Scamp5ExhaustivePairGen<>(goals, conf, scampConfig, heuristic)
-                            )
-                    );
-            }
-
-        }
-    }
-
-    public static class Scamp5DigitalAtomFileRun extends AtomFileRun<AtomGoal> {
-
-        public Scamp5DigitalAtomFileRun(JSONObject config) {
-            super(config);
-        }
-
-        public Scamp5DigitalAtomFileRun(JSONObject config, List<AtomGoal> finalGoals, int approximationDepth) {
-            super(config, finalGoals, approximationDepth);
-        }
-
-        @Override
-        Goal3DAtomLike.Goal3DAtomLikeFactory<AtomGoal> getGoalFactory() {
-            return new AtomGoal.Factory();
-        }
-
-        @Override
-        protected PairGenFactory<AtomGoal> makePairGenFactory(JSONObject json, RegisterAllocator<AtomGoal> registerAllocator) {
-            printLn("\t Making Pair Generation Factory:");
-            printLn("Name                        : " + json.getString("name"));
-            printLn("Config Getter               : " + json.getString("configGetter"));
-            int bits = json.getInt("bits");
-            JSONArray jScratchRegs = json.getJSONArray("scratchRegs");
-            List<String> scratchRegs = new ArrayList<String>(jScratchRegs.length());
-            for (int i = 0; i < jScratchRegs.length(); i++) {
-                scratchRegs.add(jScratchRegs.getString(i));
-            }
-            JSONObject jRegMapping = json.getJSONObject("regMapping");
-            Map<RegisterAllocator.Register, List<String>> regMapping = new HashMap<>();
-            for(RegisterAllocator.Register reg: registerAllocator.getAvailableRegistersArray()){
-                JSONArray jRegList = jRegMapping.getJSONArray(reg.name);
-                List<String> digitalRegs = new ArrayList<String>(jRegList.length());
-                if(bits > jRegList.length()){
-                    throw new IllegalArgumentException("Not Enough Digital Registers for Logical Register: " + reg.toString());
-                }
-                for (int i = 0; i < jRegList.length(); i++) {
-                    digitalRegs.add(jRegList.getString(i));
-                }
-                regMapping.put(reg, digitalRegs);
-            }
-
-            switch (json.getString("configGetter")) {
-                default:
-                    throw new IllegalArgumentException("Unknown Scamp5 Scamp5ConfigGetter " + json.getString("configGetter"));
-                case "Threshold":
-                    Scamp5DigitalConfig<AtomGoal> scampConfig = new Scamp5DigitalConfig<AtomGoal>(true, true, true, true, true, true, true, regMapping, scratchRegs, bits);
-                    printLn("Exhustive Search Threshold  : " + json.getInt("threshold"));
-                    return new Scamp5DigitalPairGenFactory(
-                            new ThresholdScamp5ConfigGetter<>(
-                                    initialGoals, json.getInt("threshold"),
-                                    new PatternHuristic<>(initialGoals), scampConfig,
-                                    (goals, conf, scamp5Config, heuristic) -> new Scamp5DigitalPairGenFactory.AtomDistanceSortedPairGen<>(goals, conf, scampConfig, heuristic),
-                                    (goals, conf, scamp5Config, heuristic) -> new Scamp5DigitalPairGenFactory.Scamp5ExhaustivePairGen<>(goals, conf, scampConfig, heuristic)
-                            )
-                    );
-            }
-
-        }
-    }
 
 
     public int getAvailableRegisterCount() {
@@ -712,35 +575,35 @@ public abstract class FileRun<G extends Goal<G>> {
     }
 
 
-    private static void printLnVerbose(String s) {
+    public static void printLnVerbose(String s) {
         if (verbose > 10) System.out.println(s);
     }
 
-    private static void printLnVerbose(String s, Object... args) {
+    public static void printLnVerbose(String s, Object... args) {
         if (verbose > 10) System.out.printf((s) + "%n", args);
     }
 
-    private static void printLn(String s) {
+    public static void printLn(String s) {
         if (verbose > 5) System.out.println(s);
     }
 
-    private static void printLn(String s, Object... args) {
+    public static void printLn(String s, Object... args) {
         if (verbose > 5) System.out.printf((s) + "%n", args);
     }
 
-    private static void printLnImportant(String s) {
+    public static void printLnImportant(String s) {
         if (verbose > 0) System.out.println(s);
     }
 
-    private static void printLnImportant(String s, Object... args) {
+    public static void printLnImportant(String s, Object... args) {
         if (verbose > 0) System.out.printf((s) + "%n", args);
     }
 
-    private static void printLnCritial(String s) {
+    public static void printLnCritial(String s) {
         if (verbose >= 0) System.out.println(s);
     }
 
-    private static void printLnCritial(String s, Object... args) {
+    public static void printLnCritial(String s, Object... args) {
         if (verbose >= 0) System.out.printf((s) + "%n", args);
     }
 }

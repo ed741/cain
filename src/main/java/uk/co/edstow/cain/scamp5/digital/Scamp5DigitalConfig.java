@@ -2,7 +2,7 @@ package uk.co.edstow.cain.scamp5.digital;
 
 import uk.co.edstow.cain.RegisterAllocator;
 import uk.co.edstow.cain.scamp5.Scamp5ConfigGetter;
-import uk.co.edstow.cain.scamp5.analogue.Scamp5AnalougeConfig;
+import uk.co.edstow.cain.scamp5.analogue.Scamp5AnalogueConfig;
 import uk.co.edstow.cain.structures.Goal;
 
 import java.util.List;
@@ -36,7 +36,7 @@ public class Scamp5DigitalConfig<G extends Goal<G>> implements Scamp5ConfigGette
     final List<String> scratchRegisters;
     final int bits;
 
-    public Scamp5DigitalConfig(Scamp5AnalougeConfig<G> proto, Map<RegisterAllocator.Register, List<String>> registerMapping, List<String> scratchRegisters, int bits) {
+    public Scamp5DigitalConfig(Scamp5AnalogueConfig<G> proto, Map<RegisterAllocator.Register, List<String>> registerMapping, List<String> scratchRegisters, int bits) {
         this.useMov = proto.useMov;
         this.useMovx = proto.useMovx;
         this.useAdd = proto.useAdd;

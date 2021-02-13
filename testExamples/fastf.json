@@ -1,4 +1,5 @@
-{"name":"Sobel",
+{"name":"fastF",
+  "verbose": -1,
   "goalSystem":"Kernel3D",
   "maxApproximationDepth":3,
   "maxApproximationError":0,
@@ -6,24 +7,27 @@
   "filter":{
     "A": {"depth":0,
       "array":
-      [ [1, 0, -1],
-        [2, 0, -2],
-        [1, 0, -1]
-      ]}
+      [ [ 0, 0, 0, 0, 0],
+        [ 0, 1, 2, 0, 0],
+        [ 0, 1, 2, 0, 0],
+        [ 0, 1, 2, 0, 0],
+        [ 0, 0, 0, 0, 0]
+      ]
+    }
   },
 
   "availableRegisters":["A","B","C","D","E","F"],
   "initialRegisters":["A"],
 
   "runConfig":{
-    "searchTime":1000,
+    "searchTime":5000,
     "timeOut":true,
     "workers":4,
     "traversalAlgorithm":"SOT",
     "costFunction":"CircuitDepthThenLength",
-    "liveCounter":true,
-    "livePrintPlans":2,
-    "quiet": false,
+    "liveCounter":false,
+    "livePrintPlans":0,
+    "quiet": true,
     "initialMaxDepth":200,
     "forcedDepthReduction":1,
     "initialMaxCost":2147483647,

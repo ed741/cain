@@ -1,6 +1,6 @@
 package uk.co.edstow.cain.scamp5.analogue;
 
-import uk.co.edstow.cain.goals.Goal3DAtomLike;
+import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.RegisterAllocator;
 import uk.co.edstow.cain.Transformation;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
@@ -9,11 +9,11 @@ import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 
-public abstract class Scamp5AnalogueTransformation<G extends Goal3DAtomLike<G>> extends Transformation {
+public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> extends Transformation {
     public abstract List<G> applyOpForwards() throws TransformationApplicationException;
 
 
-    abstract static class SimpleScamp5AnalogueTransformation<G extends Goal3DAtomLike<G>> extends Scamp5AnalogueTransformation<G> {
+    abstract static class SimpleScamp5AnalogueTransformation<G extends Kernel3DGoal<G>> extends Scamp5AnalogueTransformation<G> {
 
         @Override
         public String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
@@ -103,7 +103,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Goal3DAtomLike<G>> 
         }
     }
 
-    public static class Res<G extends Goal3DAtomLike<G>> extends SimpleScamp5AnalogueTransformation<G> {
+    public static class Res<G extends Kernel3DGoal<G>> extends SimpleScamp5AnalogueTransformation<G> {
         // u := {}
         final G result;
 
@@ -157,7 +157,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Goal3DAtomLike<G>> 
     }
 
 
-    public static class Res_2<G extends Goal3DAtomLike<G>> extends Scamp5AnalogueTransformation<G> {
+    public static class Res_2<G extends Kernel3DGoal<G>> extends Scamp5AnalogueTransformation<G> {
         // u := {}
         final G result1;
         final G result2;
@@ -222,7 +222,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Goal3DAtomLike<G>> 
     }
 
 
-    public static class Mov<G extends Goal3DAtomLike<G>> extends SimpleScamp5AnalogueTransformation<G> {
+    public static class Mov<G extends Kernel3DGoal<G>> extends SimpleScamp5AnalogueTransformation<G> {
         //u := a
 
         final G a;
@@ -292,7 +292,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Goal3DAtomLike<G>> 
     }
 
 
-    public static class Add_2<G extends Goal3DAtomLike<G>> extends SimpleScamp5AnalogueTransformation<G> {
+    public static class Add_2<G extends Kernel3DGoal<G>> extends SimpleScamp5AnalogueTransformation<G> {
         // u := a + b
 
         final G a;
@@ -354,7 +354,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Goal3DAtomLike<G>> 
 
     }
 
-    public static class Add_3<G extends Goal3DAtomLike<G>> extends SimpleScamp5AnalogueTransformation<G> {
+    public static class Add_3<G extends Kernel3DGoal<G>> extends SimpleScamp5AnalogueTransformation<G> {
         // u := a + b + c
 
         final G a;
@@ -417,7 +417,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Goal3DAtomLike<G>> 
         }
     }
 
-    public static class Sub<G extends Goal3DAtomLike<G>> extends SimpleScamp5AnalogueTransformation<G> {
+    public static class Sub<G extends Kernel3DGoal<G>> extends SimpleScamp5AnalogueTransformation<G> {
         // u := a - b
 
          final G a;
@@ -478,7 +478,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Goal3DAtomLike<G>> 
         }
     }
 
-    public static class Neg<G extends Goal3DAtomLike<G>> extends SimpleScamp5AnalogueTransformation<G> {
+    public static class Neg<G extends Kernel3DGoal<G>> extends SimpleScamp5AnalogueTransformation<G> {
         // u := -a
 
         final G a;
@@ -548,7 +548,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Goal3DAtomLike<G>> 
         }
     }
 
-    public static class Divq<G extends Goal3DAtomLike<G>> extends SimpleScamp5AnalogueTransformation<G> {
+    public static class Divq<G extends Kernel3DGoal<G>> extends SimpleScamp5AnalogueTransformation<G> {
         // u := a*0.5 + error
 
         final G a;
@@ -597,7 +597,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Goal3DAtomLike<G>> 
         @Override
         public G applyForwards() throws TransformationApplicationException {
             if(this.div == null){
-                Goal3DAtomLike.Goal3DAtomLikeFactory<G> factory = a.newFactory();
+                Kernel3DGoal.Goal3DAtomLikeFactory<G> factory = a.newFactory();
                 Iterator<Tuple<Atom, Integer>> it = a.uniqueCountIterator();
                 while(it.hasNext()){
                     Tuple<Atom, Integer> t = it.next();
@@ -605,7 +605,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Goal3DAtomLike<G>> 
                     if(count < 2 || count % 2 != 0){
                         throw new TransformationApplicationException("Cannot divide uneven number of atoms!");
                     }
-                    factory.add(t.getA().x, t.getA().y, t.getA().z, count/2);
+                    factory.add(t.getA().x, t.getA().y, t.getA().z, t.getA().positive?count/2:(-count/2));
                 }
                 this.div = factory.get();
             }
@@ -642,7 +642,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Goal3DAtomLike<G>> 
     }
 
 
-    public static class Movx<G extends Goal3DAtomLike<G>> extends Mov<G> {
+    public static class Movx<G extends Kernel3DGoal<G>> extends Mov<G> {
         //u := a_dir
 
         final Dir dir;
@@ -679,7 +679,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Goal3DAtomLike<G>> 
     }
 
 
-    public static class Mov2x<G extends Goal3DAtomLike<G>> extends Mov<G>{
+    public static class Mov2x<G extends Kernel3DGoal<G>> extends Mov<G>{
         // u := a_dir1_dir2
 
         final Dir dir1;
@@ -720,7 +720,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Goal3DAtomLike<G>> 
     }
 
 
-    public static class Addx<G extends Goal3DAtomLike<G>> extends Add_2<G> {
+    public static class Addx<G extends Kernel3DGoal<G>> extends Add_2<G> {
         // u := a_dir + b_dir
 
         final Dir dir;
@@ -753,7 +753,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Goal3DAtomLike<G>> 
     }
 
 
-    public static class Add2x<G extends Goal3DAtomLike<G>> extends Add_2<G> {
+    public static class Add2x<G extends Kernel3DGoal<G>> extends Add_2<G> {
         // u := a_dir1_dir2 + b_dir1_dir2
         final Dir dir1;
         final Dir dir2;
@@ -785,7 +785,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Goal3DAtomLike<G>> 
     }
 
 
-    public static class Subx<G extends Goal3DAtomLike<G>> extends Sub<G> {
+    public static class Subx<G extends Kernel3DGoal<G>> extends Sub<G> {
         // u := a_dir - b
 
         final Dir dir;
@@ -816,7 +816,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Goal3DAtomLike<G>> 
     }
 
 
-    public static class Sub2x<G extends Goal3DAtomLike<G>> extends Sub<G> {
+    public static class Sub2x<G extends Kernel3DGoal<G>> extends Sub<G> {
         // u := a_dir1_dir2 - b
 
         final Dir dir1;
@@ -849,7 +849,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Goal3DAtomLike<G>> 
     }
 
 
-    public static class Div<G extends Goal3DAtomLike<G>> extends Scamp5AnalogueTransformation<G> {
+    public static class Div<G extends Kernel3DGoal<G>> extends Scamp5AnalogueTransformation<G> {
         // u := a*0.5 + error
 
         final G a;
@@ -948,7 +948,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Goal3DAtomLike<G>> 
         }
 
         private G applyDiv(G in) throws TransformationApplicationException {
-            Goal3DAtomLike.Goal3DAtomLikeFactory<G> factory = a.newFactory();
+            Kernel3DGoal.Goal3DAtomLikeFactory<G> factory = a.newFactory();
             Iterator<Tuple<Atom, Integer>> it = a.uniqueCountIterator();
             while(it.hasNext()){
                 Tuple<Atom, Integer> t = it.next();
@@ -956,7 +956,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Goal3DAtomLike<G>> 
                 if(count < 2 || count % 2 != 0){
                     throw new TransformationApplicationException("Cannot divide uneven number of atoms!");
                 }
-                factory.add(t.getA().x, t.getA().y, t.getA().z, count/2);
+                factory.add(t.getA().x, t.getA().y, t.getA().z, t.getA().positive?count/2:(-count/2));
             }
             return factory.get();
         }

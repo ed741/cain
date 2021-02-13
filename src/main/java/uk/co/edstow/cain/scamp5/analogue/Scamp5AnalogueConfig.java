@@ -3,7 +3,7 @@ package uk.co.edstow.cain.scamp5.analogue;
 import uk.co.edstow.cain.scamp5.Scamp5ConfigGetter;
 import uk.co.edstow.cain.structures.Goal;
 
-public class Scamp5AnalougeConfig<G extends Goal<G>> implements Scamp5ConfigGetter.Scamp5Config<G, Scamp5AnalougeConfig<G>> {
+public class Scamp5AnalogueConfig<G extends Goal<G>> implements Scamp5ConfigGetter.Scamp5Config<G, Scamp5AnalogueConfig<G>> {
 
     public final boolean useMov;
     public final boolean useMovx;
@@ -33,7 +33,7 @@ public class Scamp5AnalougeConfig<G extends Goal<G>> implements Scamp5ConfigGett
 
     private final boolean onlyMov;
 
-    public Scamp5AnalougeConfig(boolean useMov, boolean useMovx, boolean useMov2x, boolean useAdd, boolean useAdd3, boolean useAddx, boolean useAdd2x, boolean useSub, boolean useSubx, boolean useSub2x, boolean useDiv3, boolean useDiva, boolean useDiv4, boolean useDivq, boolean useRes, boolean useRes2, boolean useNeg, boolean subPowerOf2) {
+    public Scamp5AnalogueConfig(boolean useMov, boolean useMovx, boolean useMov2x, boolean useAdd, boolean useAdd3, boolean useAddx, boolean useAdd2x, boolean useSub, boolean useSubx, boolean useSub2x, boolean useDiv3, boolean useDiva, boolean useDiv4, boolean useDivq, boolean useRes, boolean useRes2, boolean useNeg, boolean subPowerOf2) {
         this.useMov = useMov;
         this.useMovx = useMovx;
         this.useMov2x = useMov2x;
@@ -55,7 +55,7 @@ public class Scamp5AnalougeConfig<G extends Goal<G>> implements Scamp5ConfigGett
         this.onlyMov = !(useAdd || useAdd3 || useAddx || useAdd2x || useSub || useSubx || useSub2x || useDiv3 || useDiv4 || useDiva || useDivq || useRes || useRes2 || useNeg);
     }
 
-    public Scamp5AnalougeConfig(Scamp5AnalougeConfig<G> proto) {
+    public Scamp5AnalogueConfig(Scamp5AnalogueConfig<G> proto) {
         this.useMov = proto.useMov;
         this.useMovx = proto.useMovx;
         this.useMov2x = proto.useMov2x;
@@ -83,7 +83,7 @@ public class Scamp5AnalougeConfig<G extends Goal<G>> implements Scamp5ConfigGett
     }
 
     @Override
-    public Scamp5AnalougeConfig<G> getMovOnlyVersion() {
+    public Scamp5AnalogueConfig<G> getMovOnlyVersion() {
         return new Builder<>(this).setOnlyMov().build();
     }
 
@@ -138,7 +138,7 @@ public class Scamp5AnalougeConfig<G extends Goal<G>> implements Scamp5ConfigGett
 
         public Builder() {
         }
-        public Builder(Scamp5AnalougeConfig<G> config) {
+        public Builder(Scamp5AnalogueConfig<G> config) {
             this.useMov = config.useMov;
             this.useMovx = config.useMovx;
             this.useMov2x = config.useMov2x;
@@ -159,8 +159,8 @@ public class Scamp5AnalougeConfig<G extends Goal<G>> implements Scamp5ConfigGett
             this.subPowerOf2 = config.subPowerOf2;
         }
 
-        public Scamp5AnalougeConfig<G> build(){
-            return new Scamp5AnalougeConfig<>(useMov, useMovx, useMov2x, useAdd, useAdd3,  useAddx,  useAdd2x, useSub, useSubx,  useSub2x, useDiv3, useDiva, useDiv4, useDivq, useRes, useRes2, useNeg, subPowerOf2);
+        public Scamp5AnalogueConfig<G> build(){
+            return new Scamp5AnalogueConfig<>(useMov, useMovx, useMov2x, useAdd, useAdd3,  useAddx,  useAdd2x, useSub, useSubx,  useSub2x, useDiv3, useDiva, useDiv4, useDivq, useRes, useRes2, useNeg, subPowerOf2);
         }
 
         public Builder<G> useAll(){

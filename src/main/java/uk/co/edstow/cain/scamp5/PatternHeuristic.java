@@ -1,30 +1,27 @@
 package uk.co.edstow.cain.scamp5;
 
-import uk.co.edstow.cain.goals.Goal3DAtomLike;
+import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.pairgen.Context;
-import uk.co.edstow.cain.pairgen.CostHuristic;
-import uk.co.edstow.cain.goals.atomGoal.pairGen.Distance;
+import uk.co.edstow.cain.pairgen.CostHeuristic;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
-import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
-import uk.co.edstow.cain.structures.Bounds;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 
-public class PatternHuristic<G extends Goal3DAtomLike<G>> implements CostHuristic<G> {
+public class PatternHeuristic<G extends Kernel3DGoal<G>> implements CostHeuristic<G> {
 
     private final int[] initialDivisions;
     private final int initialDivisionsMax;
     private final int initialDivisionsMin;
 
-    public PatternHuristic(int[] initialDivisions) {
+    public PatternHeuristic(int[] initialDivisions) {
         this.initialDivisions = initialDivisions;
         this.initialDivisionsMax = Arrays.stream(this.initialDivisions).max().getAsInt();
         this.initialDivisionsMin = Arrays.stream(this.initialDivisions).min().getAsInt();
     }
-    public PatternHuristic(List<G> initialGoals) {
+    public PatternHeuristic(List<G> initialGoals) {
         int[] initialDivisions = new int[initialGoals.size()];
         for (int i = 0; i < initialDivisions.length; i++) {
             initialDivisions[i] = 31 - Integer.numberOfLeadingZeros( initialGoals.get(i).totalI() );
@@ -112,7 +109,7 @@ public class PatternHuristic<G extends Goal3DAtomLike<G>> implements CostHuristi
         return cost;
     }
 
-    private static <G extends Goal3DAtomLike<G>> List<G> patternRepeated(Collection<G> goals, G pattern){
+    private static <G extends Kernel3DGoal<G>> List<G> patternRepeated(Collection<G> goals, G pattern){
         List<G> matches = new ArrayList<>();
         for (G goal : goals) {
             if (pattern.equivalent(goal)) {

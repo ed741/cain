@@ -1,6 +1,6 @@
 package uk.co.edstow.cain.goals.arrayGoal;
 
-import uk.co.edstow.cain.goals.Goal3DAtomLike;
+import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
 import uk.co.edstow.cain.structures.Bounds;
@@ -8,7 +8,7 @@ import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 
-public class ArrayGoal implements Goal3DAtomLike<ArrayGoal> {
+public class ArrayGoal implements Kernel3DGoal<ArrayGoal> {
 
     private final int[] arr;
     private final int total;

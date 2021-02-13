@@ -8,7 +8,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
-public interface Goal3DAtomLike<G extends Goal3DAtomLike<G>> extends Goal<G> {
+public interface Kernel3DGoal<G extends Kernel3DGoal<G>> extends Goal<G> {
 
     boolean allZero();
     int get(int x, int y, int z);

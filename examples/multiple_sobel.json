@@ -1,5 +1,5 @@
 {"name":"Sobel",
-  "goalSystem":"Atom",
+  "goalSystem":"Kernel3D",
   "maxApproximationDepth":3,
   "maxApproximationError":0,
   "3d": false,
@@ -40,7 +40,7 @@
   },
 
   "pairGen":{
-    "name": "Scamp5",
+    "name": "Scamp5AnalogueArrayGoal",
     "configGetter": "Threshold",
     "ops":"all",
     "threshold":10

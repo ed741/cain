@@ -3,9 +3,8 @@ package uk.co.edstow.cain.scamp5.emulator;
 import uk.co.edstow.cain.RegisterAllocator;
 import uk.co.edstow.cain.ReverseSearch;
 import uk.co.edstow.cain.Verifier;
-import uk.co.edstow.cain.goals.Goal3DAtomLike;
+import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
-import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
 import uk.co.edstow.cain.structures.Bounds;
 import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.structures.GoalBag;
@@ -18,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class Scamp5Verifier<G extends Goal3DAtomLike<G>> implements Verifier<G> {
+public class Scamp5Verifier<G extends Kernel3DGoal<G>> implements Verifier<G> {
     int verbose = 0;
     @Override
     public void verbose(int v) {

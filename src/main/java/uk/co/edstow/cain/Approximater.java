@@ -1,7 +1,6 @@
 package uk.co.edstow.cain;
 
-import uk.co.edstow.cain.goals.Goal3DAtomLike;
-import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
+import uk.co.edstow.cain.goals.Kernel3DGoal;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -9,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
-public class Approximater<G extends Goal3DAtomLike<G>> {
+public class Approximater<G extends Kernel3DGoal<G>> {
     private class Vector {
         final int[] val;
         private Vector(int... val) {
@@ -41,7 +40,7 @@ public class Approximater<G extends Goal3DAtomLike<G>> {
         minCoefficient = Math.min(minCoefficient, Math.abs(coefficient));
     }
 
-    public List<G> solve(Supplier<Goal3DAtomLike.Goal3DAtomLikeFactory<G>> factoryfactory){
+    public List<G> solve(Supplier<Kernel3DGoal.Goal3DAtomLikeFactory<G>> factoryfactory){
         depth = maxDepth;
         double totalError = 0;
         for (int i = -10; i <= maxDepth; i++) {
@@ -62,7 +61,7 @@ public class Approximater<G extends Goal3DAtomLike<G>> {
 
         List<G> out = new ArrayList<>(input.size());
         for (Map<Vector, Double> vecDoubleMap : input) {
-            Goal3DAtomLike.Goal3DAtomLikeFactory<G> factory = factoryfactory.get();
+            Kernel3DGoal.Goal3DAtomLikeFactory<G> factory = factoryfactory.get();
             for (Map.Entry<Vector, Double> entry : vecDoubleMap.entrySet()) {
                 if(entry.getValue()>=0){
                     factory.add(entry.getKey().val[0], entry.getKey().val[1], entry.getKey().val[2], getCount(depth, entry.getValue()));

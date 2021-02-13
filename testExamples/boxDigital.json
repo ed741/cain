@@ -1,4 +1,5 @@
 {"name":"boxDigital",
+  "verbose": -1,
   "goalSystem":"Kernel3D",
   "maxApproximationDepth":3,
   "maxApproximationError":0,
@@ -16,14 +17,14 @@
   "initialRegisters":["A"],
 
   "runConfig":{
-    "searchTime":60000,
+    "searchTime":5000,
     "timeOut":true,
     "workers":4,
     "traversalAlgorithm":"SOT",
     "costFunction":"InstructionCost",
-    "liveCounter":true,
-    "livePrintPlans":100,
-    "quiet": false,
+    "liveCounter":false,
+    "livePrintPlans":0,
+    "quiet": true,
     "initialMaxDepth":200,
     "forcedDepthReduction":-100,
     "initialMaxCost":2147483647,
@@ -35,11 +36,8 @@
 
   "pairGen":{
     "name": "Scamp5DigitalAtomGoal",
-    "configGetter": {
-      "name":"Threshold",
-      "threshold":8,
-      "heuristic": "Pattern"
-    },
+    "configGetter": "Threshold",
+    "threshold":8,
     "bits":2,
     "scratchRegs":["S1", "S2", "S3", "S4", "S5"],
     "regMapping":{

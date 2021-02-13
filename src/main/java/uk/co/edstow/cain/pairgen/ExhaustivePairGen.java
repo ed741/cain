@@ -14,7 +14,7 @@ public abstract class ExhaustivePairGen<G extends Goal<G>> implements PairGenFac
     protected final Context<G> context;
     protected final GoalBag<G> goals;
 
-    public ExhaustivePairGen(GoalBag<G> goals, Context<G> context, CostHuristic<G> huristic) {
+    public ExhaustivePairGen(GoalBag<G> goals, Context<G> context, CostHeuristic<G> huristic) {
         this.goals = goals;
         this.context = context;
         Comparator<Tuple<GoalPair<G>, Double>> comparator = Comparator.comparingDouble(Tuple::getB);
