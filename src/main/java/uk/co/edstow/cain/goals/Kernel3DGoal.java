@@ -58,15 +58,15 @@ public interface Kernel3DGoal<G extends Kernel3DGoal<G>> extends Goal<G> {
     }
 
 
-    Goal3DAtomLikeFactory<G> newFactory();
+    Kernel3DGoalFactory<G> newFactory();
 
-    interface Goal3DAtomLikeFactory<G>{
+    interface Kernel3DGoalFactory<G>{
         G get();
-        Goal3DAtomLikeFactory<G> add(int x, int y, int z, int v);
-        Goal3DAtomLikeFactory<G> sub(int x, int y, int z, int v);
-        Goal3DAtomLikeFactory<G> add(G goal);
-        Goal3DAtomLikeFactory<G> sub(G goal);
-        Goal3DAtomLikeFactory<G> addAll(Collection<G> goals);
+        Kernel3DGoalFactory<G> add(int x, int y, int z, int v);
+        Kernel3DGoalFactory<G> sub(int x, int y, int z, int v);
+        Kernel3DGoalFactory<G> add(G goal);
+        Kernel3DGoalFactory<G> sub(G goal);
+        Kernel3DGoalFactory<G> addAll(Collection<G> goals);
 
     }
 }

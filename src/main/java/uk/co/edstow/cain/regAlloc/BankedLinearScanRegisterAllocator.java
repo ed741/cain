@@ -1,47 +1,77 @@
-package uk.co.edstow.cain;
+package uk.co.edstow.cain.regAlloc;
 
+import uk.co.edstow.cain.Transformation;
+import uk.co.edstow.cain.goals.BankedGoal;
 import uk.co.edstow.cain.structures.Goal;
+import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.Plan;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class RegisterAllocator<G extends Goal<G>> {
-    private final Register[] registers;
-    private final Register[] init;
+public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>, T extends Transformation> implements RegisterAllocator<G, T> {
+    private final List<BRegister> registers;
+    private final int banks;
+    private final List<List<BRegister>> bankedRegisters;
+    private final List<BRegister> init;
+    private final List<G> initialGoals;
 
-    public RegisterAllocator(Register[] init, Register... r) {
+    public BankedLinearScanRegisterAllocator(int banks, List<BRegister> init, List<G> initialGoals, List<BRegister> r) {
         this.init = init;
-        registers = r;
+        this.initialGoals = initialGoals;
+        this.registers = r;
+        this.banks = banks;
+        List<List<BRegister>> bankedRegistersLists = new ArrayList<>(banks);
+        for (int i = 0; i < banks; i++) {
+            bankedRegistersLists.add(new ArrayList<>());
+        }
+        this.bankedRegisters = Collections.unmodifiableList(bankedRegistersLists);
+        for (BRegister register : this.registers) {
+            this.bankedRegisters.get(register.bank).add(register);
+        }
 
     }
 
+    @Override
     public int getAvailableRegisters() {
-        return registers.length;
+        return registers.size();
     }
 
-    public Register[] getAvailableRegistersArray() {
+    @Override
+    public List<? extends RegisterAllocator.Register> getAvailableRegistersArray() {
         return registers;
     }
 
-    public Register[] getInitRegisters() {
+    @Override
+    public List<? extends RegisterAllocator.Register> getInitRegisters() {
         return init;
     }
 
-    public RegisterAllocator<G>.Mapping solve(Plan<G> plan, List<G> initialGoals){
-        List<Plan.Step<G>> all_r = plan.getAll();
-        List<Set<Integer>> requiresInit = new ArrayList<>(init.length);
-        for (Register i : init) {
+    @Override
+    public boolean checkValid(GoalBag<G> current, T lastTransformation) {
+        return current.size() +lastTransformation.ExtraRegisterCount() <= registers.size();
+    }
+
+    @Override
+    public boolean checkPossible(Plan<G, T> p) {
+        return solve(p) != null;
+    }
+
+    @Override
+    public Mapping<G> solve(Plan<G, T> plan){
+        List<? extends Plan.Step<G, ?>> all_r = plan.getAll();
+        List<Set<Integer>> requiresInit = new ArrayList<>(init.size());
+        for (BRegister i : init) {
             requiresInit.add(new HashSet<>());
         }
 
-        List<G> initialTrueGoals = new ArrayList<>(init.length);
+        List<G> initialTrueGoals = new ArrayList<>(init.size());
 
-        for (int j = 0; j < init.length; j++) {
+        for (int j = 0; j < init.size(); j++) {
             inits:
             for (int i = all_r.size() - 1; i >= 0; i--) {
-                Plan.Step<G> step = all_r.get(i);
+                Plan.Step<G,?> step = all_r.get(i);
                 for (int l = 0; l < step.getLowers().size(); l++) {
                     G g = step.getLowerTrueGoal(l);
                     if(g.same(initialGoals.get(j))){
@@ -57,10 +87,10 @@ public class RegisterAllocator<G extends Goal<G>> {
         List<List<Integer>> liveness = new ArrayList<>();
 
 
-        List<Register> availableRegisters = new ArrayList<>(Arrays.asList(registers));
+        List<BRegister> availableRegisters = new ArrayList<>(registers);
         Set<Tuple<Integer, Integer>> live = new HashSet<>();
-        Mapping map = new Mapping();
-        Map<Tuple<Integer, Integer>, Register> lineMap = new HashMap<>();
+        Mapping<G> map = new Mapping<>(init);
+        Map<Tuple<Integer, Integer>, BRegister> lineMap = new HashMap<>();
 
         for (int i = 0; i < all_r.size() + initialGoals.size(); i++) {
             List<Integer> l = new ArrayList<>();
@@ -75,7 +105,7 @@ public class RegisterAllocator<G extends Goal<G>> {
         }
 
         for (int i = 0; i < all_r.size(); i++) {
-            Plan.Step<G> step = all_r.get(i);
+            Plan.Step<G,?> step = all_r.get(i);
 
             List<G> lowers = step.getLowers();
             for (int lowerIdx = 0; lowerIdx < lowers.size(); lowerIdx++) {
@@ -116,14 +146,14 @@ public class RegisterAllocator<G extends Goal<G>> {
                 liveness.get(j).set(k, Math.min(liveness.get(j).get(k), i));
                 if(i==0){
                     live.add(new Tuple<>(j, k));
-                    availableRegisters.remove(registers[lowerIdx]);
-                    lineMap.put(new Tuple<>(j, k), registers[lowerIdx]);
-                    map.put(trueGoal, registers[lowerIdx]);
+                    availableRegisters.remove(registers.get(lowerIdx));
+                    lineMap.put(new Tuple<>(j, k), registers.get(lowerIdx));
+                    map.put(trueGoal, registers.get(lowerIdx));
                 }
             }
         }
-        int[] initLastUsed = new int[init.length];
-        for (int i = 0; i < init.length; i++) {
+        int[] initLastUsed = new int[init.size()];
+        for (int i = 0; i < init.size(); i++) {
             if(requiresInit.get(i).isEmpty()) {
             initLastUsed[i] = Integer.MAX_VALUE;
             }else{
@@ -137,7 +167,7 @@ public class RegisterAllocator<G extends Goal<G>> {
 
 
         for (int i = 0; i < liveness.size(); i++) {
-            List<Register> trash = new ArrayList<>(availableRegisters);
+            List<BRegister> trash = new ArrayList<>(availableRegisters);
 //            System.out.println("Av " + availableRegisters);
             for (int u = 0; u < liveness.get(i).size(); u++) {
                 if (live.contains(new Tuple<>(i, u))) {
@@ -190,17 +220,17 @@ public class RegisterAllocator<G extends Goal<G>> {
             needAllocating.addAll(needAllocatingOther);
             for (Tuple<Integer, Integer> jk : needAllocating) {
                 live.add(jk);
-                Register r = null;
+                BRegister r = null;
                 if (availableRegisters.isEmpty()) {
                     return null;
                 }
                 if (jk.getA() >= all_r.size()) {
                     int initIdx = jk.getA() - all_r.size();
-                    boolean valid = availableRegisters.remove(init[initIdx]);
+                    boolean valid = availableRegisters.remove(init.get(initIdx));
                     if (!valid) {
                         boolean initInAv = false;
-                        for (Register register : registers) {
-                            if (init[initIdx].equals(register)){
+                        for (BRegister register : registers) {
+                            if (init.get(initIdx).equals(register)){
                                 initInAv = true;
                                 break;
                             }
@@ -210,13 +240,13 @@ public class RegisterAllocator<G extends Goal<G>> {
                             return null;
                         }
                     }
-                    r = init[initIdx];
+                    r = init.get(initIdx);
                 } else {
                     registerPicker:
-                    for (Register availableRegister : availableRegisters) {
+                    for (BRegister availableRegister : availableRegisters) {
                         // Check if reg needs to be saved for init reg
                         for (int lu = 0; lu < initLastUsed.length; lu++) {
-                            if (jk.getA() > initLastUsed[lu] && availableRegister.equals(init[lu])) {
+                            if (jk.getA() > initLastUsed[lu] && availableRegister.equals(init.get(lu))) {
                                 continue registerPicker;
                             }
                         }
@@ -264,87 +294,65 @@ public class RegisterAllocator<G extends Goal<G>> {
 
         return map;
     }
-
-
-    public static class Register{
-
-        public final String name;
-
-        public static Register[] getRegisters(String... names){
-            Register[] out = new Register[names.length];
-            for (int i = 0; i < names.length; i++) {
-                out[i] = new Register(names[i]);
-            }
-            return out;
+    public static class BRegister extends RegisterAllocator.Register {
+        public final int bank;
+        public BRegister(int bank, String name) {
+            super(name);
+            this.bank = bank;
         }
-        public static Register[] getRegisters(int count){
-            Register[] out = new Register[count];
-            for (int i = 0; i < count; i++) {
-                out[i] = new Register(i+1);
-            }
-            return out;
-        }
-        public Register(int i){
-            int c = i;
-            StringBuilder sb = new StringBuilder();
-            while (c > 26) {
-                sb.insert(0,((char) ('A' + ((c-1) % 26))));
-                c = (c-1)/26;
-            }
-            sb.insert(0,(char) ('@' + (c % 27)));
-            this.name = sb.toString();
-        }
-        public Register(String name){
-            this.name = name;
-        }
-
 
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            Register register = (Register) o;
-            return Objects.equals(name, register.name);
+            if (!super.equals(o)) return false;
+            BRegister bRegister = (BRegister) o;
+            return this.bank == bRegister.bank;
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(name);
+            return Objects.hash(super.hashCode(), bank);
         }
 
         @Override
         public String toString() {
-            return name;
+            return this.bank+"."+this.name;
         }
     }
 
-    public class Mapping {
-        private final Map<Wrapper, Register> map;
-        private final Map<Integer, List<Register>> trashMap;
+    public static class Mapping<G extends Goal<G>> implements RegisterAllocator.Mapping<G> {
+        private final Map<Wrapper, BRegister> map;
+        private final Map<Integer, List<BRegister>> trashMap;
+        private final List<BRegister> init;
 
-        Mapping() {
+        Mapping(List<BRegister> init) {
+            this.init = init;
             this.map = new HashMap<>();
             this.trashMap = new HashMap<>();
         }
 
-        public Register[] initRegisters(){
+        @Override
+        public List<BRegister> initRegisters(){
             return init;
         }
 
-        private void put(G goal, Register register){
-            Register r = this.map.put(new Wrapper(goal), register);
+        private void put(G goal, BRegister register){
+            BRegister r = this.map.put(new Wrapper(goal), register);
             assert r == null;
         }
 
-        private void putTrash(int i, List<Register> registers){
+        private void putTrash(int i, List<BRegister> registers){
             trashMap.put(i, registers);
         }
 
-        public List<Register> getTrash(int i){
+        @Override
+        public List<BRegister> getTrash(int i){
             return trashMap.get(i);
         }
 
-        public Register get(G goal){
+        @Override
+        public BRegister get(G goal){
             return map.get(new Wrapper(goal));
         }
 
@@ -354,18 +362,20 @@ public class RegisterAllocator<G extends Goal<G>> {
                     trashMap.entrySet().stream().map(e -> Integer.toString(e.getKey()) + " -> " +e.getValue()).collect(Collectors.joining(",\n ", "[\n", "\n]"));
         }
 
-        private class Wrapper {
+        private class Wrapper{
             private final G goal;
 
             private Wrapper(G goal) {
                 this.goal = goal;
             }
 
+
             @Override
             public boolean equals(Object o) {
                 if (this == o) return true;
                 if (o == null || getClass() != o.getClass()) return false;
                 Wrapper wrapper = (Wrapper) o;
+                if(goal.getClass() != wrapper.goal.getClass()) return false;
                 return goal.equivalent(wrapper.goal);
             }
 

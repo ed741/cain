@@ -1,6 +1,6 @@
 package uk.co.edstow.cain.goals.atomGoal.pairGen;
 
-import uk.co.edstow.cain.RegisterAllocator;
+import uk.co.edstow.cain.regAlloc.RegisterAllocator;
 import uk.co.edstow.cain.Transformation;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
@@ -8,11 +8,11 @@ import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 
-public abstract class SimpleTransformation extends Transformation{
+public abstract class SimpleTransformation implements Transformation {
     @Override
-    public String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
+    public String code(List<? extends RegisterAllocator.Register> uppers, List<? extends RegisterAllocator.Register> lowers, List<? extends RegisterAllocator.Register> trash) {
         if(uppers.size()==1){
-            return code(uppers.get(0), lowers);
+            return code(uppers.get(0), new ArrayList<>(lowers));
         } else {
             throw new IllegalArgumentException("This Transformation only accepts one Upper register");
         }
@@ -51,18 +51,18 @@ public abstract class SimpleTransformation extends Transformation{
         return out;
     }
 
-    public static Collection<Tuple<? extends Transformation, AtomGoal>> applyAllUnaryOpBackwards(AtomGoal goal){
-        ArrayList<Tuple<? extends Transformation, AtomGoal>> list = new ArrayList<>();
+    public static Collection<Tuple<? extends SimpleTransformation, AtomGoal>> applyAllUnaryOpBackwards(AtomGoal goal){
+        ArrayList<Tuple<? extends SimpleTransformation, AtomGoal>> list = new ArrayList<>();
         for (Direction d: Direction.values()){
             for (int i = 1; i < 2; i++){
                 AtomGoal input = Move.getBackwardsApplication(i, d, goal);
-                Transformation t = new Move(i, d, input);
+                SimpleTransformation t = new Move(i, d, input);
                 list.add(new Tuple<>(t, input));
             }
         }
         for (int i = 1; i < 2; i++){
             AtomGoal input = Div.getBackwardsApplication(i, goal);
-            Transformation t = new Div(i, input);
+            SimpleTransformation t = new Div(i, input);
             list.add(new Tuple<>(t, input));
         }
         return list;
@@ -90,6 +90,77 @@ public abstract class SimpleTransformation extends Transformation{
             assert false;
             System.exit(-1);
             return null;
+        }
+    }
+
+
+    static class Null extends SimpleTransformation {
+        private final int inputCount;
+        private final int outputCount;
+
+        public Null(int inputCount, int outputCount) {
+            this.inputCount = inputCount;
+            this.outputCount = outputCount;
+        }
+
+        @Override
+        public boolean[] inputRegisterOutputInterference(int u){
+            return new boolean[inputCount()];
+        }
+
+        @Override
+        public int[] inputRegisterIntraInterference() {
+            int[] out = new int[inputCount()];
+            for (int i = 0; i < out.length; i++) {
+                out[i]=i;
+            }
+            return out;
+        }
+
+        @Override
+        public boolean clobbersInput(int i) {
+            return false;
+        }
+
+
+        @Override
+        public String code(List<? extends RegisterAllocator.Register> uppers, List<? extends RegisterAllocator.Register> lowers, List<? extends RegisterAllocator.Register> trash) {
+            return String.format("//Null Instruction: %s <- %s", uppers, lowers);
+        }
+
+        @Override
+        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+            return String.format("//Null Instruction: %s <- %s", upper, lowers);
+        }
+
+        @Override
+        public AtomGoal applyForwards() throws TransformationApplicationException {
+            return null;
+        }
+
+        @Override
+        public int inputCount() {
+            return inputCount;
+        }
+
+        @Override
+        public int outputCount() {
+            return outputCount;
+        }
+
+        @Override
+        public double cost() {
+            return 0;
+        }
+
+        @Override
+        public String toStringN() {
+            return "Null_t";
+        }
+
+        @Override
+        public String toString() {
+            return "Null_t";
         }
     }
 

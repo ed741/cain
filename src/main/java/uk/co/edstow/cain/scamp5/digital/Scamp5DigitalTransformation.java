@@ -1,15 +1,15 @@
 package uk.co.edstow.cain.scamp5.digital;
 
-import uk.co.edstow.cain.RegisterAllocator;
 import uk.co.edstow.cain.Transformation;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.goals.atomGoal.pairGen.SimpleTransformation;
+import uk.co.edstow.cain.regAlloc.RegisterAllocator;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 
-public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> extends Transformation {
+public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> implements Transformation {
     protected final Scamp5DigitalConfig<G> config;
 
     protected Scamp5DigitalTransformation(Scamp5DigitalConfig<G> scamp5DigitalConfig) {
@@ -19,6 +19,73 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> ext
     public abstract List<G> applyOpForwards() throws TransformationApplicationException;
 
 
+
+    public static class Null<G extends Kernel3DGoal<G>> extends Scamp5DigitalTransformation<G> {
+        private final int inputCount;
+        private final int outputCount;
+
+        public Null(int inputCount, int outputCount, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
+            super(scamp5DigitalConfig);
+            this.inputCount = inputCount;
+            this.outputCount = outputCount;
+        }
+
+        @Override
+        public boolean[] inputRegisterOutputInterference(int u){
+            return new boolean[inputCount()];
+        }
+
+        @Override
+        public int[] inputRegisterIntraInterference() {
+            int[] out = new int[inputCount()];
+            for (int i = 0; i < out.length; i++) {
+                out[i]=i;
+            }
+            return out;
+        }
+
+        @Override
+        public boolean clobbersInput(int i) {
+            return false;
+        }
+
+
+        @Override
+        public String code(List<? extends RegisterAllocator.Register> uppers, List<? extends RegisterAllocator.Register> lowers, List<? extends RegisterAllocator.Register> trash) {
+            return String.format("//Null Instruction: %s <- %s", uppers, lowers);
+        }
+
+        @Override
+        public int inputCount() {
+            return inputCount;
+        }
+
+        @Override
+        public int outputCount() {
+            return outputCount;
+        }
+
+        @Override
+        public double cost() {
+            return 0;
+        }
+
+        @Override
+        public String toStringN() {
+            return "Null_t";
+        }
+
+        @Override
+        public String toString() {
+            return "Null_t";
+        }
+
+        @Override
+        public List<G> applyOpForwards() {
+            return Collections.emptyList();
+        }
+    }
+
     abstract static class SimpleScamp5DigitalTransformation<G extends Kernel3DGoal<G>> extends Scamp5DigitalTransformation<G> {
 
         SimpleScamp5DigitalTransformation(Scamp5DigitalConfig<G> config) {
@@ -26,7 +93,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> ext
         }
 
         @Override
-        public String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
+        public String code(List<? extends RegisterAllocator.Register> uppers, List<? extends RegisterAllocator.Register> lowers, List<? extends RegisterAllocator.Register> trash) {
             if (uppers.size() == 1) {
                 return code(uppers.get(0), lowers);
             } else {
@@ -34,7 +101,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> ext
             }
         }
 
-        abstract String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers);
+        abstract String code(RegisterAllocator.Register upper, List<? extends RegisterAllocator.Register> lowers);
 
         public abstract G applyForwards() throws TransformationApplicationException;
         public List<G> applyOpForwards() throws TransformationApplicationException{
@@ -121,7 +188,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> ext
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+        public String code(RegisterAllocator.Register upper, List<? extends RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
             List<String> regs = config.registerMapping.get(upper);
             assert regs.size() == config.bits;
@@ -192,7 +259,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> ext
         }
 
         @Override
-        public String code(List<RegisterAllocator.Register> upper, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
+        public String code(List<? extends RegisterAllocator.Register> upper, List<? extends RegisterAllocator.Register> lowers, List<? extends RegisterAllocator.Register> trash) {
             assert lowers.size() == inputCount();
             List<String> regs = new ArrayList<>(config.bits*2);
             regs.addAll(config.registerMapping.get(upper.get(0)));
@@ -286,7 +353,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> ext
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+        public String code(RegisterAllocator.Register upper, List<? extends RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
             StringBuilder sb = new StringBuilder(String.format("/*Dmov(%s, %s)*/", upper, lowers.get(0)));
             List<String> outputs = config.registerMapping.get(upper);
@@ -357,7 +424,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> ext
         }
 
         @Override
-        public String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
+        public String code(List<? extends RegisterAllocator.Register> uppers, List<? extends RegisterAllocator.Register> lowers, List<? extends RegisterAllocator.Register> trash) {
             assert lowers.size() == inputCount();
             assert lowers.size() == inputCount();
             StringBuilder sb = new StringBuilder(String.format("/*Dadd(%s, %s, %s)*/\n", uppers.get(0), lowers.get(0), lowers.get(1)));
@@ -462,7 +529,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> ext
                 this.a = in;
                 this.sum = null;
             } else {
-                Kernel3DGoal.Goal3DAtomLikeFactory<G> factory = in.newFactory();
+                Kernel3DGoal.Kernel3DGoalFactory<G> factory = in.newFactory();
                 Iterator<Tuple<Atom, Integer>> it = in.uniqueCountIterator();
                 while(it.hasNext()){
                     Tuple<Atom, Integer> t = it.next();
@@ -486,7 +553,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> ext
 
 
         @Override
-        public String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
+        public String code(List<? extends RegisterAllocator.Register> uppers, List<? extends RegisterAllocator.Register> lowers, List<? extends RegisterAllocator.Register> trash) {
             assert lowers.size() == inputCount();
             assert lowers.size() == inputCount();
             StringBuilder sb = new StringBuilder(String.format("/*DaddSelf(%s, %s)*/\n", uppers.get(0), lowers.get(0)));
@@ -589,7 +656,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> ext
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+        public String code(RegisterAllocator.Register upper, List<? extends RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
             assert lowers.size() == inputCount();
             StringBuilder sb = new StringBuilder(String.format("/*DDiv(%s, %s)*/\n", upper, lowers.get(0)));
@@ -612,7 +679,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> ext
         @Override
         public G applyForwards() throws TransformationApplicationException {
             if(this.div == null){
-                Kernel3DGoal.Goal3DAtomLikeFactory<G> factory = a.newFactory();
+                Kernel3DGoal.Kernel3DGoalFactory<G> factory = a.newFactory();
                 Iterator<Tuple<Atom, Integer>> it = a.uniqueCountIterator();
                 while(it.hasNext()){
                     Tuple<Atom, Integer> t = it.next();
@@ -675,7 +742,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> ext
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+        public String code(RegisterAllocator.Register upper, List<? extends RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
             StringBuilder sb = new StringBuilder(String.format("/*Dmovx(%s, %s, %s)*/", upper, lowers.get(0), dir.toString()));
             List<String> outputs = config.registerMapping.get(upper);

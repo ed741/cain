@@ -9,6 +9,6 @@ import uk.co.edstow.cain.util.Tuple;
 import java.util.Collection;
 import java.util.List;
 
-public interface LinearPairGenFactory<G extends Goal<G>> extends PairGenFactory<G>{
-    Collection<Tuple<List<G>, Transformation>> generateValueConstantOps(List<G> goal, Context<G> context);
+public interface LinearPairGenFactory<G extends Goal<G>, T extends Transformation> extends PairGenFactory<G, T>{
+    Collection<Tuple<List<G>, T>> generateValueConstantOps(List<G> goal, Context<G, T> context);
 }

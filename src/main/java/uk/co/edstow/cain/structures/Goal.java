@@ -2,7 +2,7 @@ package uk.co.edstow.cain.structures;
 
 import java.util.Collections;
 
-public interface Goal<G extends Goal> extends Comparable<G>{
+public interface Goal<G extends Goal<G>> extends Comparable<G>{
 
     boolean same(G goal);
     boolean equivalent(G goal);

@@ -40,7 +40,7 @@ public class Approximater<G extends Kernel3DGoal<G>> {
         minCoefficient = Math.min(minCoefficient, Math.abs(coefficient));
     }
 
-    public List<G> solve(Supplier<Kernel3DGoal.Goal3DAtomLikeFactory<G>> factoryfactory){
+    public List<G> solve(Supplier<Kernel3DGoal.Kernel3DGoalFactory<G>> factoryfactory){
         depth = maxDepth;
         double totalError = 0;
         for (int i = -10; i <= maxDepth; i++) {
@@ -61,7 +61,7 @@ public class Approximater<G extends Kernel3DGoal<G>> {
 
         List<G> out = new ArrayList<>(input.size());
         for (Map<Vector, Double> vecDoubleMap : input) {
-            Kernel3DGoal.Goal3DAtomLikeFactory<G> factory = factoryfactory.get();
+            Kernel3DGoal.Kernel3DGoalFactory<G> factory = factoryfactory.get();
             for (Map.Entry<Vector, Double> entry : vecDoubleMap.entrySet()) {
                 if(entry.getValue()>=0){
                     factory.add(entry.getKey().val[0], entry.getKey().val[1], entry.getKey().val[2], getCount(depth, entry.getValue()));

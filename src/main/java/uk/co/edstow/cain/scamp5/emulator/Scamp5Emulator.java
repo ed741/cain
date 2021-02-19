@@ -1,6 +1,6 @@
 package uk.co.edstow.cain.scamp5.emulator;
 
-import uk.co.edstow.cain.RegisterAllocator;
+import uk.co.edstow.cain.regAlloc.RegisterAllocator;
 import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
 import uk.co.edstow.cain.util.Tuple;
 
@@ -87,18 +87,18 @@ public class Scamp5Emulator {
             return out;
         }
 
-        public static Reg[] getRegisters(RegisterAllocator.Register[] array){
-            Reg[] out = new Reg[array.length];
+        public static Reg[] getRegisters(List<RegisterAllocator.Register> array){
+            Reg[] out = new Reg[array.size()];
             for (int i = 0; i < out.length; i++) {
-                out[i] = new Reg(0,0,array[i].name);
+                out[i] = new Reg(0,0, array.get(i).name);
             }
             return out;
         }
-        public static Reg[] getRealRegisters(RegisterAllocator.Register[] array){
-            Reg[] out = new Reg[array.length+1];
+        public static Reg[] getRealRegisters(List<RegisterAllocator.Register> array){
+            Reg[] out = new Reg[array.size()+1];
             out[0] = Reg.News;
             for (int i = 1; i < out.length; i++) {
-                out[i] = new Reg(0,0,array[i-1].name);
+                out[i] = new Reg(0,0, array.get(i - 1).name);
             }
             return out;
         }
@@ -168,7 +168,7 @@ public class Scamp5Emulator {
     public static Scamp5Emulator newWithRegs(int rad, int regs){
         return new Scamp5Emulator(-rad, rad+1, -rad, rad+1, regs);
     }
-    public static Scamp5Emulator newWithRegs(int rad, RegisterAllocator.Register[] regs){
+    public static Scamp5Emulator newWithRegs(int rad, List<RegisterAllocator.Register> regs){
         return new Scamp5Emulator(-rad, rad+1, -rad, rad+1, regs);
     }
 
@@ -179,7 +179,7 @@ public class Scamp5Emulator {
     public Scamp5Emulator(int xMin, int xMax, int yMin, int yMax, int r) {
         this(xMin, xMax, yMin, yMax, Reg.getRealRegisters(r));
     }
-    public Scamp5Emulator(int xMin, int xMax, int yMin, int yMax, RegisterAllocator.Register[] r) {
+    public Scamp5Emulator(int xMin, int xMax, int yMin, int yMax, List<RegisterAllocator.Register> r) {
         this(xMin, xMax, yMin, yMax, Reg.getRealRegisters(r));
     }
 

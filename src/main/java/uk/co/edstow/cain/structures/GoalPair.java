@@ -6,10 +6,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class GoalPair<G extends Goal> {
+public class GoalPair<G extends Goal<G>, T extends Transformation> {
     private final List<G> uppers;
     private final List<G> lowers;
-    private final Transformation transformation;
+    private final T transformation;
 
     public List<G> getUppers() {
         return uppers;
@@ -19,24 +19,24 @@ public class GoalPair<G extends Goal> {
         return lowers;
     }
 
-    public Transformation getTransformation() {
+    public T getTransformation() {
         return transformation;
     }
 
-    public GoalPair(G u, G l, Transformation t) {
+    public GoalPair(G u, G l, T t) {
         uppers = Collections.singletonList(u);
         lowers = Collections.singletonList(l);
         transformation = t;
     }
 
-    public GoalPair(G u, List<G> ls, Transformation t) {
+    public GoalPair(G u, List<G> ls, T t) {
         uppers = Collections.singletonList(u);
         ArrayList<G> list = new ArrayList<>(ls);
         lowers = Collections.unmodifiableList(list);
         transformation = t;
     }
 
-    public GoalPair(List<G> us, List<G> ls, Transformation t) {
+    public GoalPair(List<G> us, List<G> ls, T t) {
         ArrayList<G> ulist = new ArrayList<>(us);
         uppers = Collections.unmodifiableList(ulist);
         ArrayList<G> llist = new ArrayList<>(ls);

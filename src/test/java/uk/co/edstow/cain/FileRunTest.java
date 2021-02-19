@@ -1,6 +1,12 @@
 package uk.co.edstow.cain;
 
 import org.junit.jupiter.api.Test;
+import uk.co.edstow.cain.goals.arrayGoal.ArrayGoal;
+import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
+import uk.co.edstow.cain.scamp5.analogue.Scamp5AnalogueFileRun;
+import uk.co.edstow.cain.scamp5.analogue.Scamp5AnalogueTransformation;
+import uk.co.edstow.cain.scamp5.digital.Scamp5DigitalFileRun;
+import uk.co.edstow.cain.scamp5.digital.Scamp5DigitalTransformation;
 
 import java.util.List;
 import java.util.OptionalInt;
@@ -26,8 +32,11 @@ class FileRunTest {
                 "        ]}\n" +
                 "  },\n" +
                 "\n" +
-                "  \"availableRegisters\":[\"A\",\"B\",\"C\",\"D\",\"E\",\"F\"],\n" +
-                "  \"initialRegisters\":[\"A\"],\n" +
+                "  \"registerAllocator\": {\n" +
+                "    \"name\": \"linearScan\",\n" +
+                "    \"availableRegisters\":[\"A\",\"B\",\"C\",\"D\",\"E\",\"F\"],\n" +
+                "    \"initialRegisters\":[\"A\"]\n" +
+                "  },\n" +
                 "\n" +
                 "  \"runConfig\":{\n" +
                 "    \"searchTime\":1000,\n" +
@@ -49,7 +58,12 @@ class FileRunTest {
                 "\n" +
                 "  \"pairGen\":{\n" +
                 "    \"name\": \"Scamp5AnalogueAtomGoal\",\n" +
-                "    \"configGetter\": \"Threshold\",\n" +
+                "    \"configGetter\": {\n" +
+                "      \"name\":\"Threshold\",\n" +
+                "      \"threshold\":10,\n" +
+                "      \"ops\":all,\n" +
+                "      \"heuristic\": \"Pattern\"\n" +
+                "    }," +
                 "    \"ops\":\"all\",\n" +
                 "    \"threshold\":10\n" +
                 "  },\n" +
@@ -57,9 +71,9 @@ class FileRunTest {
                 "\n" +
                 "}";
         try {
-            FileRun<?> fileRun = FileRun.loadFromJson(json);
+            FileRun<AtomGoal, Scamp5AnalogueTransformation<AtomGoal>> fileRun = new Scamp5AnalogueFileRun.AtomGoalFileRun(FileRun.fromJson(json, true));
             fileRun.run();
-            List<? extends FileRun<?>.Result> results = fileRun.getResults();
+            List<FileRun<AtomGoal, Scamp5AnalogueTransformation<AtomGoal>>.Result> results = fileRun.getResults();
             OptionalInt min = results.stream().mapToInt(r -> r.depth).min();
             assertTrue(min.isPresent());
             assertTrue(min.getAsInt()<=5);
@@ -88,8 +102,11 @@ class FileRunTest {
                         "        ]}\n" +
                         "  },\n" +
                         "\n" +
-                        "  \"availableRegisters\":[\"A\",\"B\",\"C\",\"D\",\"E\",\"F\"],\n" +
-                        "  \"initialRegisters\":[\"A\"],\n" +
+                        "  \"registerAllocator\": {\n" +
+                        "    \"name\": \"linearScan\",\n" +
+                        "    \"availableRegisters\":[\"A\",\"B\",\"C\",\"D\",\"E\",\"F\"],\n" +
+                        "    \"initialRegisters\":[\"A\"]\n" +
+                        "  },\n" +
                         "\n" +
                         "  \"runConfig\":{\n" +
                         "    \"searchTime\":1000,\n" +
@@ -111,17 +128,20 @@ class FileRunTest {
                         "\n" +
                         "  \"pairGen\":{\n" +
                         "    \"name\": \"Scamp5AnalogueArrayGoal\",\n" +
-                        "    \"configGetter\": \"Threshold\",\n" +
-                        "    \"ops\":\"all\",\n" +
-                        "    \"threshold\":10\n" +
+                        "    \"configGetter\": {\n" +
+                        "      \"name\":\"Threshold\",\n" +
+                        "      \"threshold\":10,\n" +
+                        "      \"ops\":all,\n" +
+                        "      \"heuristic\": \"Pattern\"\n" +
+                        "    }," +
                         "  },\n" +
                         "  \"verifier\":\"Scamp5Emulator\"\n" +
                         "\n" +
                         "}";
         try {
-            FileRun<?> fileRun = FileRun.loadFromJson(json);
+            FileRun<ArrayGoal, Scamp5AnalogueTransformation<ArrayGoal>> fileRun = new Scamp5AnalogueFileRun.ArrayGoalFileRun(FileRun.fromJson(json, true));
             fileRun.run();
-            List<? extends FileRun<?>.Result> results = fileRun.getResults();
+            List<FileRun<ArrayGoal, Scamp5AnalogueTransformation<ArrayGoal>>.Result> results = fileRun.getResults();
             OptionalInt min = results.stream().mapToInt(r -> r.depth).min();
             assertTrue(min.isPresent());
             assertTrue(min.getAsInt()<=6);
@@ -156,8 +176,11 @@ class FileRunTest {
                         "        ]}\n" +
                         "  },\n" +
                         "\n" +
-                        "  \"availableRegisters\":[\"A\",\"B\",\"C\"],\n" +
-                        "  \"initialRegisters\":[\"A\"],\n" +
+                        "  \"registerAllocator\": {\n" +
+                        "    \"name\": \"linearScan\",\n" +
+                        "    \"availableRegisters\":[\"A\",\"B\",\"C\"],\n" +
+                        "    \"initialRegisters\":[\"A\"]\n" +
+                        "  },\n" +
                         "\n" +
                         "  \"runConfig\":{\n" +
                         "    \"searchTime\":1000,\n" +
@@ -179,8 +202,11 @@ class FileRunTest {
                         "\n" +
                         "  \"pairGen\":{\n" +
                         "    \"name\": \"Scamp5DigitalAtomGoal\",\n" +
-                        "    \"configGetter\": \"Threshold\",\n" +
-                        "    \"threshold\":10,\n" +
+                        "    \"configGetter\": {\n" +
+                        "      \"name\":\"Threshold\",\n" +
+                        "      \"threshold\":10,\n" +
+                        "      \"heuristic\": \"Pattern\"\n" +
+                        "    }," +
                         "    \"bits\":2,\n" +
                         "    \"scratchRegs\":[\"S1\", \"S2\", \"S3\", \"S4\"],\n" +
                         "    \"regMapping\":{\n" +
@@ -194,9 +220,9 @@ class FileRunTest {
                         "\n" +
                         "}";
         try {
-            FileRun<?> fileRun = FileRun.loadFromJson(json);
+            FileRun<AtomGoal, Scamp5DigitalTransformation<AtomGoal>> fileRun = new Scamp5DigitalFileRun.AtomGoalFileRun(FileRun.fromJson(json, true));
             fileRun.run();
-            List<? extends FileRun<?>.Result> results = fileRun.getResults();
+            List<FileRun<AtomGoal, Scamp5DigitalTransformation<AtomGoal>>.Result> results = fileRun.getResults();
 //            System.out.println((fileRun.getBest()));
             OptionalInt min = results.stream().mapToInt(r -> r.cost).min();
             assertTrue(min.isPresent());

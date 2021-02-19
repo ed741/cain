@@ -32,9 +32,9 @@ public class ExampleTest {
     @MethodSource("data")
     public void test(String path) {
         try {
-            FileRun<?> fileRun = FileRun.loadFromJson(path);
+            FileRun<?,?> fileRun = FileRun.loadFromJson(path);
             fileRun.run();
-            List<? extends FileRun<?>.Result> results = fileRun.getResults();
+            List<? extends FileRun<?,?>.Result> results = fileRun.getResults();
             OptionalInt min = results.stream().mapToInt(r -> r.depth).min();
             assertTrue(min.isPresent(), "Unable to solve: " + path);
         } catch (Exception e){

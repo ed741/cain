@@ -1,12 +1,14 @@
 package uk.co.edstow.cain;
 
+import uk.co.edstow.cain.regAlloc.RegisterAllocator;
+
 import java.util.*;
 
-public abstract class Transformation {
+public interface Transformation {
 
-    public abstract String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash);
+    String code(List<? extends RegisterAllocator.Register> uppers, List<? extends RegisterAllocator.Register> lowers, List<? extends RegisterAllocator.Register> trash);
 
-    public static class TransformationApplicationException extends Exception{
+    class TransformationApplicationException extends Exception{
 
         public TransformationApplicationException(String s) {
             super(s);
@@ -17,12 +19,12 @@ public abstract class Transformation {
     /**
      * @return the number of inputs the transformation has (aka the size of Lowers)
      */
-    public abstract int inputCount();
+    int inputCount();
 
     /**
      * @return the number of outputs the transformation has (aka the size of Uppers)
      */
-    public abstract int outputCount();
+    int outputCount();
 
 
     /**
@@ -30,7 +32,7 @@ public abstract class Transformation {
      * @return A boolean array of length equal to inputCount() where values are True iff the register for that upper and
      * that lower cannot be the same.
      */
-    public abstract boolean[] inputRegisterOutputInterference(int u);
+    boolean[] inputRegisterOutputInterference(int u);
 
 
     /**
@@ -38,7 +40,7 @@ public abstract class Transformation {
      * If we have a goalBag with k registers, n of which are inputs (Lowers) to this transformation, how many more than
      * n or k registers are needed to apply this function
      */
-    public int ExtraRegisterCount(){
+    default int ExtraRegisterCount(){
         int count = 0;
         for (int u = 0; u < outputCount(); u++) {
             for (boolean b : inputRegisterOutputInterference(u)) {
@@ -59,17 +61,12 @@ public abstract class Transformation {
      *     for func(A,B,B,C,C,B) where the 6 inputs can be from the same registers as shown: [0,1,1,3,3,1]
      *
      */
-    public abstract int[] inputRegisterIntraInterference();
-    public abstract boolean clobbersInput(int i);
-    public abstract double cost();
-    public abstract String toStringN();
+    int[] inputRegisterIntraInterference();
+    boolean clobbersInput(int i);
+    double cost();
+    String toStringN();
 
-    @Override
-    public String toString() {
-        return "MiscTransformation";
-    }
-
-    public static class Null extends Transformation {
+    class Null implements Transformation {
         private final int inputCount;
         private final int outputCount;
 
@@ -99,7 +96,7 @@ public abstract class Transformation {
 
 
         @Override
-        public String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
+        public String code(List<? extends RegisterAllocator.Register> uppers, List<? extends RegisterAllocator.Register> lowers, List<? extends RegisterAllocator.Register> trash) {
             return String.format("//Null Instruction: %s <- %s", uppers, lowers);
         }
 

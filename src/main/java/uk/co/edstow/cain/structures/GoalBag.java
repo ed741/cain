@@ -8,7 +8,7 @@ public class GoalBag<G extends Goal<G>> implements Iterable<G>{
     private boolean immutable = false;
     private final boolean fullsort;
     private double sumTotal = Double.NaN;
-    private static final Comparator<Goal> halfComp = (a, b) -> {
+    private static final Comparator<Goal<?>> halfComp = (a, b) -> {
         if(a==b){
             return 0;
         }
@@ -160,11 +160,11 @@ public class GoalBag<G extends Goal<G>> implements Iterable<G>{
         return toGoalsString(arrayList, topBorder, bottomBorder, centreDot, colourNeg);
     }
 
-    public static <E extends Goal>  String toGoalsString(List<E> goals) {
+    public static <E extends Goal<?>>  String toGoalsString(List<E> goals) {
         return toGoalsString(goals, false, false, true, true);
     }
 
-    public static <E extends Goal>  String toGoalsString(List<E> goals, boolean topBorder, boolean bottomBorder, boolean centreDot, boolean colourNeg) {
+    public static <E extends Goal<?>>  String toGoalsString(List<E> goals, boolean topBorder, boolean bottomBorder, boolean centreDot, boolean colourNeg) {
         boolean[] tops = new boolean[goals.size()];
         boolean[] bottoms = new boolean[goals.size()];
         Arrays.fill(tops, topBorder);
@@ -172,15 +172,15 @@ public class GoalBag<G extends Goal<G>> implements Iterable<G>{
         return toGoalsString(goals, tops, bottoms, centreDot, colourNeg);
     }
 
-    public static <E extends Goal>  String toGoalsString(List<E> goals, boolean[] topBorder, boolean[] bottomBorder, boolean centreDot, boolean colourNeg) {
+    public static <E extends Goal<?>>  String toGoalsString(List<E> goals, boolean[] topBorder, boolean[] bottomBorder, boolean centreDot, boolean colourNeg) {
         List<Bounds> b = new ArrayList<>();
-        for (Goal goal : goals) {
+        for (Goal<?> goal : goals) {
             b.add(goal.bounds());
         }
         return GoalBag.toGoalsString(goals, new Bounds.SimpleBounds(b), topBorder, bottomBorder, centreDot, colourNeg);
     }
 
-    public static <E extends Goal> String toGoalsString(List<E> goals, Bounds inputBounds, boolean[] topBorder, boolean[] bottomBorder, boolean centreDot, boolean colourNeg){
+    public static <E extends Goal<?>> String toGoalsString(List<E> goals, Bounds inputBounds, boolean[] topBorder, boolean[] bottomBorder, boolean centreDot, boolean colourNeg){
         Bounds b = inputBounds.includeCentre();
         int height = 1 + b.getYMax() - b.getYMin();
         int width = 1 + b.getXMax() - b.getXMin();
@@ -188,7 +188,7 @@ public class GoalBag<G extends Goal<G>> implements Iterable<G>{
         List<int[]> widthArrays = new ArrayList<>();
 
         for (int i = 0; i < goals.size(); i++) {
-            Goal goal = goals.get(i);
+            Goal<?> goal = goals.get(i);
             String[][] tableArray = goal.getCharTable(b, topBorder[i], bottomBorder[i], centreDot, colourNeg);
             arrays.add(tableArray);
         }

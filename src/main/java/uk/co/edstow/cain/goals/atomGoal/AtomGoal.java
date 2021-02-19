@@ -359,7 +359,7 @@ public class AtomGoal implements List<Atom>, Kernel3DGoal<AtomGoal> {
     }
 
     @Override
-    public Goal3DAtomLikeFactory<AtomGoal> newFactory() {
+    public Kernel3DGoalFactory<AtomGoal> newFactory() {
         return new Factory();
     }
 
@@ -520,7 +520,7 @@ public class AtomGoal implements List<Atom>, Kernel3DGoal<AtomGoal> {
     }
 
 
-    public static class Factory implements Goal3DAtomLikeFactory<AtomGoal> {
+    public static class Factory implements Kernel3DGoalFactory<AtomGoal> {
         private ArrayList<Atom> list;
 
         public Factory(List<Atom> list) {

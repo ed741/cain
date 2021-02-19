@@ -17,7 +17,7 @@ public class SortPairGenFactory extends SimplePairGenFactory {
     }
 
     @Override
-    public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals, Context<AtomGoal> context) {
+    public PairGen<AtomGoal, SimpleTransformation> generatePairs(GoalBag<AtomGoal> goals, Context<AtomGoal, SimpleTransformation> context) {
         return new AddSortPairGen(goals);
     }
 
@@ -30,11 +30,11 @@ public class SortPairGenFactory extends SimplePairGenFactory {
 
         @Override
         void putTransformations(AtomGoal upper) {
-            List<GoalPair<AtomGoal>> pairs = getAddTransformations(upper);
+            List<GoalPair<AtomGoal, SimpleTransformation>> pairs = getAddTransformations(upper);
             pairs.addAll(getUnaryTransformations(upper));
 
-            List<Tuple<GoalPair<AtomGoal>, Double>> list = new ArrayList<>(pairs.size());
-            for (GoalPair<AtomGoal> pair: pairs){
+            List<Tuple<GoalPair<AtomGoal, SimpleTransformation>, Double>> list = new ArrayList<>(pairs.size());
+            for (GoalPair<AtomGoal, SimpleTransformation> pair: pairs){
                 HashSet<AtomGoal> goalSet = new HashSet<>(this.goals);
                 goalSet.removeAll(pair.getUppers());
                 goalSet.addAll(pair.getLowers());

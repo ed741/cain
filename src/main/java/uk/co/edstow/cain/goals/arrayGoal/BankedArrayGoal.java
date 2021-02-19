@@ -1,6 +1,7 @@
 package uk.co.edstow.cain.goals.arrayGoal;
 
 import uk.co.edstow.cain.goals.BankedGoal;
+import uk.co.edstow.cain.goals.BankedKernel3DGoal;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
@@ -9,8 +10,9 @@ import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 
-public class ArrayGoal implements Kernel3DGoal<ArrayGoal> {
+public class BankedArrayGoal implements BankedKernel3DGoal<BankedArrayGoal> {
 
+    private final int bank;
     private final int[] arr;
     private final int total;
     private final int centerX;
@@ -20,7 +22,8 @@ public class ArrayGoal implements Kernel3DGoal<ArrayGoal> {
     private final int ySize;
     private final int zSize;
 
-    protected ArrayGoal(int[] array, int centerX, int centerY, int centerZ, int xSize, int ySize, int zSize, int total) {
+    protected BankedArrayGoal(int bank, int[] array, int centerX, int centerY, int centerZ, int xSize, int ySize, int zSize, int total) {
+        this.bank = bank;
         this.arr = array;
         this.centerX = centerX;
         this.centerY = centerY;
@@ -31,7 +34,8 @@ public class ArrayGoal implements Kernel3DGoal<ArrayGoal> {
         this.total = total;
     }
 
-    protected ArrayGoal(int[] array, int centerX, int centerY, int centerZ, int xSize, int ySize, int zSize) {
+    protected BankedArrayGoal(int bank, int[] array, int centerX, int centerY, int centerZ, int xSize, int ySize, int zSize) {
+        this.bank = bank;
         this.arr = array;
         this.centerX = centerX;
         this.centerY = centerY;
@@ -48,7 +52,8 @@ public class ArrayGoal implements Kernel3DGoal<ArrayGoal> {
 
 
     // constructor that resizes array appropriately
-    public ArrayGoal(int centerX, int centerY, int centerZ, int[] array, int xSize, int ySize, int zSize) {
+    public BankedArrayGoal(int bank, int centerX, int centerY, int centerZ, int[] array, int xSize, int ySize, int zSize) {
+        this.bank = bank;
         int minX = Integer.MAX_VALUE;
         int maxX = Integer.MIN_VALUE;
         int minY = Integer.MAX_VALUE;
@@ -116,7 +121,8 @@ public class ArrayGoal implements Kernel3DGoal<ArrayGoal> {
         }
     }
 
-    public ArrayGoal(AtomGoal atoms) {
+    public BankedArrayGoal(int bank, AtomGoal atoms) {
+        this.bank = bank;
         Bounds b = atoms.bounds();
         this.centerX = -b.getXMin();
         this.centerY = -b.getYMin();
@@ -135,7 +141,8 @@ public class ArrayGoal implements Kernel3DGoal<ArrayGoal> {
         this.total = t;
     }
 
-    public ArrayGoal(){
+    public BankedArrayGoal(int bank){
+        this.bank = bank;
         this.centerX = 0;
         this.centerY = 0;
         this.centerZ = 0;
@@ -146,21 +153,35 @@ public class ArrayGoal implements Kernel3DGoal<ArrayGoal> {
         this.total = 0;
     }
 
-    public ArrayGoal(ArrayGoal arrayGoal) {
-        this.arr = arrayGoal.arr;
-        this.centerX = arrayGoal.centerX;
-        this.centerY = arrayGoal.centerY;
-        this.centerZ = arrayGoal.centerZ;
-        this.xSize = arrayGoal.xSize;
-        this.ySize = arrayGoal.ySize;
-        this.zSize = arrayGoal.zSize;
-        this.total = arrayGoal.total;
+    public BankedArrayGoal(int bank, BankedArrayGoal goal) {
+        this.bank = bank;
+        this.arr = goal.arr;
+        this.centerX = goal.centerX;
+        this.centerY = goal.centerY;
+        this.centerZ = goal.centerZ;
+        this.xSize = goal.xSize;
+        this.ySize = goal.ySize;
+        this.zSize = goal.zSize;
+        this.total = goal.total;
+    }
+
+    public BankedArrayGoal(BankedArrayGoal goal) {
+        this.bank = goal.bank;
+        this.arr = goal.arr;
+        this.centerX = goal.centerX;
+        this.centerY = goal.centerY;
+        this.centerZ = goal.centerZ;
+        this.xSize = goal.xSize;
+        this.ySize = goal.ySize;
+        this.zSize = goal.zSize;
+        this.total = goal.total;
     }
 
     @Override
     public String toString() {
         return "ArrayGoal{" +
-                "arr=" + Arrays.toString(arr) +
+                "bank=" + bank +
+                ", arr=" + Arrays.toString(arr) +
                 ", total=" + total +
                 ", centerX=" + centerX +
                 ", centerY=" + centerY +
@@ -192,7 +213,7 @@ public class ArrayGoal implements Kernel3DGoal<ArrayGoal> {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        ArrayGoal arrayGoal = (ArrayGoal) o;
+        BankedArrayGoal arrayGoal = (BankedArrayGoal) o;
         return this.same(arrayGoal);
     }
 
@@ -204,18 +225,19 @@ public class ArrayGoal implements Kernel3DGoal<ArrayGoal> {
     }
 
     @Override
-    public boolean same(ArrayGoal goal) {
+    public boolean same(BankedArrayGoal goal) {
         if (this.equivalent(goal)) {
             return true;
         }
 
-        if (this.centerX == goal.centerX &&
-            this.centerY == goal.centerY &&
-            this.centerZ == goal.centerZ &&
-            this.xSize == goal.xSize &&
-            this.ySize == goal.ySize &&
-            this.zSize == goal.zSize &&
-            this.total == goal.total){
+        if (this.bank == goal.bank &&
+                this.centerX == goal.centerX &&
+                this.centerY == goal.centerY &&
+                this.centerZ == goal.centerZ &&
+                this.xSize == goal.xSize &&
+                this.ySize == goal.ySize &&
+                this.zSize == goal.zSize &&
+                this.total == goal.total){
             return Arrays.equals(arr, goal.arr);
         } else {
             return false;
@@ -225,7 +247,7 @@ public class ArrayGoal implements Kernel3DGoal<ArrayGoal> {
     }
 
     @Override
-    public boolean equivalent(ArrayGoal goal) {
+    public boolean equivalent(BankedArrayGoal goal) {
         return goal==this;
     }
 
@@ -239,7 +261,8 @@ public class ArrayGoal implements Kernel3DGoal<ArrayGoal> {
     }
 
     @Override
-    public boolean hasSubGoal(ArrayGoal a) {
+    public boolean hasSubGoal(BankedArrayGoal a) {
+        if(bank != a.bank) return false;
         for (int x = -a.centerX; x < a.xSize-a.centerX; x++) {
             for (int y = -a.centerY; y < a.ySize-a.centerY; y++) {
                 for (int z = -a.centerZ; z < a.zSize-a.centerZ; z++) {
@@ -295,7 +318,7 @@ public class ArrayGoal implements Kernel3DGoal<ArrayGoal> {
     }
 
     @Override
-    public boolean isTranslation(ArrayGoal pattern) {
+    public boolean isTranslation(BankedArrayGoal pattern) {
         if(this.xSize != pattern.xSize || this.ySize != pattern.ySize || this.zSize != pattern.zSize){
             return false;
         }
@@ -304,8 +327,8 @@ public class ArrayGoal implements Kernel3DGoal<ArrayGoal> {
     }
 
     @Override
-    public ArrayGoal copy() {
-        return new ArrayGoal(this);
+    public BankedArrayGoal copy() {
+        return new BankedArrayGoal(this);
     }
 
     @Override
@@ -394,21 +417,23 @@ public class ArrayGoal implements Kernel3DGoal<ArrayGoal> {
                 }
             }
         }
-
+        tableArray[0][0] = Integer.toString(bank);
         return tableArray;
     }
 
     @Override
     public Bounds bounds() {
         return new Bounds.SimpleBounds(this.xSize-this.centerX-1, -this.centerX,
-                                       this.ySize-this.centerY-1, -this.centerY,
-                                       this.zSize-this.centerZ-1, -this.centerZ);
+                this.ySize-this.centerY-1, -this.centerY,
+                this.zSize-this.centerZ-1, -this.centerZ);
     }
 
     @Override
-    public int compareTo(ArrayGoal arrayGoal) {
+    public int compareTo(BankedArrayGoal arrayGoal) {
         if (arrayGoal == this) return 0;
-        int c = Integer.compare(arrayGoal.total, this.total);
+        int c = Integer.compare(arrayGoal.bank, this.bank);
+        if (c != 0) return c;
+        c = Integer.compare(arrayGoal.total, this.total);
         if (c != 0) return c;
         c = Integer.compare(arrayGoal.centerX, this.centerX);
         if (c != 0) return c;
@@ -430,9 +455,9 @@ public class ArrayGoal implements Kernel3DGoal<ArrayGoal> {
     }
 
     @Override
-    public ArrayGoal without(ArrayGoal goal) {
+    public BankedArrayGoal without(BankedArrayGoal goal) {
         if(goal.total == 0){
-            return new ArrayGoal(this);
+            return new BankedArrayGoal(this);
         }
         int[] narr = Arrays.copyOf(this.arr, this.arr.length);
 
@@ -451,27 +476,27 @@ public class ArrayGoal implements Kernel3DGoal<ArrayGoal> {
                 }
             }
         }
-        return new ArrayGoal(centerX, centerY, centerZ, narr, xSize, ySize, zSize);
+        return new BankedArrayGoal(bank, centerX, centerY, centerZ, narr, xSize, ySize, zSize);
     }
 
     @Override
-    public ArrayGoal negated() {
+    public BankedArrayGoal negated() {
         int[] narr = Arrays.copyOf(this.arr, this.arr.length);
         for (int i = 0; i < narr.length; i++) {
             narr[i] = -narr[i];
         }
-        return new ArrayGoal(narr, this.centerX, this.centerY, this.centerZ, this.xSize, this.ySize, this.zSize, this.total);
+        return new BankedArrayGoal(bank, narr, this.centerX, this.centerY, this.centerZ, this.xSize, this.ySize, this.zSize, this.total);
     }
 
     @Override
-    public ArrayGoal translated(int x, int y, int z){
-        return new ArrayGoal(this.arr, this.centerX-x, this.centerY-y, this.centerZ-z, this.xSize, this.ySize, this.zSize, this.total);
+    public BankedArrayGoal translated(int x, int y, int z){
+        return new BankedArrayGoal(bank, this.arr, this.centerX-x, this.centerY-y, this.centerZ-z, this.xSize, this.ySize, this.zSize, this.total);
     }
 
     @Override
-    public ArrayGoal added(ArrayGoal goal) {
+    public BankedArrayGoal added(BankedArrayGoal goal) {
         if(goal.total == 0){
-            return new ArrayGoal(this);
+            return new BankedArrayGoal(this);
         }
         Bounds b = new Bounds.SimpleBounds(Arrays.asList(this.bounds(), goal.bounds()));
         int centerX = -b.getXMin();
@@ -489,13 +514,13 @@ public class ArrayGoal implements Kernel3DGoal<ArrayGoal> {
                 }
             }
         }
-        return new ArrayGoal(centerX, centerY, centerZ, narr, xSize, ySize, zSize);
+        return new BankedArrayGoal(bank, centerX, centerY, centerZ, narr, xSize, ySize, zSize);
     }
 
     @Override
-    public ArrayGoal subtracted(ArrayGoal goal) {
+    public BankedArrayGoal subtracted(BankedArrayGoal goal) {
         if(goal.total == 0){
-            return new ArrayGoal(this);
+            return new BankedArrayGoal(this);
         }
         Bounds b = new Bounds.SimpleBounds(Arrays.asList(this.bounds(), goal.bounds()));
         int centerX = -b.getXMin();
@@ -513,11 +538,12 @@ public class ArrayGoal implements Kernel3DGoal<ArrayGoal> {
                 }
             }
         }
-        return new ArrayGoal(centerX, centerY, centerZ, narr, xSize, ySize, zSize);
+        return new BankedArrayGoal(bank, centerX, centerY, centerZ, narr, xSize, ySize, zSize);
     }
 
+
     @Override
-    public List<ArrayGoal> allSplits(){
+    public List<BankedArrayGoal> allSplits(){
         List<int[]> lists = new ArrayList<>();
         try {
             lists.add(new int[this.arr.length]);
@@ -536,9 +562,9 @@ public class ArrayGoal implements Kernel3DGoal<ArrayGoal> {
                     }
                 }
             }
-            ArrayList<ArrayGoal> out = new ArrayList<>();
+            ArrayList<BankedArrayGoal> out = new ArrayList<>();
             for (int i = 0; i < lists.size(); i++) {
-                out.add(new ArrayGoal(centerX, centerY, centerZ, lists.get(i), xSize, ySize, zSize));
+                out.add(new BankedArrayGoal(bank, centerX, centerY, centerZ, lists.get(i), xSize, ySize, zSize));
             }
             return out;
         } catch (OutOfMemoryError memoryError){
@@ -594,12 +620,32 @@ public class ArrayGoal implements Kernel3DGoal<ArrayGoal> {
         return new AveragePosition(ax/total, ay/total, az/total);
     }
 
+
     @Override
-    public Kernel3DGoalFactory<ArrayGoal> newFactory() {
-        return new Factory();
+    public int getBank() {
+        return bank;
     }
 
-    public static class Factory implements Kernel3DGoalFactory<ArrayGoal>, BankedGoal.BankedGoalFactory<ArrayGoal> {
+    @Override
+    public BankedArrayGoal inBank(int bank) {
+        return new BankedArrayGoal(bank, this);
+    }
+
+    @Override
+    public boolean isInBank(int bank) {
+        return this.bank==bank;
+    }
+
+    @Override
+    public Factory newFactory() {
+        return new Factory(bank);
+    }
+
+    public static class Factory implements BankedKernel3DGoalFactory<BankedArrayGoal> {
+        public Factory(int bank) {
+            this.bank = bank;
+        }
+
         private static class Coord{
             final int x; final int y; final int z;
 
@@ -622,10 +668,11 @@ public class ArrayGoal implements Kernel3DGoal<ArrayGoal> {
                 return Objects.hash(x, y, z);
             }
         }
+        private int bank;
 
         final HashMap<Coord, Integer> map = new HashMap<>();
         @Override
-        public ArrayGoal get() {
+        public BankedArrayGoal get() {
             int minX = Integer.MAX_VALUE;
             int maxX = Integer.MIN_VALUE;
             int minY = Integer.MAX_VALUE;
@@ -645,7 +692,7 @@ public class ArrayGoal implements Kernel3DGoal<ArrayGoal> {
                     maxZ = Math.max(maxZ, coordIntegerEntry.getKey().z);
                 }
             }
-            if(total==0){return new ArrayGoal();}
+            if(total==0){return new BankedArrayGoal(bank);}
             int centerX = -minX;
             int centerY = -minY;
             int centerZ = -minZ;
@@ -660,61 +707,60 @@ public class ArrayGoal implements Kernel3DGoal<ArrayGoal> {
                     narray[((next.getKey().x+centerX)*(ySize) + (next.getKey().y+centerY)) * (zSize) + (next.getKey().z+centerZ)] = v;
                 }
             }
-            return new ArrayGoal(narray, centerX, centerY, centerZ, xSize ,ySize, zSize, total);
+            return new BankedArrayGoal(bank, narray, centerX, centerY, centerZ, xSize ,ySize, zSize, total);
         }
 
         @Override
-        public BankedGoal.BankedGoalFactory<ArrayGoal> setBank(int bank) {
+        public Factory setBank(int bank) {
             return null;
         }
 
         @Override
-        public Kernel3DGoalFactory<ArrayGoal> add(int x, int y, int z, int v) {
+        public Factory add(int x, int y, int z, int v) {
             map.compute(new Coord(x, y, z), (coord, c) -> (c==null?0:c)+v);
             return this;
         }
 
         @Override
-        public Kernel3DGoalFactory<ArrayGoal> sub(int x, int y, int z, int v) {
+        public Factory sub(int x, int y, int z, int v) {
             map.compute(new Coord(x, y, z), (coord, c) -> (c==null?0:c)-v);
             return this;
         }
 
         @Override
-        public Kernel3DGoalFactory<ArrayGoal> add(ArrayGoal goal) {
+        public Factory add(BankedArrayGoal goal) {
             for (int i = 0; i < goal.arr.length; i++) {
                 int v = goal.arr[i];
                 if (v != 0){
                     int z = i % goal.zSize;
                     int y = (i / goal.zSize) % goal.ySize;
                     int x = i /(goal.ySize*goal.zSize);
-                    map.compute(new Coord(x, y, z), (coord, c) -> (c==null?0:c)+v);
+                    map.compute(new Factory.Coord(x, y, z), (coord, c) -> (c==null?0:c)+v);
                 }
             }
             return this;
         }
 
         @Override
-        public Kernel3DGoalFactory<ArrayGoal> sub(ArrayGoal goal) {
+        public Factory sub(BankedArrayGoal goal) {
             for (int i = 0; i < goal.arr.length; i++) {
                 int v = goal.arr[i];
                 if (v != 0){
                     int z = i % goal.zSize;
                     int y = (i / goal.zSize) % goal.ySize;
                     int x = i /(goal.ySize*goal.zSize);
-                    map.compute(new Coord(x, y, z), (coord, c) -> (c==null?0:c)-v);
+                    map.compute(new Factory.Coord(x, y, z), (coord, c) -> (c==null?0:c)-v);
                 }
             }
             return this;
         }
 
         @Override
-        public Kernel3DGoalFactory<ArrayGoal> addAll(Collection<ArrayGoal> goals) {
-            for (ArrayGoal goal : goals) {
+        public Factory addAll(Collection<BankedArrayGoal> goals) {
+            for (BankedArrayGoal goal : goals) {
                 add(goal);
             }
             return this;
         }
     }
-
 }

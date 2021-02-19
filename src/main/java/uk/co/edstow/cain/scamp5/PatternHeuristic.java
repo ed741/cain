@@ -1,5 +1,6 @@
 package uk.co.edstow.cain.scamp5;
 
+import uk.co.edstow.cain.Transformation;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.pairgen.Context;
 import uk.co.edstow.cain.pairgen.CostHeuristic;
@@ -10,7 +11,7 @@ import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 
-public class PatternHeuristic<G extends Kernel3DGoal<G>> implements CostHeuristic<G> {
+public class PatternHeuristic<G extends Kernel3DGoal<G>, T extends Transformation> implements CostHeuristic<G, T> {
 
     private final int[] initialDivisions;
     private final int initialDivisionsMax;
@@ -33,7 +34,7 @@ public class PatternHeuristic<G extends Kernel3DGoal<G>> implements CostHeuristi
 
 
     @Override
-    public double getCost(GoalPair<G> pair, GoalBag<G> goals, Context<G> context) {
+    public double getCost(GoalPair<G, T> pair, GoalBag<G> goals, Context<G, T> context) {
         GoalBag<G> proposedGoals = new GoalBag<>(goals);
         for (G upper : pair.getUppers()) {
             proposedGoals.remove(upper);
@@ -46,7 +47,7 @@ public class PatternHeuristic<G extends Kernel3DGoal<G>> implements CostHeuristi
             toAdd.add(goal);
         }
         proposedGoals.addAll(toAdd);
-        if(proposedGoals.size() +(pair.getTransformation().ExtraRegisterCount()) > context.totalAvailableRegisters){
+        if(proposedGoals.size() +(pair.getTransformation().ExtraRegisterCount()) > context.registerAllocator.getAvailableRegisters()){
             return -1; // exit early if too many registers are used.
         }
         double cost = 0;

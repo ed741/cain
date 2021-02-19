@@ -17,7 +17,7 @@ public class V3PairGenFactory extends V2PairGenFactory{
     }
 
     @Override
-    public Collection<Tuple<List<GoalPair<AtomGoal>>, AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, Context<AtomGoal> context, AtomGoal goal) {
+    public Collection<Tuple<List<GoalPair<AtomGoal, SimpleTransformation>>, AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, Context<AtomGoal, SimpleTransformation> context, AtomGoal goal) {
         return SimplePairGenFactory.applyAllUnaryOps(initialGoals.get(0), goal);
     }
 
@@ -25,7 +25,7 @@ public class V3PairGenFactory extends V2PairGenFactory{
     private AtomGoal.AtomBounds bounds;
 
     @Override
-    public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals, Context<AtomGoal> context) {
+    public PairGen<AtomGoal, SimpleTransformation> generatePairs(GoalBag<AtomGoal> goals, Context<AtomGoal, SimpleTransformation> context) {
         return new V3PairGen(goals);
     }
 
@@ -37,7 +37,7 @@ public class V3PairGenFactory extends V2PairGenFactory{
 
 
         @Override
-        public GoalPair<AtomGoal> next() {
+        public GoalPair<AtomGoal, SimpleTransformation> next() {
             if(!currentList.isEmpty()){
                 return currentList.remove(0);
             }
@@ -45,7 +45,7 @@ public class V3PairGenFactory extends V2PairGenFactory{
                 return null;
             }
 
-            List<Tuple<GoalPair<AtomGoal>, Tuple<Double, Integer>>> rankList = new ArrayList<>();
+            List<Tuple<GoalPair<AtomGoal, SimpleTransformation>, Tuple<Double, Integer>>> rankList = new ArrayList<>();
             updateIJ();
             while(getJ() < goals.size() && getI() < goals.size()) {
 
@@ -60,7 +60,7 @@ public class V3PairGenFactory extends V2PairGenFactory{
                         if (tmp.equals(a)) {
                             AtomGoal lower = new Distance(tuple.getA().majorXYDirection(), 1).inverse().translate(tuple.getB());
                             SimpleTransformation.Move mov = new SimpleTransformation.Move(1, tuple.getA().majorXYDirection(), lower);
-                            GoalPair<AtomGoal> pair = new GoalPair<>(b, lower, mov);
+                            GoalPair<AtomGoal, SimpleTransformation> pair = new GoalPair<>(b, lower, mov);
                             double v = V1PairGenFactory.getValue(goals, pair, bounds);
                             rankList.add(Tuple.triple(pair, v, tuple.getB().size()));
                         } else {
@@ -68,13 +68,13 @@ public class V3PairGenFactory extends V2PairGenFactory{
                             if (div > 1 && (((div - 1) & div) == 0)) {
                                 AtomGoal lower = b.added(b);
                                 SimpleTransformation.Div divide = new SimpleTransformation.Div(1, lower);
-                                GoalPair<AtomGoal> pair = new GoalPair<>(b, lower, divide);
+                                GoalPair<AtomGoal, SimpleTransformation> pair = new GoalPair<>(b, lower, divide);
                                 double v = V1PairGenFactory.getValue(goals, pair, bounds);
                                 rankList.add(Tuple.triple(pair, v, tuple.getB().size()));
                             } else {
                                 AtomGoal split2 = a.without(tmp);
                                 List<AtomGoal> lowers = Arrays.asList(tmp, split2);
-                                GoalPair<AtomGoal> pair = new GoalPair<>(a, lowers, new SimpleTransformation.Add(tmp, split2));
+                                GoalPair<AtomGoal, SimpleTransformation> pair = new GoalPair<>(a, lowers, new SimpleTransformation.Add(tmp, split2));
                                 double v = V1PairGenFactory.getValue(goals, pair, bounds);
                                 rankList.add(Tuple.triple(pair, v, tuple.getB().size()));
                             }
@@ -90,7 +90,7 @@ public class V3PairGenFactory extends V2PairGenFactory{
 //                        System.out.println(tuple.getA());
 //                        System.out.println(split1.getTableString(true));
 //                        System.out.println(split2.getTableString(true));
-                        GoalPair<AtomGoal> pair = new GoalPair<>(a, Arrays.asList(split1, split2), new SimpleTransformation.Add(split1, split2));
+                        GoalPair<AtomGoal, SimpleTransformation> pair = new GoalPair<>(a, Arrays.asList(split1, split2), new SimpleTransformation.Add(split1, split2));
                         double v = V1PairGenFactory.getValue(goals, pair, bounds);
                         rankList.add(Tuple.triple(pair, v, tuple.getB().size()));
                     }
@@ -99,7 +99,7 @@ public class V3PairGenFactory extends V2PairGenFactory{
                 }
                 updateIJ();
             }
-            Comparator<Tuple<GoalPair<AtomGoal>, Tuple<Double, Integer>>> c = Comparator.comparingInt((Tuple<GoalPair<AtomGoal>, Tuple<Double, Integer>> v) -> v.getB().getB()).reversed().thenComparingDouble((Tuple<GoalPair<AtomGoal>, Tuple<Double, Integer>> v) -> v.getB().getA());
+            Comparator<Tuple<GoalPair<AtomGoal, SimpleTransformation>, Tuple<Double, Integer>>> c = Comparator.comparingInt((Tuple<GoalPair<AtomGoal, SimpleTransformation>, Tuple<Double, Integer>> v) -> v.getB().getB()).reversed().thenComparingDouble((Tuple<GoalPair<AtomGoal, SimpleTransformation>, Tuple<Double, Integer>> v) -> v.getB().getA());
             rankList.sort(c);
             rankList.forEach(t -> currentList.add(t.getA()));
             if (currentList.isEmpty()){

@@ -13,8 +13,11 @@
       ]}
   },
 
-  "availableRegisters":["A","B","C","D","E","F"],
-  "initialRegisters":["A"],
+  "registerAllocator": {
+    "name": "linearScan",
+    "availableRegisters":["A","B","C","D","E","F"],
+    "initialRegisters":["A"]
+  },
 
   "runConfig":{
     "searchTime":1000,
@@ -36,9 +39,12 @@
 
   "pairGen":{
     "name": "Scamp5AnalogueAtomGoal",
-    "configGetter": "Threshold",
-    "ops":"all",
-    "threshold":10
+    "configGetter": {
+      "name":"Threshold",
+      "threshold":10,
+      "heuristic": "Pattern",
+      "ops": "all"
+    }
   },
 
   "verifier":"Scamp5Emulator"

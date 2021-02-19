@@ -1,5 +1,6 @@
 package uk.co.edstow.cain.goals.atomGoal.pairGen;
 
+import uk.co.edstow.cain.Transformation;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
 import uk.co.edstow.cain.pairgen.Context;
@@ -10,28 +11,34 @@ import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 
-public class V2PairGenFactory implements PairGenFactory<AtomGoal> {
+public class V2PairGenFactory implements PairGenFactory<AtomGoal, SimpleTransformation> {
 
     private static final Comparator<Tuple<Distance, AtomGoal>> entryComparator = Comparator.comparingInt((Tuple<Distance, AtomGoal> t) -> t.getB().size()).thenComparingInt(t -> -t.getA().manhattanXY());
 
 
     @Override
-    public Collection<Tuple<List<GoalPair<AtomGoal>>, AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, Context<AtomGoal> context, AtomGoal goal) {
+    public Collection<Tuple<List<GoalPair<AtomGoal, SimpleTransformation>>, AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, Context<AtomGoal, SimpleTransformation> context, AtomGoal goal) {
         return SimplePairGenFactory.applyAllUnaryOps(initialGoals.get(0), goal);
     }
 
     @Override
-    public PairGen<AtomGoal> generatePairs(GoalBag<AtomGoal> goals, Context<AtomGoal> context) {
+    public PairGen<AtomGoal, SimpleTransformation> generatePairs(GoalBag<AtomGoal> goals, Context<AtomGoal, SimpleTransformation> context) {
         return new V2PairGen(goals);
     }
 
+    @Override
+    public SimpleTransformation getDummyTransformation(List<AtomGoal> upperGoals, List<AtomGoal> lowerGoals, Context<AtomGoal, SimpleTransformation> context) {
+        return new SimpleTransformation.Null(lowerGoals.size(), upperGoals.size());
+    }
 
-    protected class V2PairGen implements PairGen<AtomGoal> {
+
+
+    protected class V2PairGen implements PairGen<AtomGoal, SimpleTransformation> {
         final GoalBag<AtomGoal> goals;
         int ii;
         int jj;
         int dia = -1;
-        final List<GoalPair<AtomGoal>> currentList = new ArrayList<>();
+        final List<GoalPair<AtomGoal, SimpleTransformation>> currentList = new ArrayList<>();
         private int count;
 
         V2PairGen(GoalBag<AtomGoal> goals) {
@@ -78,7 +85,7 @@ public class V2PairGenFactory implements PairGenFactory<AtomGoal> {
         }
 
         @Override
-        public GoalPair<AtomGoal> next() {
+        public GoalPair<AtomGoal, SimpleTransformation> next() {
             count++;
             while(currentList.isEmpty()) {
                 updateIJ();

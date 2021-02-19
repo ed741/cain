@@ -1,6 +1,7 @@
 package uk.co.edstow.cain;
 
 import org.junit.jupiter.api.Test;
+import uk.co.edstow.cain.regAlloc.RegisterAllocator;
 
 import java.util.HashSet;
 import java.util.Set;
