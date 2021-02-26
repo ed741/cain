@@ -642,35 +642,13 @@ public class BankedArrayGoal implements BankedKernel3DGoal<BankedArrayGoal> {
     }
 
     public static class Factory implements BankedKernel3DGoalFactory<BankedArrayGoal> {
+        private int bank;
+        final HashMap<Coord, Integer> map = new HashMap<>();
+
         public Factory(int bank) {
             this.bank = bank;
         }
 
-        private static class Coord{
-            final int x; final int y; final int z;
-
-            private Coord(int x, int y, int z) {
-                this.x = x;
-                this.y = y;
-                this.z = z;
-            }
-
-            @Override
-            public boolean equals(Object o) {
-                if (this == o) return true;
-                if (o == null || getClass() != o.getClass()) return false;
-                Coord coord = (Coord) o;
-                return x == coord.x && y == coord.y && z == coord.z;
-            }
-
-            @Override
-            public int hashCode() {
-                return Objects.hash(x, y, z);
-            }
-        }
-        private int bank;
-
-        final HashMap<Coord, Integer> map = new HashMap<>();
         @Override
         public BankedArrayGoal get() {
             int minX = Integer.MAX_VALUE;
@@ -712,7 +690,8 @@ public class BankedArrayGoal implements BankedKernel3DGoal<BankedArrayGoal> {
 
         @Override
         public Factory setBank(int bank) {
-            return null;
+            this.bank = bank;
+            return this;
         }
 
         @Override
@@ -761,6 +740,30 @@ public class BankedArrayGoal implements BankedKernel3DGoal<BankedArrayGoal> {
                 add(goal);
             }
             return this;
+        }
+
+
+        private static class Coord{
+            final int x; final int y; final int z;
+
+            private Coord(int x, int y, int z) {
+                this.x = x;
+                this.y = y;
+                this.z = z;
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                if (this == o) return true;
+                if (o == null || getClass() != o.getClass()) return false;
+                Coord coord = (Coord) o;
+                return x == coord.x && y == coord.y && z == coord.z;
+            }
+
+            @Override
+            public int hashCode() {
+                return Objects.hash(x, y, z);
+            }
         }
     }
 }

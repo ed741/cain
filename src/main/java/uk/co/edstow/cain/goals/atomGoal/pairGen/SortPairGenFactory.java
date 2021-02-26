@@ -3,6 +3,7 @@ package uk.co.edstow.cain.goals.atomGoal.pairGen;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
 import uk.co.edstow.cain.pairgen.Context;
+import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
 import uk.co.edstow.cain.util.Tuple;
@@ -17,7 +18,7 @@ public class SortPairGenFactory extends SimplePairGenFactory {
     }
 
     @Override
-    public PairGen<AtomGoal, SimpleTransformation> generatePairs(GoalBag<AtomGoal> goals, Context<AtomGoal, SimpleTransformation> context) {
+    public PairGen<AtomGoal, SimpleTransformation, Register> generatePairs(GoalBag<AtomGoal> goals, Context<AtomGoal, SimpleTransformation, Register> context) {
         return new AddSortPairGen(goals);
     }
 
@@ -30,11 +31,11 @@ public class SortPairGenFactory extends SimplePairGenFactory {
 
         @Override
         void putTransformations(AtomGoal upper) {
-            List<GoalPair<AtomGoal, SimpleTransformation>> pairs = getAddTransformations(upper);
+            List<GoalPair<AtomGoal, SimpleTransformation, Register>> pairs = getAddTransformations(upper);
             pairs.addAll(getUnaryTransformations(upper));
 
-            List<Tuple<GoalPair<AtomGoal, SimpleTransformation>, Double>> list = new ArrayList<>(pairs.size());
-            for (GoalPair<AtomGoal, SimpleTransformation> pair: pairs){
+            List<Tuple<GoalPair<AtomGoal, SimpleTransformation, Register>, Double>> list = new ArrayList<>(pairs.size());
+            for (GoalPair<AtomGoal, SimpleTransformation, Register> pair: pairs){
                 HashSet<AtomGoal> goalSet = new HashSet<>(this.goals);
                 goalSet.removeAll(pair.getUppers());
                 goalSet.addAll(pair.getLowers());

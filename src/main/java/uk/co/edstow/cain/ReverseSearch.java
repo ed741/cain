@@ -2,6 +2,7 @@ package uk.co.edstow.cain;
 
 import uk.co.edstow.cain.pairgen.Context;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
+import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.regAlloc.RegisterAllocator;
 import uk.co.edstow.cain.structures.*;
 import uk.co.edstow.cain.transformations.Transformation;
@@ -17,10 +18,10 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 
-public class ReverseSearch<G extends Goal<G>, T extends Transformation> {
+public class ReverseSearch<G extends Goal<G>, T extends Transformation<R>, R extends Register> {
 
     @SuppressWarnings({"UnusedReturnValue", "unused"})
-    public static class RunConfig<G extends Goal<G>, T extends Transformation> {
+    public static class RunConfig<G extends Goal<G>, T extends Transformation<R>, R extends Register> {
         //interface
         private boolean liveCounter;
         private int livePrintPlans;
@@ -35,20 +36,19 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation> {
         private long maxNodes;
 
         // Search Rules
-        private Supplier<? extends TraversalSystem<WorkState<G, T>>> traversalAlgorithm;
+        private Supplier<? extends TraversalSystem<WorkState<G,T,R>>> traversalAlgorithm;
         private int initialMaxDepth;
         private int forcedDepthReduction; // once a plan is found at maxDepth 10, cull searches at "maxDepth - forcedDepthReduction".
         private int initialMaxCost;
         private int forcedCostReduction;
-//        private RegisterAllocator<G> registerAllocator; // The register allocator to ensure plans are allocatable
-        private Function<Plan<G, T>, Integer> costFunction;
+        private Function<Plan<G,T,R>, Integer> costFunction;
 
         // Search Heuristics
         private int allowableSumTotalCoefficient; // cull plans that have higher totals than: "finalGoal * allowableSumTotalCoefficient + initialGoals".
         private int goalReductionsPerStep; // cull plans that have more active goals than steps before max maxDepth to reduce the number to one.
         private int goalReductionsTolerance; // add a tolerance to allow for a "less conservative" (lower) goalReductionsPerStep if larger reductions are unlikely.
 
-        public RunConfig(boolean liveCounter, int livePrintPlans, boolean quiet, int workers, int searchTime, long maxNodes, boolean timeOut, Supplier<TraversalSystem<WorkState<G, T>>> traversalAlgorithm, Function<Plan<G, T>, Integer> costFunction, int initialMaxDepth, int forcedDepthReduction, int initialMaxCost, int forcedCostReduction, int allowableSumTotalCoefficient, int goalReductionsPerStep, int goalReductionsTolerance) {
+        public RunConfig(boolean liveCounter, int livePrintPlans, boolean quiet, int workers, int searchTime, long maxNodes, boolean timeOut, Supplier<TraversalSystem<WorkState<G,T,R>>> traversalAlgorithm, Function<Plan<G, T, R>, Integer> costFunction, int initialMaxDepth, int forcedDepthReduction, int initialMaxCost, int forcedCostReduction, int allowableSumTotalCoefficient, int goalReductionsPerStep, int goalReductionsTolerance) {
             this.liveCounter = liveCounter;
             this.livePrintPlans = livePrintPlans;
             this.quiet = quiet;
@@ -87,19 +87,19 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation> {
             this.goalReductionsTolerance = 1;
         }
 
-        public RunConfig<G,T> setLiveCounter(boolean liveCounter){
+        public RunConfig<G,T,R> setLiveCounter(boolean liveCounter){
             this.liveCounter = liveCounter;
             return this;
         }
-        public RunConfig<G,T> setLivePrintPlans(int printPlans){
+        public RunConfig<G,T,R> setLivePrintPlans(int printPlans){
             this.livePrintPlans = printPlans;
             return this;
         }
-        public RunConfig<G,T> setQuiet(boolean quiet){
+        public RunConfig<G,T,R> setQuiet(boolean quiet){
             this.quiet = quiet;
             return this;
         }
-        public RunConfig<G,T> setWorkers(int workers) {
+        public RunConfig<G,T,R> setWorkers(int workers) {
             if(workers < 1){
                 throw new IllegalArgumentException("workers must be greater than 0");
             }
@@ -107,7 +107,7 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation> {
             return this;
         }
 
-        public RunConfig<G,T> setSearchTime(int searchTime) {
+        public RunConfig<G,T,R> setSearchTime(int searchTime) {
             if(searchTime < 0){
                 throw new IllegalArgumentException("searchTime must be non-negative");
             }
@@ -115,7 +115,7 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation> {
             return this;
         }
 
-        public RunConfig<G,T> setMaxNodes(int maxNodes) {
+        public RunConfig<G,T,R> setMaxNodes(int maxNodes) {
             if(maxNodes < 0){
                 throw new IllegalArgumentException("maxNodes must be non-negative");
             }
@@ -124,17 +124,17 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation> {
         }
 
 
-        public RunConfig<G,T> setTimeOut(boolean timeOut) {
+        public RunConfig<G,T,R> setTimeOut(boolean timeOut) {
             this.timeOut = timeOut;
             return this;
         }
 
-        public RunConfig<G,T> setTraversalAlgorithm(Supplier<? extends TraversalSystem<WorkState<G,T>>> traversalAlgorithm) {
+        public RunConfig<G,T,R> setTraversalAlgorithm(Supplier<? extends TraversalSystem<WorkState<G,T,R>>> traversalAlgorithm) {
             this.traversalAlgorithm = traversalAlgorithm;
             return this;
         }
 
-        public RunConfig<G,T> setInitialMaxDepth(int initialMaxDepth) {
+        public RunConfig<G,T,R> setInitialMaxDepth(int initialMaxDepth) {
             if(initialMaxDepth < 0){
                 throw new IllegalArgumentException("maxDepth must be non-negative");
             }
@@ -142,33 +142,22 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation> {
             return this;
         }
 
-        public RunConfig<G,T> setForcedDepthReduction(int forcedDepthReduction) {
+        public RunConfig<G,T,R> setForcedDepthReduction(int forcedDepthReduction) {
             this.forcedDepthReduction = forcedDepthReduction;
             return this;
         }
 
-        public RunConfig<G,T> setInitialMaxCost(int initialMaxCost) {
+        public RunConfig<G,T,R> setInitialMaxCost(int initialMaxCost) {
             this.initialMaxCost = initialMaxCost;
             return this;
         }
 
-        public RunConfig<G,T> setForcedCostReduction(int forcedCostReduction) {
+        public RunConfig<G,T,R> setForcedCostReduction(int forcedCostReduction) {
             this.forcedCostReduction = forcedCostReduction;
             return this;
         }
 
-//        public RunConfig<G,T> setRegisterAllocator(RegisterAllocator<G> registerAllocator) {
-//            if (registerAllocator == null){
-//                throw new IllegalArgumentException("Register Allocator cannot be null");
-//            }
-//            if(registerAllocator.getAvailableRegisters() < 1){
-//                throw new IllegalArgumentException("Available registers must be greater than 0 (and no less than the number of final goals)");
-//            }
-//            this.registerAllocator = registerAllocator;
-//            return this;
-//        }
-
-        public RunConfig<G,T> setAllowableSumTotalCoefficient(int allowableSumTotalCoefficient) {
+        public RunConfig<G,T,R> setAllowableSumTotalCoefficient(int allowableSumTotalCoefficient) {
             if(allowableSumTotalCoefficient < 0){
                 throw new IllegalArgumentException("allowableAtomsCoefficient must be non-negative");
             }
@@ -176,7 +165,7 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation> {
             return this;
         }
 
-        public RunConfig<G,T> setGoalReductionsPerStep(int goalReductionsPerStep) {
+        public RunConfig<G,T,R> setGoalReductionsPerStep(int goalReductionsPerStep) {
             if(goalReductionsPerStep < 0){
                 throw new IllegalArgumentException("goalReductionsPerStep must be non-negative");
             }
@@ -184,14 +173,14 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation> {
             return this;
         }
 
-        public RunConfig<G,T> setGoalReductionsTolerance(int goalReductionsTolerance) {
+        public RunConfig<G,T,R> setGoalReductionsTolerance(int goalReductionsTolerance) {
             if(goalReductionsTolerance < 0){
                 throw new IllegalArgumentException("goalReductionsTolerance must be non-negative");
             }
             this.goalReductionsTolerance = goalReductionsTolerance;
             return this;
         }
-        public RunConfig<G,T> setCostFunction(Function<Plan<G,T>, Integer> costFunction) {
+        public RunConfig<G,T,R> setCostFunction(Function<Plan<G,T,R>, Integer> costFunction) {
             this.costFunction = costFunction;
             return this;
         }
@@ -204,13 +193,13 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation> {
     private final List<G> finalGoals;
     private final double finalGoalSumTotal;
 
-    private final List<Plan<G,T>> plans;
+    private final List<Plan<G,T,R>> plans;
     private final List<Long> planTimes;
     private final List<Long> planNodesExplored;
     private final ReentrantLock planLock;
     private final GoalsCache<G> cache;
 
-    private final PairGenFactory<G,T> pairGenFactory;
+    private final PairGenFactory<G,T,R> pairGenFactory;
 
     private final int workers;
     private final AtomicBoolean end;
@@ -226,10 +215,10 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation> {
     private final long maxTime;
     private final AtomicInteger maxDepth;
     private final AtomicInteger maxCost;
-    private final RegisterAllocator<G, T> registerAllocator;
+    private final RegisterAllocator<G,T,R> registerAllocator;
 //    private final int availableRegisters;
-    private final Supplier<? extends TraversalSystem<WorkState<G,T>>> traversalAlgorithm;
-    public final Function<Plan<G,T>, Integer> costFunction;
+    private final Supplier<? extends TraversalSystem<WorkState<G,T,R>>> traversalAlgorithm;
+    public final Function<Plan<G,T,R>, Integer> costFunction;
 
     private final int allowableSumTotalCoefficent;
     private final int forcedDepthReduction;
@@ -238,7 +227,7 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation> {
     private final int goalReductionsTolerance;
 
 
-    public ReverseSearch(List<G> initialGoals, List<G> finalGoals, PairGenFactory<G,T> pairGenFactory, RunConfig<G,T> runConfig, RegisterAllocator<G, T> registerAllocator) {
+    public ReverseSearch(List<G> initialGoals, List<G> finalGoals, PairGenFactory<G,T,R> pairGenFactory, RunConfig<G,T,R> runConfig, RegisterAllocator<G,T,R> registerAllocator) {
         this.liveCounter = runConfig.liveCounter;
         this.livePrintPlans = runConfig.livePrintPlans;
         this.quiet = runConfig.quiet;
@@ -301,7 +290,7 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation> {
         return finalGoals;
     }
 
-    public List<Plan<G,T>> getPlans() {
+    public List<Plan<G,T,R>> getPlans() {
         return plans;
     }
 
@@ -450,7 +439,7 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation> {
         int workerMaxDepth = 0;
         private Worker next;
 
-        final TraversalSystem<WorkState<G,T>> localTraversalSystem;
+        final TraversalSystem<WorkState<G,T,R>> localTraversalSystem;
         int plansFound = 0;
         int cacheChecks = 0;
         int cacheHits = 0;
@@ -474,7 +463,7 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation> {
                         active = false;
                         break;
                     }
-                    WorkState<G,T> s = localTraversalSystem.poll();
+                    WorkState<G,T,R> s = localTraversalSystem.poll();
                     if (s == null) {
                         active = false;
                         if(workers>1) {
@@ -491,14 +480,14 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation> {
                 //System.out.println(id + " interpreted!");
             }
             if (!quiet) {
-                System.out.println(String.format("Worker %d Finished:  Active: %b,  Min Depth: %d,  Max Depth: %d,  PlansFound: %d, CacheHits: %d,  CacheChecks: %d,  Steals: %d, NodesExpanded: %d", id, active, workerMinDepth, workerMaxDepth, plansFound, cacheHits, cacheChecks, steals, nodesExpanded));
+                System.out.printf("Worker %d Finished:  Active: %b,  Min Depth: %d,  Max Depth: %d,  PlansFound: %d, CacheHits: %d,  CacheChecks: %d,  Steals: %d, NodesExpanded: %d%n", id, active, workerMinDepth, workerMaxDepth, plansFound, cacheHits, cacheChecks, steals, nodesExpanded);
             }
             workersFinished.release();
         }
 
-        private WorkState<G,T> stealWork() throws InterruptedException {
+        private WorkState<G,T,R> stealWork() throws InterruptedException {
             Worker c = next;
-            WorkState<G,T> s = null;
+            WorkState<G,T,R> s = null;
             while (s==null){
                 s = localTraversalSystem.steal(c.localTraversalSystem);
                 c = c.next;
@@ -507,11 +496,11 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation> {
             return s;
         }
 
-        private void iSearch(WorkState<G,T> s){
+        private void iSearch(WorkState<G,T,R> s){
             int depth = s.depth;
             GoalBag<G> goals = s.goals;
-            Plan<G,T> currentPlan = s.currentPlan;
-            PairGenFactory.PairGen<G,T> goalPairs = s.pairGen;
+            Plan<G,T,R> currentPlan = s.currentPlan;
+            PairGenFactory.PairGen<G,T,R> goalPairs = s.pairGen;
 
 
 
@@ -549,7 +538,7 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation> {
                 nodesExpanded++;
             }
             int childNumber = goalPairs.getNumber();
-            GoalPair<G,T> goalPair = goalPairs.next();
+            GoalPair<G,T, R> goalPair = goalPairs.next();
 
             if(goalPair == null){
                 return;
@@ -604,19 +593,19 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation> {
             newGoals.addAll(toAdd);
             newGoals.setImmutable();
 
-            WorkState<G,T> child = null;
+            WorkState<G,T,R> child = null;
 //            boolean tryChildren = newGoals.size() +(goalPair.getTransformation().ExtraRegisterCount()) <= availableRegisters;
             boolean tryChildren = registerAllocator.checkValid(newGoals, goalPair.getTransformation());
             if(tryChildren) {
-                Plan<G,T> newPlan = currentPlan.newAdd(goalPair, newGoals, translation, childNumber);
+                Plan<G,T,R> newPlan = currentPlan.newAdd(goalPair, newGoals, translation, childNumber);
                 child = new WorkState<>(depth + 1, newGoals, newPlan, null);
             }
-            WorkState<G,T> next = new WorkState<>(depth, goals, currentPlan, goalPairs);
+            WorkState<G,T,R> next = new WorkState<>(depth, goals, currentPlan, goalPairs);
             localTraversalSystem.add(child, next);
 
         }
 
-        private boolean tryDirectSolve(int depth, GoalBag<G> goals, Plan<G,T> currentPlan) {
+        private boolean tryDirectSolve(int depth, GoalBag<G> goals, Plan<G,T,R> currentPlan) {
             if (goals.size() > inputs) {
                 return false;
             }
@@ -625,13 +614,13 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation> {
                     return true;
                 }
             }
-            List<GoalPair<G,T>> pairs = isTransformable(goals, depth);
+            List<GoalPair<G,T, R>> pairs = isTransformable(goals, depth);
             if (pairs != null && !pairs.isEmpty()) {
-                Plan<G,T> p = currentPlan;
+                Plan<G,T,R> p = currentPlan;
                 GoalBag<G> currentGoals = new GoalBag<>(goals);
 
                 for (int i = 0; i < pairs.size(); i++) {
-                    GoalPair<G,T> pair = pairs.get(i);
+                    GoalPair<G,T, R> pair = pairs.get(i);
                     for (G upper : pair.getUppers()) {
                         boolean removed = currentGoals.removeEquivalent(upper);
                         assert removed : "Pair Upper ERROR";
@@ -658,7 +647,7 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation> {
             if (livePrintPlans>1) System.out.println(str);
         }
 
-        private boolean addPlan(Plan<G,T> p, int id, int depth, long nodesExpanded){
+        private boolean addPlan(Plan<G,T,R> p, int id, int depth, long nodesExpanded){
 //            RegisterAllocator<G>.Mapping mapping = registerAllocator.solve(p, initialGoals);
 
             if (!registerAllocator.checkPossible(p)){
@@ -686,7 +675,7 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation> {
                 planNodesExplored.add(nodesExpanded);
 
                 if (plans.size() > 1) {
-                    Plan lastPlan = plans.get(plans.size() - 2);
+                    Plan<G,T,R> lastPlan = plans.get(plans.size() - 2);
                     int i = 0;
                     while (i < p.getAll().size() && i < lastPlan.getAll().size() &&
                             lastPlan.getAll().get(i) == p.getAll().get(i)) {
@@ -702,7 +691,7 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation> {
     }
 
 
-    private List<GoalPair<G,T>> isTransformable(GoalBag<G> goals, int depth) {
+    private List<GoalPair<G,T, R>> isTransformable(GoalBag<G> goals, int depth) {
         return this.pairGenFactory.applyAllUnaryOpForwards(initialGoals, new Context<>(depth, registerAllocator, initialGoals), goals);
     }
 

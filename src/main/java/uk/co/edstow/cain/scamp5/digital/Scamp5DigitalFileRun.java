@@ -3,7 +3,7 @@ package uk.co.edstow.cain.scamp5.digital;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import uk.co.edstow.cain.FileRun;
-import uk.co.edstow.cain.regAlloc.RegisterAllocator;
+import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.goals.arrayGoal.ArrayGoal;
 import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
@@ -24,58 +24,8 @@ public abstract class Scamp5DigitalFileRun<G extends Kernel3DGoal<G>> extends Fi
         super(config);
     }
 
-//        @Override
-//        Goal3DAtomLike.Goal3DAtomLikeFactory<G> getGoalFactory() {
-//            return new AtomGoal.Factory();
-//        }
-
-//    @Override
-//    protected PairGenFactory<G> makePairGenFactory(JSONObject json, RegisterAllocator<G> registerAllocator) {
-//        printLn("\t Making Pair Generation Factory:");
-//        printLn("Name                        : " + json.getString("name"));
-//        printLn("Config Getter               : " + json.getString("configGetter"));
-//        int bits = json.getInt("bits");
-//        JSONArray jScratchRegs = json.getJSONArray("scratchRegs");
-//        List<String> scratchRegs = new ArrayList<String>(jScratchRegs.length());
-//        for (int i = 0; i < jScratchRegs.length(); i++) {
-//            scratchRegs.add(jScratchRegs.getString(i));
-//        }
-//        JSONObject jRegMapping = json.getJSONObject("regMapping");
-//        Map<RegisterAllocator.Register, List<String>> regMapping = new HashMap<>();
-//        for (RegisterAllocator.Register reg : registerAllocator.getAvailableRegistersArray()) {
-//            JSONArray jRegList = jRegMapping.getJSONArray(reg.name);
-//            List<String> digitalRegs = new ArrayList<String>(jRegList.length());
-//            if (bits > jRegList.length()) {
-//                throw new IllegalArgumentException("Not Enough Digital Registers for Logical Register: " + reg.toString());
-//            }
-//            for (int i = 0; i < jRegList.length(); i++) {
-//                digitalRegs.add(jRegList.getString(i));
-//            }
-//            regMapping.put(reg, digitalRegs);
-//        }
-//
-//        switch (json.getString("configGetter")) {
-//            default:
-//                throw new IllegalArgumentException("Unknown Scamp5 Scamp5ConfigGetter " + json.getString("configGetter"));
-//            case "Threshold":
-//                Scamp5DigitalConfig<G> scampConfig = new Scamp5DigitalConfig<>(true, true, true, true, true, true, true, regMapping, scratchRegs, bits);
-//                printLn("Exhustive Search Threshold  : " + json.getInt("threshold"));
-//                return new Scamp5DigitalPairGenFactory<>(
-//                        new ThresholdScamp5ConfigGetter<>(
-//                                initialGoals, json.getInt("threshold"),
-//                                new PatternHeuristic<>(initialGoals), scampConfig,
-//                                (goals, conf, scamp5Config, heuristic) -> new Scamp5DigitalPairGenFactory.AtomDistanceSortedPairGen<>(goals, conf, scampConfig, heuristic),
-//                                (goals, conf, scamp5Config, heuristic) -> new Scamp5DigitalPairGenFactory.Scamp5ExhaustivePairGen<>(goals, conf, scampConfig, heuristic)
-//                        )
-//                );
-//        }
-//
-//    }
-
-
-
     @Override
-    protected PairGenFactory<G, Scamp5DigitalTransformation<G>> makePairGenFactory() {
+    protected PairGenFactory<G, Scamp5DigitalTransformation<G>, Register> makePairGenFactory() {
         JSONObject json = config.getJSONObject("pairGen");
         printLn("\t Making Pair Generation Factory:");
         printLn("Name                        : " + json.getString("name"));
@@ -91,8 +41,8 @@ public abstract class Scamp5DigitalFileRun<G extends Kernel3DGoal<G>> extends Fi
 
         if(!json.has("regMapping")) {throw new IllegalArgumentException("you need to define " + "regMapping" + " inside pairGen");}
         JSONObject jRegMapping = json.getJSONObject("regMapping");
-        Map<RegisterAllocator.Register, List<String>> regMapping = new HashMap<>();
-        for (RegisterAllocator.Register reg : registerAllocator.getAvailableRegistersArray()) {
+        Map<Register, List<String>> regMapping = new HashMap<>();
+        for (Register reg : registerAllocator.getAvailableRegistersArray()) {
             JSONArray jRegList = jRegMapping.getJSONArray(reg.name);
             List<String> digitalRegs = new ArrayList<>(jRegList.length());
             if (bits > jRegList.length()) {

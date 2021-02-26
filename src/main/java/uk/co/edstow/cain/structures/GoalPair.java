@@ -1,12 +1,13 @@
 package uk.co.edstow.cain.structures;
 
+import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.transformations.Transformation;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class GoalPair<G extends Goal<G>, T extends Transformation> {
+public class GoalPair<G extends Goal<G>, T extends Transformation<R>, R extends Register> {
     private final List<G> uppers;
     private final List<G> lowers;
     private final T transformation;

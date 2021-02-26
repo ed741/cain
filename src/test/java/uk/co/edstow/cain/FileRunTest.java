@@ -3,6 +3,7 @@ package uk.co.edstow.cain;
 import org.junit.jupiter.api.Test;
 import uk.co.edstow.cain.goals.arrayGoal.ArrayGoal;
 import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
+import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.scamp5.analogue.Scamp5AnalogueFileRun;
 import uk.co.edstow.cain.scamp5.analogue.Scamp5AnalogueTransformation;
 import uk.co.edstow.cain.scamp5.digital.Scamp5DigitalFileRun;
@@ -71,9 +72,9 @@ class FileRunTest {
                 "\n" +
                 "}";
         try {
-            FileRun<AtomGoal, Scamp5AnalogueTransformation<AtomGoal>> fileRun = new Scamp5AnalogueFileRun.AtomGoalFileRun(FileRun.fromJson(json, true));
+            FileRun<AtomGoal, Scamp5AnalogueTransformation<AtomGoal>, Register> fileRun = new Scamp5AnalogueFileRun.AtomGoalFileRun(FileRun.fromJson(json, true));
             fileRun.run();
-            List<FileRun<AtomGoal, Scamp5AnalogueTransformation<AtomGoal>>.Result> results = fileRun.getResults();
+            List<FileRun<AtomGoal, Scamp5AnalogueTransformation<AtomGoal>, Register>.Result> results = fileRun.getResults();
             OptionalInt min = results.stream().mapToInt(r -> r.depth).min();
             assertTrue(min.isPresent());
             assertTrue(min.getAsInt()<=5);
@@ -139,9 +140,9 @@ class FileRunTest {
                         "\n" +
                         "}";
         try {
-            FileRun<ArrayGoal, Scamp5AnalogueTransformation<ArrayGoal>> fileRun = new Scamp5AnalogueFileRun.ArrayGoalFileRun(FileRun.fromJson(json, true));
+            FileRun<ArrayGoal, Scamp5AnalogueTransformation<ArrayGoal>, Register> fileRun = new Scamp5AnalogueFileRun.ArrayGoalFileRun(FileRun.fromJson(json, true));
             fileRun.run();
-            List<FileRun<ArrayGoal, Scamp5AnalogueTransformation<ArrayGoal>>.Result> results = fileRun.getResults();
+            List<FileRun<ArrayGoal, Scamp5AnalogueTransformation<ArrayGoal>, Register>.Result> results = fileRun.getResults();
             OptionalInt min = results.stream().mapToInt(r -> r.depth).min();
             assertTrue(min.isPresent());
             assertTrue(min.getAsInt()<=6);
@@ -220,9 +221,9 @@ class FileRunTest {
                         "\n" +
                         "}";
         try {
-            FileRun<AtomGoal, Scamp5DigitalTransformation<AtomGoal>> fileRun = new Scamp5DigitalFileRun.AtomGoalFileRun(FileRun.fromJson(json, true));
+            FileRun<AtomGoal, Scamp5DigitalTransformation<AtomGoal>, Register> fileRun = new Scamp5DigitalFileRun.AtomGoalFileRun(FileRun.fromJson(json, true));
             fileRun.run();
-            List<FileRun<AtomGoal, Scamp5DigitalTransformation<AtomGoal>>.Result> results = fileRun.getResults();
+            List<FileRun<AtomGoal, Scamp5DigitalTransformation<AtomGoal>, Register>.Result> results = fileRun.getResults();
 //            System.out.println((fileRun.getBest()));
             OptionalInt min = results.stream().mapToInt(r -> r.cost).min();
             assertTrue(min.isPresent());

@@ -44,12 +44,12 @@ public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>
     }
 
     @Override
-    public List<? extends BankedLinearScanRegisterAllocator.BRegister> getAvailableRegistersArray() {
+    public List<BRegister> getAvailableRegistersArray() {
         return registers;
     }
 
     @Override
-    public List<? extends BankedLinearScanRegisterAllocator.BRegister> getInitRegisters() {
+    public List<BRegister> getInitRegisters() {
         return init;
     }
 
@@ -68,15 +68,15 @@ public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>
     }
 
     @Override
-    public boolean checkPossible(Plan<G, T> p) {
+    public boolean checkPossible(Plan<G, T, BRegister> p) {
         return solve(p) != null;
     }
 
 
 
     @Override
-    public BankedRegisterAllocator.Mapping<G> solve(Plan<G, T> plan){
-        List<Plan.Step<G, T>> all_r = plan.getAll();
+    public BankedRegisterAllocator.Mapping<G> solve(Plan<G, T, BRegister> plan){
+        List<Plan.Step<G, T, BRegister>> all_r = plan.getAll();
         List<Set<Integer>> requiresInit = new ArrayList<>(init.size());// a set of step indices for each init-Reg
         for (BRegister i : init) {
             requiresInit.add(new HashSet<>());
@@ -87,7 +87,7 @@ public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>
         for (int j = 0; j < init.size(); j++) {// for each init register/Goal:
             inits:
             for (int i = all_r.size() - 1; i >= 0; i--) { // from the beginning of the plan, search
-                Plan.Step<G,T> step = all_r.get(i);
+                Plan.Step<G,T, BRegister> step = all_r.get(i);
                 for (int l = 0; l < step.getLowers().size(); l++) { // check every lower
                     G g = step.getLowerTrueGoal(l);
                     if(g.same(initialGoals.get(j))){
@@ -123,21 +123,21 @@ public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>
         }
 
         for (int i = 0; i < all_r.size(); i++) {
-            Plan.Step<G,T> step = all_r.get(i);
+            Plan.Step<G,T, BRegister> step = all_r.get(i);
 
             List<G> lowers = step.getLowers();
             for (int lowerIdx = 0; lowerIdx < lowers.size(); lowerIdx++) {
                 G trueGoal = step.getLowerTrueGoal(lowerIdx);
                 int j = i + 1;
                 int k = -1;
-                jloop:
+                jLoop:
                 while (j < all_r.size()) {
                     List<G> uppers = all_r.get(j).getUppers();
                     for (int upperIdx = 0; upperIdx < uppers.size(); upperIdx++) {
                         G upper = uppers.get(upperIdx);
                         if (upper.equivalent(trueGoal)) {
                             k = upperIdx;
-                            break jloop;
+                            break jLoop;
                         }
                     }
 
@@ -179,14 +179,8 @@ public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>
             }
         }
 
-//        for (int i = 0; i < liveness.size(); i++) {
-//            System.out.println(i + ":: " + liveness.get(i));
-//        }
-
-
         for (int i = 0; i < liveness.size(); i++) {
             List<BRegister> trash = availableRegisters.stream().flatMap(Collection::stream).collect(Collectors.toList());
-//            System.out.println("Av " + availableRegisters);
             for (int u = 0; u < liveness.get(i).size(); u++) {
                 if (live.contains(new Tuple<>(i, u))) {
                     live.remove(new Tuple<>(i, u));
@@ -198,12 +192,12 @@ public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>
             List<Tuple<Integer, Integer>> needAllocatingConstrained = new ArrayList<>();
             List<Tuple<Integer, Integer>> needAllocatingOther = new ArrayList<>();
 
-            // iterate all uppers from the begining of the program up to i
+            // iterate all uppers from the beginning of the program up to i
             for (int j = liveness.size() - 1; j > i; j--) {
                 for (int k = 0; k < liveness.get(j).size(); k++) {
                     // if the upper (jk) is live until i
                     if (liveness.get(j).get(k) == i) {
-                        // and isn't already mapped (check for preallocation to enure outputs are in correct registers only)
+                        // and isn't already mapped (check for pre-allocation to ensure outputs are in correct registers only)
                         if (!lineMap.containsKey(new Tuple<>(j, k))) {
 
                             if(j>= all_r.size()){// Upper is an Init so must be allocated first
@@ -295,15 +289,14 @@ public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>
                 trash.remove(r);
                 if (jk.getA() < all_r.size()) {
                     map.put(all_r.get(jk.getA()).getUppers().get(jk.getB()), r);
-                    lineMap.put(jk, r);
                 } else {
                     // Initial cases
                     int initIdx = jk.getA() - all_r.size();
                     G trueGoal = initialTrueGoals.get(initIdx);
                     map.put(trueGoal, r);
-                    lineMap.put(jk, r);
 
                 }
+                lineMap.put(jk, r);
 
 
             }
@@ -352,7 +345,7 @@ public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>
         @Override
         public String toString() {
             return map.entrySet().stream().map(e -> e.getKey().goal.getTableString(false, false, true, true) + "\n@" + Integer.toHexString(e.getKey().goal.hashCode()) + " -> " +e.getValue().toString()).collect(Collectors.joining("\n\n", "{\n", "\n}\n")) +
-                    trashMap.entrySet().stream().map(e -> Integer.toString(e.getKey()) + " -> " +e.getValue()).collect(Collectors.joining(",\n ", "[\n", "\n]"));
+                    trashMap.entrySet().stream().map(e -> e.getKey() + " -> " +e.getValue()).collect(Collectors.joining(",\n ", "[\n", "\n]"));
         }
 
         private class Wrapper{
@@ -363,6 +356,7 @@ public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>
             }
 
 
+            @SuppressWarnings("unchecked")
             @Override
             public boolean equals(Object o) {
                 if (this == o) return true;

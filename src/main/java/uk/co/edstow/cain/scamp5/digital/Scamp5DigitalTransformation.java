@@ -1,10 +1,10 @@
 package uk.co.edstow.cain.scamp5.digital;
 
+import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.transformations.StandardTransformation;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.goals.atomGoal.pairGen.SimpleTransformation;
-import uk.co.edstow.cain.regAlloc.RegisterAllocator;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
@@ -51,7 +51,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
 
 
         @Override
-        public String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
+        public String code(List<Register> uppers, List<Register> lowers, List<Register> trash) {
             return String.format("//Null Instruction: %s <- %s", uppers, lowers);
         }
 
@@ -93,7 +93,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
         }
 
         @Override
-        public String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
+        public String code(List<Register> uppers, List<Register> lowers, List<Register> trash) {
             if (uppers.size() == 1) {
                 return code(uppers.get(0), lowers);
             } else {
@@ -101,7 +101,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
             }
         }
 
-        abstract String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers);
+        abstract String code(Register upper, List<Register> lowers);
 
         public abstract G applyForwards() throws TransformationApplicationException;
         public List<G> applyOpForwards() throws TransformationApplicationException{
@@ -188,7 +188,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+        public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
             List<String> regs = config.registerMapping.get(upper);
             assert regs.size() == config.bits;
@@ -259,7 +259,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
         }
 
         @Override
-        public String code(List<RegisterAllocator.Register> upper, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
+        public String code(List<Register> upper, List<Register> lowers, List<Register> trash) {
             assert lowers.size() == inputCount();
             List<String> regs = new ArrayList<>(config.bits*2);
             regs.addAll(config.registerMapping.get(upper.get(0)));
@@ -353,7 +353,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+        public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
             StringBuilder sb = new StringBuilder(String.format("/*Dmov(%s, %s)*/", upper, lowers.get(0)));
             List<String> outputs = config.registerMapping.get(upper);
@@ -424,7 +424,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
         }
 
         @Override
-        public String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
+        public String code(List<Register> uppers, List<Register> lowers, List<Register> trash) {
             assert lowers.size() == inputCount();
             assert lowers.size() == inputCount();
             StringBuilder sb = new StringBuilder(String.format("/*Dadd(%s, %s, %s)*/\n", uppers.get(0), lowers.get(0), lowers.get(1)));
@@ -553,7 +553,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
 
 
         @Override
-        public String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
+        public String code(List<Register> uppers, List<Register> lowers, List<Register> trash) {
             assert lowers.size() == inputCount();
             assert lowers.size() == inputCount();
             StringBuilder sb = new StringBuilder(String.format("/*DaddSelf(%s, %s)*/\n", uppers.get(0), lowers.get(0)));
@@ -638,7 +638,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
                 this.a = in;
                 this.div = null;
             } else {
-                this.a = in.added(in);;
+                this.a = in.added(in);
                 this.div = in;
             }
         }
@@ -656,7 +656,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+        public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
             assert lowers.size() == inputCount();
             StringBuilder sb = new StringBuilder(String.format("/*DDiv(%s, %s)*/\n", upper, lowers.get(0)));
@@ -675,7 +675,6 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
         }
 
 
-        @SuppressWarnings("ConstantConditions")
         @Override
         public G applyForwards() throws TransformationApplicationException {
             if(this.div == null){
@@ -742,7 +741,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+        public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
             StringBuilder sb = new StringBuilder(String.format("/*Dmovx(%s, %s, %s)*/", upper, lowers.get(0), dir.toString()));
             List<String> outputs = config.registerMapping.get(upper);

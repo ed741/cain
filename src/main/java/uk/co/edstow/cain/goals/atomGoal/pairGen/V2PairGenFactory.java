@@ -4,40 +4,41 @@ import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
 import uk.co.edstow.cain.pairgen.Context;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
+import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 
-public class V2PairGenFactory implements PairGenFactory<AtomGoal, SimpleTransformation> {
+public class V2PairGenFactory implements PairGenFactory<AtomGoal, SimpleTransformation, Register> {
 
     private static final Comparator<Tuple<Distance, AtomGoal>> entryComparator = Comparator.comparingInt((Tuple<Distance, AtomGoal> t) -> t.getB().size()).thenComparingInt(t -> -t.getA().manhattanXY());
 
 
     @Override
-    public Collection<Tuple<List<GoalPair<AtomGoal, SimpleTransformation>>, AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, Context<AtomGoal, SimpleTransformation> context, AtomGoal goal) {
+    public Collection<Tuple<List<GoalPair<AtomGoal, SimpleTransformation, Register>>, AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, Context<AtomGoal, SimpleTransformation, Register> context, AtomGoal goal) {
         return SimplePairGenFactory.applyAllUnaryOps(initialGoals.get(0), goal);
     }
 
     @Override
-    public PairGen<AtomGoal, SimpleTransformation> generatePairs(GoalBag<AtomGoal> goals, Context<AtomGoal, SimpleTransformation> context) {
+    public PairGen<AtomGoal, SimpleTransformation, Register> generatePairs(GoalBag<AtomGoal> goals, Context<AtomGoal, SimpleTransformation, Register> context) {
         return new V2PairGen(goals);
     }
 
     @Override
-    public SimpleTransformation getDummyTransformation(List<AtomGoal> upperGoals, List<AtomGoal> lowerGoals, Context<AtomGoal, SimpleTransformation> context) {
+    public SimpleTransformation getDummyTransformation(List<AtomGoal> upperGoals, List<AtomGoal> lowerGoals, Context<AtomGoal, SimpleTransformation, Register> context) {
         return new SimpleTransformation.Null(lowerGoals.size(), upperGoals.size());
     }
 
 
 
-    protected class V2PairGen implements PairGen<AtomGoal, SimpleTransformation> {
+    protected class V2PairGen implements PairGen<AtomGoal, SimpleTransformation, Register> {
         final GoalBag<AtomGoal> goals;
         int ii;
         int jj;
         int dia = -1;
-        final List<GoalPair<AtomGoal, SimpleTransformation>> currentList = new ArrayList<>();
+        final List<GoalPair<AtomGoal, SimpleTransformation, Register>> currentList = new ArrayList<>();
         private int count;
 
         V2PairGen(GoalBag<AtomGoal> goals) {
@@ -84,7 +85,7 @@ public class V2PairGenFactory implements PairGenFactory<AtomGoal, SimpleTransfor
         }
 
         @Override
-        public GoalPair<AtomGoal, SimpleTransformation> next() {
+        public GoalPair<AtomGoal, SimpleTransformation, Register> next() {
             count++;
             while(currentList.isEmpty()) {
                 updateIJ();
@@ -112,13 +113,9 @@ public class V2PairGenFactory implements PairGenFactory<AtomGoal, SimpleTransfor
 
                     }
                 } else {
-//                    System.out.println(a.getTableString(false));
                     for (Tuple<Distance, AtomGoal> tuple : list) {
                         AtomGoal split1 = a.without(tuple.getB());
                         AtomGoal split2 = tuple.getB();
-//                        System.out.println(tuple.getA());
-//                        System.out.println(split1.getTableString(true));
-//                        System.out.println(split2.getTableString(true));
                         currentList.add(new GoalPair<>(a, Arrays.asList(split1, split2), new SimpleTransformation.Add(split1, split2)));
                     }
 

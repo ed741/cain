@@ -34,7 +34,7 @@ public class PatternHeuristic<G extends Kernel3DGoal<G>, T extends StandardTrans
 
 
     @Override
-    public double getCost(GoalPair<G, T> pair, GoalBag<G> goals, Context<G, T> context) {
+    public double getCost(GoalPair<G, T, ?> pair, GoalBag<G> goals, Context<G, T,?> context) {
         GoalBag<G> proposedGoals = new GoalBag<>(goals);
         for (G upper : pair.getUppers()) {
             proposedGoals.remove(upper);

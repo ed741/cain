@@ -1,8 +1,8 @@
 package uk.co.edstow.cain.transformations;
 
-import uk.co.edstow.cain.regAlloc.RegisterAllocator;
+import uk.co.edstow.cain.regAlloc.Register;
 
-public interface StandardTransformation extends Transformation<RegisterAllocator.Register> {
+public interface StandardTransformation extends Transformation<Register> {
 
     /**
      * @return the number of inputs the transformation has (aka the size of Lowers)

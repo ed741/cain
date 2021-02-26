@@ -2,7 +2,7 @@ package uk.co.edstow.cain.scamp5.superPixel;
 
 import uk.co.edstow.cain.transformations.BankedTransformation;
 import uk.co.edstow.cain.goals.BankedKernel3DGoal;
-import uk.co.edstow.cain.regAlloc.BankedRegisterAllocator.BRegister;
+import uk.co.edstow.cain.regAlloc.BRegister;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.goals.atomGoal.pairGen.SimpleTransformation;
@@ -311,6 +311,8 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
 
         @Override
         public String code(List<BRegister> uppers, List<BRegister> lowers, List<BRegister> trash) {
+            assert uppers.size() == outputCount;
+            assert lowers.size() == inputCount;
             return String.format("//Null Instruction: %s <- %s", uppers, lowers);
         }
 
@@ -389,7 +391,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
                 case E: return East;
                 case S: return South;
                 case W: return West;
-                default: return null;
+                default: throw new IllegalArgumentException("Cannot produce dir for unknown direction: " + direction.toString());
             }
         }
 
@@ -426,7 +428,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
                         String sreg = reg.name;
                         sb.append(String.format("NOT(%s, %s); ", config.scratchRegisters.get(0), sreg));
                         sb.append(String.format("NOR(%s, %s, %s); ", sreg, config.scratchRegisters.get(0), config.maskReg));
-                    };
+                    }
                 }
             }
             return sb.toString();
@@ -691,7 +693,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
                 this.a = in;
                 this.div = null;
             } else {
-                this.a = in.added(in);;
+                this.a = in.added(in);
                 this.div = in;
             }
         }

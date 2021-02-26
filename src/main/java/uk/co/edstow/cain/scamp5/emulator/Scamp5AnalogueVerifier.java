@@ -1,9 +1,11 @@
 package uk.co.edstow.cain.scamp5.emulator;
 
+import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.regAlloc.RegisterAllocator;
 import uk.co.edstow.cain.Verifier;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
+import uk.co.edstow.cain.scamp5.analogue.Scamp5AnalogueTransformation;
 import uk.co.edstow.cain.structures.Bounds;
 import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.structures.GoalBag;
@@ -16,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class Scamp5Verifier<G extends Kernel3DGoal<G>> implements Verifier<G> {
+public class Scamp5AnalogueVerifier<G extends Kernel3DGoal<G>> implements Verifier<G, Scamp5AnalogueTransformation<G>, Register> {
     int verbose = 0;
 
     @Override
@@ -25,22 +27,22 @@ public class Scamp5Verifier<G extends Kernel3DGoal<G>> implements Verifier<G> {
     }
 
     @Override
-    public String verify(String code, List<G> initialGoals, List<G> finalGoals, Plan<G,?> plan, RegisterAllocator<G,?> registerAllocator) {
+    public String verify(String code, List<G> initialGoals, List<G> finalGoals, Plan<G,Scamp5AnalogueTransformation<G>,Register> plan, RegisterAllocator<G,Scamp5AnalogueTransformation<G>,Register> registerAllocator) {
 //        List<G> finalGoals = reverseSearch.getFinalGoals();
         int[] divisions = initialGoals.stream().mapToInt(g -> g.get(0,0, g.bounds().getZMax())).toArray();
 //        int[] divisions = reverseSearch.getInitialDivisions();
         List<Bounds> coverage = new ArrayList<>();
         double noise = 0;
         Bounds bounds = new Bounds.SimpleBounds(finalGoals.stream().map(Goal::bounds).collect(Collectors.toList()));
-        List<RegisterAllocator.Register> availableRegistersList = new ArrayList<>(registerAllocator.getAvailableRegistersArray());
-        List<RegisterAllocator.Register> initRegistersList = new ArrayList<>(registerAllocator.getInitRegisters());
-        List<RegisterAllocator.Register> regs = new ArrayList<>();
+        List<Register> availableRegistersList = new ArrayList<>(registerAllocator.getAvailableRegistersArray());
+        List<Register> initRegistersList = new ArrayList<>(registerAllocator.getInitRegisters());
+        List<Register> regs = new ArrayList<>();
         regs.addAll(availableRegistersList);
         regs.addAll(initRegistersList);
 
         Scamp5Emulator emulator = Scamp5Emulator.newWithRegs((plan.bounds().largestMagnitude() + 1) * 3, regs);
         for (int i = 0; i < initRegistersList.size(); i++) {
-            RegisterAllocator.Register r = initRegistersList.get(i);
+            Register r = initRegistersList.get(i);
             emulator.run(String.format("input(%s,%d)", r, (1 << divisions[i]) * 128));
         }
         emulator.pushCode(code);

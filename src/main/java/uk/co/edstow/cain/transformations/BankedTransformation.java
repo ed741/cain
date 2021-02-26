@@ -1,8 +1,8 @@
 package uk.co.edstow.cain.transformations;
 
-import uk.co.edstow.cain.regAlloc.BankedRegisterAllocator;
+import uk.co.edstow.cain.regAlloc.BRegister;
 
-public interface BankedTransformation extends Transformation<BankedRegisterAllocator.BRegister> {
+public interface BankedTransformation extends Transformation<BRegister> {
 
     /**
      * @param u An index into the Transformation's Uppers
@@ -17,16 +17,4 @@ public interface BankedTransformation extends Transformation<BankedRegisterAlloc
      * n or k registers in 'bank' are needed to apply this function
      */
     int ExtraRegisterCount(int bank);
-//    {
-//        int count = 0;
-//        for (int u = 0; u < outputCount(); u++) {
-//            for (boolean b : inputRegisterOutputInterference(u)) {
-//                if(b){
-//                    count++;
-//                    break;
-//                }
-//            }
-//        }
-//        return count;
-//    }
 }

@@ -7,10 +7,11 @@ import org.json.JSONTokener;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.regAlloc.LinearScanRegisterAllocator;
+import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.regAlloc.RegisterAllocator;
 import uk.co.edstow.cain.scamp5.analogue.Scamp5AnalogueFileRun;
 import uk.co.edstow.cain.scamp5.digital.Scamp5DigitalFileRun;
-import uk.co.edstow.cain.scamp5.emulator.Scamp5Verifier;
+import uk.co.edstow.cain.scamp5.emulator.Scamp5AnalogueVerifier;
 import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.Plan;
@@ -26,10 +27,10 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public abstract class FileRun<G extends Goal<G>, T extends Transformation<?>> {
-    private static int verbose;
+public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R extends Register> {
+    public static int verbose;
 
-    public static FileRun<?,?> loadFromJson(String path) {
+    public static FileRun<?,?,?> loadFromJson(String path) {
 
         JSONObject config = fromJson(path);
         verbose = config.has("verbose") ? config.getInt("verbose") : 10;
@@ -46,8 +47,17 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<?>> {
     }
 
 
+    protected final JSONObject config;
+    protected final List<G> finalGoals;
+    protected final List<G> initialGoals;
+    protected final RegisterAllocator<G, T, R> registerAllocator;
+    protected final PairGenFactory<G,T,R> pairGenFactory;
+    protected final ReverseSearch<G,T,R> reverseSearch;
+    protected final Verifier<G,T,R> verifier;
+
+
     public class Result {
-        public final Plan<G,T> plan;
+        public final Plan<G,T,R> plan;
         public final long nodesExpanded;
         public final int cost;
         public final int depth;
@@ -58,7 +68,7 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<?>> {
         public final List<G> finalGoals;
         public final String verificationOutput;
 
-        public Result(Plan<G,T> plan, long nodesExpanded, long time, String code, String verf) {
+        public Result(Plan<G,T,R> plan, long nodesExpanded, long time, String code, String verf) {
             this.plan = plan;
             this.nodesExpanded = nodesExpanded;
             this.time = time;
@@ -74,16 +84,6 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<?>> {
     }
 
 
-//    protected List<RegisterAllocator.Register> outputRegisters;
-
-    protected final JSONObject config;
-    protected final List<G> finalGoals;
-    protected final List<G> initialGoals;
-    protected final RegisterAllocator<G, T> registerAllocator;
-    protected final PairGenFactory<G,T> pairGenFactory;
-    protected final ReverseSearch<G,T> reverseSearch;
-    protected final Verifier<G> verifier;
-
 
     public FileRun(JSONObject config) {
         this.config = config;
@@ -95,7 +95,7 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<?>> {
         printLn("making RegisterAllocator");
         registerAllocator = makeRegisterAllocator();
         printLn("making RunConfig");
-        ReverseSearch.RunConfig<G,T> runConfig = makeRunConfig(config.getJSONObject("runConfig"));
+        ReverseSearch.RunConfig<G,T,R> runConfig = makeRunConfig(config.getJSONObject("runConfig"));
         printLn("making PairGenFactory");
         pairGenFactory = makePairGenFactory();
 
@@ -110,30 +110,15 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<?>> {
 
     protected abstract List<G> makeInitialGoals();
 
-    protected abstract RegisterAllocator<G, T> makeRegisterAllocator();
+    protected abstract RegisterAllocator<G,T,R> makeRegisterAllocator();
 
-    protected abstract PairGenFactory<G,T> makePairGenFactory();
+    protected abstract PairGenFactory<G,T,R> makePairGenFactory();
 
-    protected abstract Verifier<G> makeVerifier();
+    protected abstract Verifier<G,T,R> makeVerifier();
 
-//    protected void configureFinalGoals(List<G> finalGoals, int approximationDepth) {
-//
-//        RegisterAllocator.Register[] availableRegisters = getRegisterArray(config.getJSONArray("availableRegisters"));
-//        outputRegisters = new ArrayList<>();
-//        for (int i = 0; i < finalGoals.size(); i++) {
-//            outputRegisters.add(availableRegisters[i]);
-//        }
-//        this.approximationDepth = approximationDepth;
-//        printLn("\tgoals:");
-//        printLn(GoalBag.toGoalsString(finalGoals, false, false, true, true));
-//        printLn("Depth                   : " + this.approximationDepth);
-//        printLn("Output Registers        : " + outputRegisters.toString());
-//
-//    }
-
-    protected ReverseSearch.RunConfig<G,T> makeRunConfig(JSONObject json) {
+    protected ReverseSearch.RunConfig<G,T,R> makeRunConfig(JSONObject json) {
         printLn("\tMaking RunConfig:");
-        ReverseSearch.RunConfig<G,T> runConfig = new ReverseSearch.RunConfig<>();
+        ReverseSearch.RunConfig<G,T,R> runConfig = new ReverseSearch.RunConfig<>();
         //         Name                    :
         printLn("Search Time                 : " + json.getInt("searchTime"));
         runConfig.setSearchTime(json.getInt("searchTime"));
@@ -146,7 +131,7 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<?>> {
         printLn("Workers                     : " + json.getInt("workers"));
         runConfig.setWorkers(json.getInt("workers"));
 
-        Function<Plan<G,T>, Integer> costFunction;
+        Function<Plan<G,T,R>, Integer> costFunction;
         switch (json.getString("costFunction")) {
             default:
                 throw new IllegalArgumentException("Unknown Cost Function");
@@ -249,7 +234,7 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<?>> {
 
 
     public String getBest() {
-        List<Plan<G,T>> plans = reverseSearch.getPlans();
+        List<Plan<G,T,R>> plans = reverseSearch.getPlans();
         if (plans.isEmpty()) {
             printLnCritial("No Plans Found!");
             return null;
@@ -257,7 +242,7 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<?>> {
         double min = Double.MAX_VALUE;
         int iMin = 0;
         for (int i = 0; i < plans.size(); i++) {
-            Plan<G,T> pl = plans.get(i);
+            Plan<G,T,R> pl = plans.get(i);
             double c = reverseSearch.costFunction.apply(pl);
             if (c < min) {
                 iMin = i;
@@ -265,13 +250,13 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<?>> {
             }
         }
         printLn("Best Plan: ");
-        Plan<G,T> p = plans.get(iMin);
+        Plan<G,T,R> p = plans.get(iMin);
         printLn(p.toString());
         printLn(p.toGoalsString());
 
         printLnImportant("length: " + p.depth() + " Cost: " + reverseSearch.costFunction.apply(p));
         printLnImportant("CircuitDepths:" + Arrays.toString(p.circuitDepths()));
-        RegisterAllocator.Mapping<G> mapping = registerAllocator.solve(p);
+        RegisterAllocator.Mapping<G,R> mapping = registerAllocator.solve(p);
         String code = p.produceCode(mapping);
         printLnCritial(code);
         String verf = verifier.verify(code, initialGoals, finalGoals, p, registerAllocator);
@@ -286,10 +271,10 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<?>> {
 
     public List<Result> getResults() {
         List<Result> results = new ArrayList<>();
-        List<Plan<G,T>> plans = reverseSearch.getPlans();
+        List<Plan<G,T,R>> plans = reverseSearch.getPlans();
         for (int i = 0; i < plans.size(); i++) {
-            Plan<G,T> plan = plans.get(i);
-            RegisterAllocator.Mapping<G> mapping = registerAllocator.solve(plan);
+            Plan<G,T,R> plan = plans.get(i);
+            RegisterAllocator.Mapping<G,R> mapping = registerAllocator.solve(plan);
             String code = plan.produceCode(mapping);
             String verf = verifier.verify(code, initialGoals, finalGoals, plan, registerAllocator);
             results.add(new Result(
@@ -302,10 +287,10 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<?>> {
         return results;
     }
 
-    public static abstract class Kernel3DFileRun<G extends Kernel3DGoal<G>, T extends Transformation<?>> extends FileRun<G,T> {
+    public static abstract class Kernel3DFileRun<G extends Kernel3DGoal<G>, T extends Transformation<R>, R extends Register> extends FileRun<G,T,R> {
         protected int approximationDepth;
 
-        public static Kernel3DFileRun<?,?> getKernel3DFileRun(JSONObject config) {
+        public static Kernel3DFileRun<?,?,?> getKernel3DFileRun(JSONObject config) {
             JSONObject json = config.getJSONObject("pairGen");
             switch (json.getString("name")) {
                 default:
@@ -328,10 +313,10 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<?>> {
 
         protected abstract Kernel3DGoal.Kernel3DGoalFactory<G> getGoalFactory();
 
-        protected List<? extends RegisterAllocator.Register> getOutputRegisters() {
+        protected List<? extends Register> getOutputRegisters() {
             if (config.has("filter")) {
                 JSONObject filter = config.getJSONObject("filter");
-                return filter.keySet().stream().map(RegisterAllocator.Register::new).collect(Collectors.toList());
+                return filter.keySet().stream().map(Register::new).collect(Collectors.toList());
             } else {
                 return new ArrayList<>();
             }
@@ -396,19 +381,15 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<?>> {
             int[] divisions = new int[config.getJSONObject("registerAllocator").getJSONArray("initialRegisters").length()];
             Arrays.fill(divisions, this.approximationDepth);
             return divisions;
-        };
+        }
 
-        protected abstract List<? extends RegisterAllocator.Register> getRegisterArray(JSONArray availableRegisters);
-        protected abstract List<? extends RegisterAllocator.Register> getInputRegisters();
+        protected abstract List<? extends Register> getRegisterArray(JSONArray availableRegisters);
+        protected abstract List<? extends Register> getInputRegisters();
 
 
-        protected Verifier<G> makeVerifier() {
+        protected Verifier<G,T,R> makeVerifier() {
             String verf = config.getString("verifier");
             switch (verf) {
-                case "Scamp5Emulator":
-                    Verifier<G> v = new Scamp5Verifier<>();
-                    v.verbose(verbose);
-                    return v;
                 case "None":
                     return Verifier.SkipVerify();
                 default:
@@ -458,42 +439,42 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<?>> {
 
     }
 
-    public static abstract class Kernel3DStdTransFileRun<G extends Kernel3DGoal<G>, T extends StandardTransformation> extends Kernel3DFileRun<G,T>{
+    public static abstract class Kernel3DStdTransFileRun<G extends Kernel3DGoal<G>, T extends StandardTransformation> extends Kernel3DFileRun<G,T, Register>{
         public Kernel3DStdTransFileRun(JSONObject config) {
             super(config);
         }
 
-        protected List<? extends RegisterAllocator.Register> getRegisterArray(JSONArray availableRegisters) {
-            ArrayList<RegisterAllocator.Register> out = new ArrayList<>(availableRegisters.length());
+        protected List<? extends Register> getRegisterArray(JSONArray availableRegisters) {
+            ArrayList<Register> out = new ArrayList<>(availableRegisters.length());
             for (int i = 0; i < availableRegisters.length(); i++) {
-                out.add(new RegisterAllocator.Register(availableRegisters.getString(i)));
+                out.add(new Register(availableRegisters.getString(i)));
             }
             return out;
         }
-        protected List<? extends RegisterAllocator.Register> getInputRegisters(){
+        protected List<? extends Register> getInputRegisters(){
             return getRegisterArray(config.getJSONObject("registerAllocator").getJSONArray("initialRegisters"));
         }
-        protected RegisterAllocator<G, T> makeRegisterAllocator() {
+        protected RegisterAllocator<G,T,Register> makeRegisterAllocator() {
             JSONObject regAllocConf = config.getJSONObject("registerAllocator");
             switch (regAllocConf.getString("name")){
                 case "linearScan":
                     printLn("\tMaking Linear Scan Register Allocator:");
-                    List<RegisterAllocator.Register> availableRegisters = new ArrayList<>();
+                    List<Register> availableRegisters = new ArrayList<>();
                 {
                     JSONArray regArray =config.getJSONObject("registerAllocator").getJSONArray("availableRegisters");
                     for (int i = 0; i < regArray.length(); i++) {
-                        availableRegisters.add(new RegisterAllocator.Register(regArray.getString(i)));
+                        availableRegisters.add(new Register(regArray.getString(i)));
                     }
                 }
                 printLn("Available registers  : " + availableRegisters.toString());
 
-                List<RegisterAllocator.Register> available = new ArrayList<>(getOutputRegisters());
-                for (RegisterAllocator.Register availableRegister : availableRegisters) {
+                List<Register> available = new ArrayList<>(getOutputRegisters());
+                for (Register availableRegister : availableRegisters) {
                     if (!available.contains(availableRegister)) {
                         available.add(availableRegister);
                     }
                 }
-                List<RegisterAllocator.Register> initRegisters = new ArrayList<>(getInputRegisters());
+                List<Register> initRegisters = new ArrayList<>(getInputRegisters());
                 printLn("Initial registers    : " + initRegisters.toString());
                 return new LinearScanRegisterAllocator<>(initRegisters, initialGoals, available);
                 default:
@@ -502,7 +483,7 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<?>> {
 
         }
 
-    };
+    }
 
 
     public String getAvailableRegisters() {

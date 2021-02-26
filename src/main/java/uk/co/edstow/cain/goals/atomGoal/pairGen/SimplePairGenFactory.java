@@ -4,6 +4,7 @@ import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
 import uk.co.edstow.cain.pairgen.Context;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
+import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
 import uk.co.edstow.cain.util.Tuple;
@@ -11,7 +12,7 @@ import uk.co.edstow.cain.transformations.Transformation;
 
 import java.util.*;
 
-public class SimplePairGenFactory implements PairGenFactory<AtomGoal, SimpleTransformation> {
+public class SimplePairGenFactory implements PairGenFactory<AtomGoal, SimpleTransformation, Register> {
 
     private final AtomGoal.AtomBounds bounds;
 
@@ -20,8 +21,8 @@ public class SimplePairGenFactory implements PairGenFactory<AtomGoal, SimpleTran
     }
 
 
-    public static Collection<Tuple<List<GoalPair<AtomGoal, SimpleTransformation>>, AtomGoal>> applyAllUnaryOps(AtomGoal goal, AtomGoal upper){
-        ArrayList<Tuple<List<GoalPair<AtomGoal, SimpleTransformation>>, AtomGoal>> list = new ArrayList<>();
+    public static Collection<Tuple<List<GoalPair<AtomGoal, SimpleTransformation, Register>>, AtomGoal>> applyAllUnaryOps(AtomGoal goal, AtomGoal upper){
+        ArrayList<Tuple<List<GoalPair<AtomGoal, SimpleTransformation, Register>>, AtomGoal>> list = new ArrayList<>();
         for (SimpleTransformation.Direction d: SimpleTransformation.Direction.values()){
             for (int i = 0; i < 4; i++){
                 SimpleTransformation t = new SimpleTransformation.Move(i, d, goal);
@@ -46,24 +47,24 @@ public class SimplePairGenFactory implements PairGenFactory<AtomGoal, SimpleTran
     }
 
     @Override
-    public Collection<Tuple<List<GoalPair<AtomGoal, SimpleTransformation>>, AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, Context<AtomGoal, SimpleTransformation> context, AtomGoal goal) {
+    public Collection<Tuple<List<GoalPair<AtomGoal, SimpleTransformation, Register>>, AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, Context<AtomGoal, SimpleTransformation, Register> context, AtomGoal goal) {
         return applyAllUnaryOps(initialGoals.get(0), goal);
     }
 
     @Override
-    public PairGen<AtomGoal, SimpleTransformation> generatePairs(GoalBag<AtomGoal> goals, Context<AtomGoal, SimpleTransformation> context) {
+    public PairGen<AtomGoal, SimpleTransformation, Register> generatePairs(GoalBag<AtomGoal> goals, Context<AtomGoal, SimpleTransformation, Register> context) {
         return new SimplePairGen(goals);
     }
 
     @Override
-    public SimpleTransformation getDummyTransformation(List<AtomGoal> upperGoals, List<AtomGoal> lowerGoals, Context<AtomGoal, SimpleTransformation> context) {
+    public SimpleTransformation getDummyTransformation(List<AtomGoal> upperGoals, List<AtomGoal> lowerGoals, Context<AtomGoal, SimpleTransformation, Register> context) {
         return null;
     }
 
-    public class SimplePairGen implements PairGen<AtomGoal, SimpleTransformation> {
+    public class SimplePairGen implements PairGen<AtomGoal, SimpleTransformation, Register> {
 
         private final GoalBag<AtomGoal> goalList;
-        private final List<GoalPair<AtomGoal, SimpleTransformation>> currentList;
+        private final List<GoalPair<AtomGoal, SimpleTransformation, Register>> currentList;
         private int count;
 
 
@@ -76,9 +77,9 @@ public class SimplePairGenFactory implements PairGenFactory<AtomGoal, SimpleTran
         }
 
         @Override
-        public final GoalPair<AtomGoal, SimpleTransformation> next() {
+        public final GoalPair<AtomGoal, SimpleTransformation, Register> next() {
             count++;
-            GoalPair<AtomGoal, SimpleTransformation> p = get_next();
+            GoalPair<AtomGoal, SimpleTransformation, Register> p = get_next();
             while(p != null && !check(p)){
                 p = get_next();
             }
@@ -91,16 +92,16 @@ public class SimplePairGenFactory implements PairGenFactory<AtomGoal, SimpleTran
             return count;
         }
 
-        final void appendCurrentList(GoalPair<AtomGoal, SimpleTransformation> pair){
+        final void appendCurrentList(GoalPair<AtomGoal, SimpleTransformation, Register> pair){
             currentList.add(pair);
         }
 
-        final void appendCurrentList(Collection<GoalPair<AtomGoal, SimpleTransformation>> pairs){
+        final void appendCurrentList(Collection<GoalPair<AtomGoal, SimpleTransformation, Register>> pairs){
             currentList.addAll(pairs);
         }
 
 
-        boolean check(GoalPair<AtomGoal, SimpleTransformation> p){
+        boolean check(GoalPair<AtomGoal, SimpleTransformation, Register> p){
             for (AtomGoal l: p.getLowers()) {
                 for (Atom a : l) {
                     if (bounds.excludes(a)) {
@@ -112,7 +113,7 @@ public class SimplePairGenFactory implements PairGenFactory<AtomGoal, SimpleTran
 
         }
 
-        private GoalPair<AtomGoal, SimpleTransformation> get_next() {
+        private GoalPair<AtomGoal, SimpleTransformation, Register> get_next() {
             if (!currentList.isEmpty()){
                 return currentList.remove(0);
 
@@ -134,8 +135,8 @@ public class SimplePairGenFactory implements PairGenFactory<AtomGoal, SimpleTran
             appendCurrentList(getUnaryTransformations(upper));
         }
 
-        List<GoalPair<AtomGoal, SimpleTransformation>> getUnaryTransformations(AtomGoal upper) {
-            List<GoalPair<AtomGoal, SimpleTransformation>> pairs = new ArrayList<>();
+        List<GoalPair<AtomGoal, SimpleTransformation, Register>> getUnaryTransformations(AtomGoal upper) {
+            List<GoalPair<AtomGoal, SimpleTransformation, Register>> pairs = new ArrayList<>();
             Collection<Tuple<? extends SimpleTransformation, AtomGoal>> ts = SimpleTransformation.applyAllUnaryOpBackwards(upper);
             for (Tuple<? extends SimpleTransformation, AtomGoal> t: ts){
                 pairs.add(new GoalPair<>(upper, t.getB(), t.getA()));
@@ -143,8 +144,8 @@ public class SimplePairGenFactory implements PairGenFactory<AtomGoal, SimpleTran
             return pairs;
         }
 
-        List<GoalPair<AtomGoal, SimpleTransformation>> getAddTransformations(AtomGoal upper) {
-            List<GoalPair<AtomGoal, SimpleTransformation>> pairs = new ArrayList<>();
+        List<GoalPair<AtomGoal, SimpleTransformation, Register>> getAddTransformations(AtomGoal upper) {
+            List<GoalPair<AtomGoal, SimpleTransformation, Register>> pairs = new ArrayList<>();
             // Addition
             Collection<AtomGoal> splits = upper.allSplitsRecursive();
             for (AtomGoal a : splits) {

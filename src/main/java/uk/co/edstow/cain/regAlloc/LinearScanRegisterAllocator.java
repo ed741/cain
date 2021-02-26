@@ -9,7 +9,7 @@ import uk.co.edstow.cain.util.Tuple;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class LinearScanRegisterAllocator<G extends Goal<G>, T extends StandardTransformation> implements RegisterAllocator<G, T> {
+public class LinearScanRegisterAllocator<G extends Goal<G>, T extends StandardTransformation> implements RegisterAllocator<G, T, Register> {
     private final List<Register> registers;
     private final List<Register> init;
     private final List<G> initialGoals;
@@ -27,12 +27,12 @@ public class LinearScanRegisterAllocator<G extends Goal<G>, T extends StandardTr
     }
 
     @Override
-    public List<? extends Register> getAvailableRegistersArray() {
+    public List<Register> getAvailableRegistersArray() {
         return registers;
     }
 
     @Override
-    public List<? extends Register> getInitRegisters() {
+    public List<Register> getInitRegisters() {
         return init;
     }
 
@@ -42,13 +42,13 @@ public class LinearScanRegisterAllocator<G extends Goal<G>, T extends StandardTr
     }
 
     @Override
-    public boolean checkPossible(Plan<G, T> p) {
+    public boolean checkPossible(Plan<G, T, Register> p) {
         return solve(p) != null;
     }
 
     @Override
-    public Mapping<G> solve(Plan<G, T> plan){
-        List<Plan.Step<G, T>> all_r = plan.getAll();
+    public Mapping<G> solve(Plan<G, T, Register> plan){
+        List<Plan.Step<G, T, Register>> all_r = plan.getAll();
         List<Set<Integer>> requiresInit = new ArrayList<>(init.size());
         for (Register i : init) {
             requiresInit.add(new HashSet<>());
@@ -59,7 +59,7 @@ public class LinearScanRegisterAllocator<G extends Goal<G>, T extends StandardTr
         for (int j = 0; j < init.size(); j++) {
             inits:
             for (int i = all_r.size() - 1; i >= 0; i--) {
-                Plan.Step<G,?> step = all_r.get(i);
+                Plan.Step<G,T,Register> step = all_r.get(i);
                 for (int l = 0; l < step.getLowers().size(); l++) {
                     G g = step.getLowerTrueGoal(l);
                     if(g.same(initialGoals.get(j))){
@@ -93,7 +93,7 @@ public class LinearScanRegisterAllocator<G extends Goal<G>, T extends StandardTr
         }
 
         for (int i = 0; i < all_r.size(); i++) {
-            Plan.Step<G,T> step = all_r.get(i);
+            Plan.Step<G,T,Register> step = all_r.get(i);
 
             List<G> lowers = step.getLowers();
             for (int lowerIdx = 0; lowerIdx < lowers.size(); lowerIdx++) {
@@ -149,14 +149,9 @@ public class LinearScanRegisterAllocator<G extends Goal<G>, T extends StandardTr
             }
         }
 
-//        for (int i = 0; i < liveness.size(); i++) {
-//            System.out.println(i + ":: " + liveness.get(i));
-//        }
-
 
         for (int i = 0; i < liveness.size(); i++) {
             List<Register> trash = new ArrayList<>(availableRegisters);
-//            System.out.println("Av " + availableRegisters);
             for (int u = 0; u < liveness.get(i).size(); u++) {
                 if (live.contains(new Tuple<>(i, u))) {
                     live.remove(new Tuple<>(i, u));
@@ -283,7 +278,7 @@ public class LinearScanRegisterAllocator<G extends Goal<G>, T extends StandardTr
         return map;
     }
 
-    public static class Mapping<G extends Goal<G>> implements RegisterAllocator.Mapping<G> {
+    public static class Mapping<G extends Goal<G>> implements RegisterAllocator.Mapping<G, Register> {
         private final Map<Wrapper, Register> map;
         private final Map<Integer, List<Register>> trashMap;
         private final List<Register> init;
@@ -321,7 +316,7 @@ public class LinearScanRegisterAllocator<G extends Goal<G>, T extends StandardTr
         @Override
         public String toString() {
             return map.entrySet().stream().map(e -> e.getKey().goal.getTableString(false, false, true, true) + "\n@" + Integer.toHexString(e.getKey().goal.hashCode()) + " -> " +e.getValue().toString()).collect(Collectors.joining("\n\n", "{\n", "\n}\n")) +
-                    trashMap.entrySet().stream().map(e -> Integer.toString(e.getKey()) + " -> " +e.getValue()).collect(Collectors.joining(",\n ", "[\n", "\n]"));
+                    trashMap.entrySet().stream().map(e -> e.getKey() + " -> " +e.getValue()).collect(Collectors.joining(",\n ", "[\n", "\n]"));
         }
 
         private class Wrapper{
@@ -331,7 +326,7 @@ public class LinearScanRegisterAllocator<G extends Goal<G>, T extends StandardTr
                 this.goal = goal;
             }
 
-
+            @SuppressWarnings("unchecked")
             @Override
             public boolean equals(Object o) {
                 if (this == o) return true;

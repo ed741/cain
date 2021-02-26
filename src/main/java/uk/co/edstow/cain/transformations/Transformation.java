@@ -1,10 +1,11 @@
 package uk.co.edstow.cain.transformations;
 
-import uk.co.edstow.cain.regAlloc.RegisterAllocator;
+import uk.co.edstow.cain.regAlloc.Register;
 
 import java.util.*;
 
-public interface Transformation<R extends RegisterAllocator.Register> {
+@SuppressWarnings("CommentedOutCode")
+public interface Transformation<R extends Register> {
 
     String code(List<R> uppers, List<R> lowers, List<R> trash);
 

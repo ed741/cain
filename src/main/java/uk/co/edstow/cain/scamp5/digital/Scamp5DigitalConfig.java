@@ -1,7 +1,6 @@
 package uk.co.edstow.cain.scamp5.digital;
 
-import uk.co.edstow.cain.goals.Kernel3DGoal;
-import uk.co.edstow.cain.regAlloc.RegisterAllocator;
+import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.scamp5.Scamp5ConfigGetter;
 import uk.co.edstow.cain.structures.Goal;
 
@@ -10,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 public class Scamp5DigitalConfig<G extends Goal<G>> implements Scamp5ConfigGetter.Scamp5Config<G, Scamp5DigitalConfig<G>> {
-    public Scamp5DigitalConfig(boolean useMov, boolean useMovx, boolean useAdd, boolean useAddSelf, boolean useDiv, boolean useRes, boolean useRes2, Map<? extends RegisterAllocator.Register, List<String>> registerMapping, List<String> scratchRegisters, int bits) {
+    public Scamp5DigitalConfig(boolean useMov, boolean useMovx, boolean useAdd, boolean useAddSelf, boolean useDiv, boolean useRes, boolean useRes2, Map<? extends Register, List<String>> registerMapping, List<String> scratchRegisters, int bits) {
         this.useMov = useMov;
         this.useMovx = useMovx;
         this.useAdd = useAdd;
@@ -33,11 +32,11 @@ public class Scamp5DigitalConfig<G extends Goal<G>> implements Scamp5ConfigGette
     public final boolean useRes;
     public final boolean useRes2;
     private final boolean onlyMov;
-    final Map<? extends RegisterAllocator.Register, List<String>> registerMapping;
+    final Map<? extends Register, List<String>> registerMapping;
     final List<String> scratchRegisters;
     final int bits;
 
-    public Scamp5DigitalConfig(Scamp5DigitalConfig<G> proto, Map<? extends RegisterAllocator.Register, List<String>> registerMapping, List<String> scratchRegisters, int bits) {
+    public Scamp5DigitalConfig(Scamp5DigitalConfig<G> proto, Map<? extends Register, List<String>> registerMapping, List<String> scratchRegisters, int bits) {
         this.useMov = proto.useMov;
         this.useMovx = proto.useMovx;
         this.useAdd = proto.useAdd;
@@ -99,7 +98,7 @@ public class Scamp5DigitalConfig<G extends Goal<G>> implements Scamp5ConfigGette
         private boolean useRes;
         private boolean useRes2;
         private boolean onlyMov;
-        private Map<? extends RegisterAllocator.Register, List<String>> registerMapping;
+        private Map<? extends Register, List<String>> registerMapping;
         private List<String> scratchRegisters = Collections.emptyList();
         private int bits;
 
@@ -161,7 +160,7 @@ public class Scamp5DigitalConfig<G extends Goal<G>> implements Scamp5ConfigGette
             return this;
         }
 
-        public Builder<G> registerMapping(Map<? extends RegisterAllocator.Register, List<String>> registerMapping) {
+        public Builder<G> registerMapping(Map<? extends Register, List<String>> registerMapping) {
             this.registerMapping = registerMapping;
             return this;
         }

@@ -2,14 +2,17 @@ package uk.co.edstow.cain.scamp5.analogue;
 
 import org.json.JSONObject;
 import uk.co.edstow.cain.FileRun;
+import uk.co.edstow.cain.Verifier;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.goals.arrayGoal.ArrayGoal;
 import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
 import uk.co.edstow.cain.pairgen.CostHeuristic;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
+import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.scamp5.BasicScamp5ConfigGetter;
 import uk.co.edstow.cain.scamp5.PatternHeuristic;
 import uk.co.edstow.cain.scamp5.ThresholdScamp5ConfigGetter;
+import uk.co.edstow.cain.scamp5.emulator.Scamp5AnalogueVerifier;
 
 public abstract class Scamp5AnalogueFileRun<G extends Kernel3DGoal<G>> extends FileRun.Kernel3DStdTransFileRun<G, Scamp5AnalogueTransformation<G>> {
 
@@ -19,7 +22,7 @@ public abstract class Scamp5AnalogueFileRun<G extends Kernel3DGoal<G>> extends F
     }
 
     @Override
-    protected PairGenFactory<G, Scamp5AnalogueTransformation<G>> makePairGenFactory() {
+    protected PairGenFactory<G, Scamp5AnalogueTransformation<G>, Register> makePairGenFactory() {
         JSONObject json = config.getJSONObject("pairGen");
         printLn("\t Making Pair Generation Factory:");
         printLn("Name                        : " + json.getString("name"));
@@ -106,7 +109,20 @@ public abstract class Scamp5AnalogueFileRun<G extends Kernel3DGoal<G>> extends F
         }
     }
 
-
+    @Override
+    protected Verifier<G,Scamp5AnalogueTransformation<G>,Register> makeVerifier() {
+        String verf = config.getString("verifier");
+        switch (verf) {
+            case "Scamp5Emulator":
+                Verifier<G,Scamp5AnalogueTransformation<G>,Register> v = new Scamp5AnalogueVerifier<>();
+                v.verbose(FileRun.verbose);
+                return v;
+            case "None":
+                return Verifier.SkipVerify();
+            default:
+                throw new IllegalArgumentException("Verifier Unknown");
+        }
+    }
 
 
     public static class AtomGoalFileRun extends Scamp5AnalogueFileRun<AtomGoal> {
