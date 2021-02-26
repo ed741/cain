@@ -182,7 +182,7 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
                 new ThresholdScamp5ConfigGetter<>(
                         initialGoals, threshold,
                         heuristic, scampConfig,
-                        (goals, conf, scamp5Config, h) -> new Scamp5SuperPixelPairGenFactory.AtomDistanceSortedPairGen<>(goals, conf, scampConfig, heuristic),
+                        (goals, conf, scamp5Config, h) -> new Scamp5SuperPixelPairGenFactory.SuperPixelAtomDistanceSortedPairGen<>(goals, conf, scampConfig, heuristic),
                         (goals, conf, scamp5Config, h) -> new Scamp5SuperPixelPairGenFactory.ExhaustivePairGen<>(goals, conf, scampConfig, heuristic)
                 )
         );
@@ -197,12 +197,12 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
     private Scamp5SuperPixelPairGenFactory<G> getAtomDistanceSortedPairGenFactory(JSONObject json, Scamp5SuperPixelConfig.Builder<G> configBuilder) {
         CostHeuristic<G, Scamp5SuperPixelTransformation<G>> heuristic = getCostHeuristic(json, "heuristic");
         return new Scamp5SuperPixelPairGenFactory<>(new BasicScamp5ConfigGetter<>(configBuilder.build(),
-                (goals, conf, scamp5Config) -> new Scamp5SuperPixelPairGenFactory.AtomDistanceSortedPairGen<>(goals, conf, scamp5Config, heuristic)
+                (goals, conf, scamp5Config) -> new Scamp5SuperPixelPairGenFactory.SuperPixelAtomDistanceSortedPairGen<>(goals, conf, scamp5Config, heuristic)
         ));
     }
     private Scamp5SuperPixelPairGenFactory<G> getAtomDistancePairGenFactory(JSONObject json, Scamp5SuperPixelConfig.Builder<G> configBuilder) {
         return new Scamp5SuperPixelPairGenFactory<>(new BasicScamp5ConfigGetter<>(configBuilder.build(),
-                (goals, conf, scamp5Config) -> new Scamp5SuperPixelPairGenFactory.AtomDistancePairGen<>(goals, conf, scamp5Config)
+                (goals, conf, scamp5Config) -> new Scamp5SuperPixelPairGenFactory.SuperPixelAtomDistancePairGen<>(goals, conf, scamp5Config)
         ));
     }
 

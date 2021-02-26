@@ -84,7 +84,7 @@ public abstract class Scamp5DigitalFileRun<G extends Kernel3DGoal<G>> extends Fi
                 new ThresholdScamp5ConfigGetter<>(
                         initialGoals, threshold,
                         heuristic, scampConfig,
-                        (goals, conf, scamp5Config, h) -> new Scamp5DigitalPairGenFactory.AtomDistanceSortedPairGen<>(goals, conf, scampConfig, heuristic),
+                        (goals, conf, scamp5Config, h) -> new Scamp5DigitalPairGenFactory.DigitalAtomDistanceSortedPairGen<>(goals, conf, scampConfig, heuristic),
                         (goals, conf, scamp5Config, h) -> new Scamp5DigitalPairGenFactory.ExhaustivePairGen<>(goals, conf, scampConfig, heuristic)
                 )
         );
@@ -101,13 +101,13 @@ public abstract class Scamp5DigitalFileRun<G extends Kernel3DGoal<G>> extends Fi
         CostHeuristic<G, Scamp5DigitalTransformation<G>> heuristic = getCostHeuristic(json, "heuristic");
         Scamp5DigitalConfig<G> scampConfig = configBuilder.build();
         return new Scamp5DigitalPairGenFactory<>(new BasicScamp5ConfigGetter<>(scampConfig,
-                (goals, conf, scamp5Config) -> new Scamp5DigitalPairGenFactory.AtomDistanceSortedPairGen<>(goals, conf, scamp5Config, heuristic)
+                (goals, conf, scamp5Config) -> new Scamp5DigitalPairGenFactory.DigitalAtomDistanceSortedPairGen<>(goals, conf, scamp5Config, heuristic)
         ));
     }
     private Scamp5DigitalPairGenFactory<G> getAtomDistancePairGenFactory(JSONObject json, Scamp5DigitalConfig.Builder<G> configBuilder) {
         Scamp5DigitalConfig<G> scampConfig = configBuilder.build();
         return new Scamp5DigitalPairGenFactory<>(new BasicScamp5ConfigGetter<>(scampConfig,
-                (goals, conf, scamp5Config) -> new Scamp5DigitalPairGenFactory.AtomDistancePairGen<>(goals, conf, scamp5Config)
+                (goals, conf, scamp5Config) -> new Scamp5DigitalPairGenFactory.DigitalAtomDistancePairGen<>(goals, conf, scamp5Config)
         ));
     }
 

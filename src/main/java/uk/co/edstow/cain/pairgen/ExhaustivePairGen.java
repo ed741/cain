@@ -16,7 +16,7 @@ public abstract class ExhaustivePairGen<G extends Goal<G>, T extends Transformat
     protected final Context<G,T,R> context;
     protected final GoalBag<G> goals;
 
-    public ExhaustivePairGen(GoalBag<G> goals, Context<G,T,R> context, CostHeuristic<G, T> huristic) {
+    public ExhaustivePairGen(GoalBag<G> goals, Context<G,T,R> context, CostHeuristic<G, T> heuristic) {
         this.goals = goals;
         this.context = context;
         Comparator<Tuple<GoalPair<G, T, R>, Double>> comparator = Comparator.comparingDouble(Tuple::getB);
@@ -27,8 +27,8 @@ public abstract class ExhaustivePairGen<G extends Goal<G>, T extends Transformat
                                 getUnaryOpStream(upper)
                         )
                 );
-        if (huristic != null) {
-            this.it = stream.map(pair -> new Tuple<>(pair, huristic.getCost(pair, goals, context))).filter(t -> t.getB() >= 0)
+        if (heuristic != null) {
+            this.it = stream.map(pair -> new Tuple<>(pair, heuristic.getCost(pair, goals, context))).filter(t -> t.getB() >= 0)
                     .sorted(comparator)
                     .map(Tuple::getA)
                     .iterator();
@@ -50,7 +50,7 @@ public abstract class ExhaustivePairGen<G extends Goal<G>, T extends Transformat
     }
 
 
-    protected abstract Stream<GoalPair<G, T, R>> getUnaryOpStream(G upper);
+    protected abstract Stream<GoalPair<G,T,R>> getUnaryOpStream(G upper);
 
-    protected abstract Stream<GoalPair<G, T, R>> getNaryOpStream(G upper);
+    protected abstract Stream<GoalPair<G,T,R>> getNaryOpStream(G upper);
 }

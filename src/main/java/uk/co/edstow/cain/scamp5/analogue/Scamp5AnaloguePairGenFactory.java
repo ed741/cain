@@ -396,118 +396,213 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
         }
     }
 
-    private static class AtomDistanceListItem<G extends Kernel3DGoal<G>> {
-        GoalPair<G, Scamp5AnalogueTransformation<G>, Register> pair;
-        double cost;
-        G a;
-        G b;
-        Distance distance;
-        boolean negate;
-        G to;
+    public static class AnalogueAtomDistancePairGen<G extends Kernel3DGoal<G>> extends AtomDistancePairGen<G, Scamp5AnalogueTransformation<G>, Register> {
+        final Scamp5AnalogueConfig<G> scamp5AnalogueConfig;
 
-        AtomDistanceListItem() {
-        }
-        
-        AtomDistanceListItem(AtomDistanceListItem<G> item) {
-            this.pair = item.pair;
-            this.cost = item.cost;
-            this.a = item.a;
-            this.b = item.b;
-            this.distance = item.distance;
-            this.negate = item.negate;
-            this.to = item.to;
-
-        }
-    }
-
-    public static class AtomDistancePairGen<G extends Kernel3DGoal<G>> implements PairGen<G, Scamp5AnalogueTransformation<G>, Register> {
-        final Scamp5AnalogueConfig<G> scamp5config;
-        final Context<G, Scamp5AnalogueTransformation<G>, Register> context;
-        final GoalBag<G> goals;
-        final Iterator<Tuple<Integer, Integer>> ijGetter;
-        private int count;
-
-        List<GoalPair<G, Scamp5AnalogueTransformation<G>, Register>> currentList = new ArrayList<>();
-
-        public AtomDistancePairGen(GoalBag<G> goals, Context<G, Scamp5AnalogueTransformation<G>, Register> context, Scamp5AnalogueConfig<G> scamp5config) {
-            this.goals = goals;
-            this.scamp5config = scamp5config;
-            this.context = context;
-            this.ijGetter = new SteppedCombinationIterator(goals.size());
+        public AnalogueAtomDistancePairGen(GoalBag<G> goals, Context<G, Scamp5AnalogueTransformation<G>, Register> context, Scamp5AnalogueConfig<G> scamp5AnalogueConfig) {
+            super(goals, context);
+            this.scamp5AnalogueConfig = scamp5AnalogueConfig;
         }
 
-        private AtomDistancePairGen(GoalBag<G> goals, Context<G, Scamp5AnalogueTransformation<G>, Register> context, Scamp5AnalogueConfig<G> scamp5config, Iterator<Tuple<Integer, Integer>> ijGetter) {
-            this.goals = goals;
-            this.scamp5config = scamp5config;
-            this.context = context;
-            this.ijGetter = ijGetter;
+        private AnalogueAtomDistancePairGen(GoalBag<G> goals, Context<G, Scamp5AnalogueTransformation<G>, Register> context, Scamp5AnalogueConfig<G> scamp5AnalogueConfig, Iterator<Tuple<Integer, Integer>> ijGetter) {
+            super(goals, context, ijGetter);;
+            this.scamp5AnalogueConfig = scamp5AnalogueConfig;
         }
 
-        @SuppressWarnings("WeakerAccess")
-        protected void fillCurrentList(){
-            while (currentList.isEmpty()){
-                if(!ijGetter.hasNext()){
-                    return;
+        @Override
+        protected void addAtomDistancePairs(Item item, List<Item> outList) {
+            Distance inverse = item.distance.inverse();
+            G tmpMov = item.to.translated(inverse.x, inverse.y, inverse.z);
+            G tmp = tmpMov;
+            if(item.negate){
+                tmp = tmpMov.negated();
+            }
+            if(tmp.same(item.a)){
+                if(scamp5AnalogueConfig.useMov2x && item.distance.manhattanXY()>1){
+                    //mov2x
+                    SimpleTransformation.Direction d1 = item.distance.majorXYDirection();
+                    SimpleTransformation.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
+                    Dir dir1 = Dir.fromDirection(d1).opposite();
+                    Dir dir2 = Dir.fromDirection(d2).opposite();
+                    Mov2x<G> mov2x = new Mov2x<>(item.a, dir1, dir2, true);
+                    Item newItem = new Item(item, new GoalPair<>(item.a, mov2x.a, mov2x));
+                    outList.add(newItem);
                 }
-                Tuple<Integer, Integer> ij = ijGetter.next();
-                G a = goals.get(ij.getA());
-                G b = goals.get(ij.getB());
+                if (scamp5AnalogueConfig.useMovx && item.distance.manhattanXY() > 0){
+                    //movx
+                    SimpleTransformation.Direction d1 = item.distance.majorXYDirection();
+                    Dir dir1 = Dir.fromDirection(d1).opposite();
+                    Movx<G> movx = new Movx<>(item.a, dir1, true);
+                    Item newItem = new Item(item, new GoalPair<>(item.a, movx.a, movx));
+                    outList.add(newItem);
+                } else if(scamp5AnalogueConfig.useNeg && item.negate){
+                    Item newItem = new Item(item, new GoalPair<>(item.a, item.to, new Neg<>(item.to)));
+                    outList.add(newItem);
+                }
+            } else if (!scamp5AnalogueConfig.onlyMov()){
+                G aWithoutTmp = item.a.without(tmp);
 
-                boolean diagonal = ij.getA().equals(ij.getB());
-                List<AtomDistanceListItem<G>> inList = getAtomDistanceList(a, b, diagonal);
-                List<AtomDistanceListItem<G>> outList = new ArrayList<>();
-                inList.sort(atomDistanceComparator);
-                addPairs(a, diagonal, inList, outList);
-                outList.forEach(item -> currentList.add(item.pair));
+                //Add_2
+                if(scamp5AnalogueConfig.useAdd) {
+                    G split2 = aWithoutTmp;
+                    List<G> lowers = Arrays.asList(tmp, split2);
+                    Item newItem = new Item(item, new GoalPair<>(item.a, lowers, new Add_2<>(tmp, split2)));
+                    outList.add(newItem);
+                }
 
+                //Sub
+                if(scamp5AnalogueConfig.useSub) {
+                    G split2 = aWithoutTmp.negated();
+                    List<G> lowers = Arrays.asList(tmp, split2);
+                    Item newItem = new Item(item, new GoalPair<>(item.a, lowers, new Sub<>(tmp, split2)));
+                    outList.add(newItem);
+                }
+                //TODO add_3 support?
+
+                //addx
+                if(scamp5AnalogueConfig.useAddx && item.distance.manhattanXY()>0){
+                    Dir dir1 = Dir.fromDirection(item.distance.majorXYDirection()).opposite();
+                    G split1 = aWithoutTmp.translated(-dir1.x, -dir1.y, 0);
+                    G split2 = tmp.translated(-dir1.x, -dir1.y, 0);
+                    Addx<G> addx = new Addx<>(split1, split2, dir1);
+                    Item newItem = new Item(item, new GoalPair<>(item.a, Arrays.asList(split1, split2), addx));
+                    outList.add(newItem);
+                }
+
+                //add2x
+                if(scamp5AnalogueConfig.useAdd2x && item.distance.manhattanXY()>1){
+                    SimpleTransformation.Direction d1 = item.distance.majorXYDirection();
+                    SimpleTransformation.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
+                    Dir dir1 = Dir.fromDirection(d1).opposite();
+                    Dir dir2 = Dir.fromDirection(d2).opposite();
+                    G split1 = aWithoutTmp.translated(-dir1.x -dir2.x, -dir1.y-dir2.y, 0);
+                    G split2 = tmp.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0);
+                    Add2x<G> add2x = new Add2x<>(split1, split2, dir1, dir2);
+                    Item newItem = new Item(item, new GoalPair<>(item.a, Arrays.asList(split1, split2), add2x));
+                    
+                    outList.add(newItem);
+                }
+
+                //Subx
+                if(scamp5AnalogueConfig.useSubx && item.distance.manhattanXY()>0){
+                    Dir dir1 = Dir.fromDirection(item.distance.majorXYDirection()).opposite();
+                    G split1 = tmp.translated(-dir1.x, -dir1.y, 0);
+                    G split2 = aWithoutTmp.negated();
+                    Subx<G> subx = new Subx<>(split1, split2, dir1);
+                    Item newItem = new Item(item, new GoalPair<>(item.a, Arrays.asList(split1, split2), subx));
+                    outList.add(newItem);
+                }
+
+                //Sub2x
+                if(scamp5AnalogueConfig.useSub2x && item.distance.manhattanXY()>1){
+                    SimpleTransformation.Direction d1 = item.distance.majorXYDirection();
+                    SimpleTransformation.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
+                    Dir dir1 = Dir.fromDirection(d1).opposite();
+                    Dir dir2 = Dir.fromDirection(d2).opposite();
+                    G split1 = tmp.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0);
+                    G split2 = aWithoutTmp.negated();
+                    Sub2x<G> sub2x = new Sub2x<>(split1, split2, dir1, dir2);
+                    Item newItem = new Item(item, new GoalPair<>(item.a, Arrays.asList(split1, split2), sub2x));
+                    outList.add(newItem);
+                }
             }
         }
-        @SuppressWarnings("WeakerAccess")
-        protected void addPairs(G a, boolean diagonal, List<AtomDistanceListItem<G>> inList, List<AtomDistanceListItem<G>> outList) {
-            if(!diagonal) {
-                for (AtomDistanceListItem<G> item : inList) {
-                    addAtomDistancePairs(item, scamp5config, outList);
+
+        @Override
+        protected void addAtomDistanceDiagonalPairs(Item item, List<Item> outList) {
+            if(scamp5AnalogueConfig.onlyMov()){
+                return;
+            }
+            Distance centre = new Distance(item.a.getAveragePos());
+            G aWithoutTo = item.a.without(item.to);
+            //add_2, sub
+            if(!item.negate) {
+                if(scamp5AnalogueConfig.useAdd) {
+                    G split1 = aWithoutTo;
+                    G split2 = item.to;
+                   Item newItem = new Item(item, new GoalPair<>(item.a, Arrays.asList(split1, split2), new Add_2<>(split1, split2)));
+                    outList.add(newItem);
                 }
             } else {
-                // diagonal == True
-                if(goals.size() < context.registerAllocator.getAvailableRegisters()) {
-                    addDirectMov(a, outList);
+                if(scamp5AnalogueConfig.useSub) {
+                    G split1 = aWithoutTo;
+                    G split2 = item.to.negated();
+                   Item newItem = new Item(item, new GoalPair<>(item.a, Arrays.asList(split1, split2), new Sub<>(split1, split2)));
+                    outList.add(newItem);
                 }
+            }
 
-                for (AtomDistanceListItem<G> item : inList) {
-                    addAtomDistanceDiagonalPairs(item, scamp5config, outList);
+            if (scamp5AnalogueConfig.useAdd3) {
+                Distance inverse = item.distance.inverse();
+                G tmpMov = item.to.translated(inverse.x, inverse.y, inverse.z);
+                G tmp = tmpMov;
+                if (item.negate) {
+                    tmp = tmpMov.negated();
                 }
-                if (scamp5config.useDivq) {
-                    for (G initialGoal : context.initialGoals) {
-                        if (initialGoal.hasSubGoal(a)) {
-                            G l = a.added(a);
-                            AtomDistanceListItem<G> newItem = new AtomDistanceListItem<>();
-                            newItem.a = a;
-                            newItem.distance = new Distance(0, 0, 0);
-                            newItem.pair = new GoalPair<>(a, l, new Divq<>(l));
-                            outList.add(newItem);
-                        }
-                    }
+                tmp = tmp.without(item.to);
+                G split1 = aWithoutTo.without(tmp);
+                if(!split1.allZero() && !tmp.allZero()) {
+                    G split2 = tmp;
+                    G split3 = item.to;
+                   Item newItem = new Item(item, new GoalPair<>(item.a, Arrays.asList(split1, split2, split3), new Add_3<>(split1, split2, split3)));
+                    outList.add(newItem);
                 }
+            }
+            if(scamp5AnalogueConfig.useAddx && centre.manhattanXY()>0){
+                Dir dir1 = Dir.fromDirection(centre.majorXYDirection());
+                G split1 = aWithoutTo.translated(-dir1.x, -dir1.y, 0);
+                G split2 = item.to.translated(-dir1.x, -dir1.y, 0);
+                Addx<G> addx = new Addx<>(split1, split2, dir1);
+                Item newItem = new Item(item, new GoalPair<>(item.a, Arrays.asList(split1, split2), addx));
+                outList.add(newItem);
+            }
+
+            //add2x
+            if(scamp5AnalogueConfig.useAdd2x && centre.manhattanXY()>1){
+                SimpleTransformation.Direction d1 = centre.majorXYDirection();
+                SimpleTransformation.Direction d2 = centre.then(d1.opposite()).majorXYDirection();
+                Dir dir1 = Dir.fromDirection(d1);
+                Dir dir2 = Dir.fromDirection(d2);
+                G split1 = aWithoutTo.translated(-dir1.x -dir2.x, -dir1.y-dir2.y, 0);
+                G split2 = item.to.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0);
+                Add2x<G> add2x = new Add2x<>(split1, split2, dir1, dir2);
+                Item newItem = new Item(item, new GoalPair<>(item.a, Arrays.asList(split1, split2), add2x));
+                outList.add(newItem);
+            }
+
+            if(scamp5AnalogueConfig.useSubx && item.distance.manhattanXY()>0){
+                Dir dir1 = Dir.fromDirection(item.distance.majorXYDirection()).opposite();
+                G split1 = aWithoutTo.translated(-dir1.x, -dir1.y, 0);
+                G split2 = item.to.negated();
+                Item newItem = new Item(item, new GoalPair<>(item.a, Arrays.asList(split1, split2), new Subx<>(split1, split2, dir1)));
+                outList.add(newItem);
+            }
+
+            if(scamp5AnalogueConfig.useSub2x && item.distance.manhattanXY()>1){
+                SimpleTransformation.Direction d1 = item.distance.majorXYDirection();
+                SimpleTransformation.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
+                Dir dir1 = Dir.fromDirection(d1).opposite();
+                Dir dir2 = Dir.fromDirection(d2).opposite();
+                G split1 = aWithoutTo.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0);
+                G split2 = item.to.negated();
+                Item newItem = new Item(item, new GoalPair<>(item.a, Arrays.asList(split1, split2), new Sub2x<>(split1, split2, dir1, dir2)));
+                outList.add(newItem);
             }
         }
 
         @SuppressWarnings("WeakerAccess")
-        protected void addDirectMov(G a, List<AtomDistanceListItem<G>> outList) {
+        protected void addDirectTransformation(G a, List<Item> outList) {
             Distance centre = new Distance(a.getAveragePos());
-            if(scamp5config.useMovx && centre.manhattanXY()>0){
+            if(scamp5AnalogueConfig.useMovx && centre.manhattanXY()>0){
                 SimpleTransformation.Direction d1 = centre.majorXYDirection();
                 if(d1!= null) {
                     Dir dir1 = Dir.fromDirection(d1);
                     Movx<G> movx = new Movx<>(a, dir1, true);
-                    AtomDistanceListItem<G> newItem = new AtomDistanceListItem<>();
-                    newItem.a = a;
-                    newItem.distance = new Distance(d1, 1);
-                    newItem.pair = new GoalPair<>(a, movx.a, movx);
+                    Item newItem = new Item(a, movx.a, movx, new Distance(d1, 1), false);
                     outList.add(newItem);
                 }
             }
-            if(scamp5config.useMov2x && centre.manhattanXY()>1){
+            if(scamp5AnalogueConfig.useMov2x && centre.manhattanXY()>1){
                 SimpleTransformation.Direction d1 = centre.majorXYDirection();
                 if(d1 != null) {
                     SimpleTransformation.Direction d2 = centre.then(d1.opposite()).majorXYDirection();
@@ -515,34 +610,29 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
                         Dir dir1 = Dir.fromDirection(d1).opposite();
                         Dir dir2 = Dir.fromDirection(d2).opposite();
                         Mov2x<G> mov2x = new Mov2x<>(a, dir1, dir2, true);
-                        AtomDistanceListItem<G> newItem = new AtomDistanceListItem<>();
-                        newItem.a = a;
-                        newItem.distance = new Distance(d1, 1).then(d2);
-                        newItem.pair = new GoalPair<>(a, mov2x.a, mov2x);
+                        Item newItem = new Item(a, mov2x.a, mov2x, new Distance(d1, 1).then(d2), false);
+                        outList.add(newItem);
+                    }
+                }
+            }
+            if (scamp5AnalogueConfig.useDivq) {
+                for (G initialGoal : context.initialGoals) {
+                    if (initialGoal.hasSubGoal(a)) {
+                        G l = a.added(a);
+                        Item newItem = new Item(a, l, new Divq<>(l));
                         outList.add(newItem);
                     }
                 }
             }
         }
 
-        @Override
-        public GoalPair<G, Scamp5AnalogueTransformation<G>, Register> next() {
-            count++;
-            fillCurrentList();
-            return  currentList.isEmpty()? null:currentList.remove(currentList.size()-1);
-        }
-
-        @Override
-        public int getNumber() {
-            return count;
-        }
     }
 
-    public static class AtomDistanceSortedPairGen<G extends Kernel3DGoal<G>> extends AtomDistancePairGen<G> {
+    public static class AnalogueAtomDistanceSortedPairGen<G extends Kernel3DGoal<G>> extends AnalogueAtomDistancePairGen<G> {
 
         private final CostHeuristic<G, Scamp5AnalogueTransformation<G>> heuristic;
 
-        public AtomDistanceSortedPairGen(GoalBag<G> goals, Context<G, Scamp5AnalogueTransformation<G>, Register> conf, Scamp5AnalogueConfig<G> scamp5Config, CostHeuristic<G, Scamp5AnalogueTransformation<G>> heuristic) {
+        public AnalogueAtomDistanceSortedPairGen(GoalBag<G> goals, Context<G, Scamp5AnalogueTransformation<G>, Register> conf, Scamp5AnalogueConfig<G> scamp5Config, CostHeuristic<G, Scamp5AnalogueTransformation<G>> heuristic) {
             super(goals, conf, scamp5Config, new PlainCombinationIterator(goals.size()));
             this.heuristic = heuristic;
         }
@@ -552,350 +642,21 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
             if(!currentList.isEmpty()){
                 return;
             }
-            List<AtomDistanceListItem<G>> outList = new ArrayList<>();
+            List<Item> outList = new ArrayList<>();
             while (ijGetter.hasNext()){
                 Tuple<Integer, Integer> ij = ijGetter.next();
                 G a = goals.get(ij.getA());
                 G b = goals.get(ij.getB());
                 boolean diagonal = ij.getA().equals(ij.getB());
-                List<AtomDistanceListItem<G>> inList = getAtomDistanceList(a, b, diagonal);
+                List<Item> inList = getAtomDistanceList(a, b, diagonal);
                 //inList.sort(atomDistanceComparator);
                 addPairs(a, diagonal, inList, outList);
             }
             outList.parallelStream().forEach(item -> item.cost = heuristic.getCost(item.pair, goals, this.context));
             outList.removeIf(item -> item.cost < 0);
-            outList.sort(Comparator.comparingDouble((AtomDistanceListItem<G> item) -> item.cost).reversed());
+            outList.sort(Comparator.comparingDouble((Item item) -> item.cost).reversed());
             currentList = outList.stream().map(item -> item.pair).collect(Collectors.toList());
-        }
-    }
 
-    private static final Comparator<AtomDistanceListItem<?>> atomDistanceComparator = Comparator.comparingInt((AtomDistanceListItem<?> i) -> i.to.totalI()).thenComparingInt(i -> -i.distance.manhattanXY());
-
-
-    @SuppressWarnings("UnnecessaryLocalVariable")
-    private static <G extends Kernel3DGoal<G>> void addAtomDistanceDiagonalPairs(AtomDistanceListItem<G> item,
-                                                                                 Scamp5AnalogueConfig<G> scamp5AnalogueConfig, List<AtomDistanceListItem<G>> outList) {
-        if(scamp5AnalogueConfig.onlyMov()){
-            return;
-        }
-        Distance centre = new Distance(item.a.getAveragePos());
-        G aWithoutTo = item.a.without(item.to);
-        //add_2, sub
-        if(!item.negate) {
-            if(scamp5AnalogueConfig.useAdd) {
-                G split1 = aWithoutTo;
-                G split2 = item.to;
-                AtomDistanceListItem<G> newItem = new AtomDistanceListItem<>(item);
-                newItem.pair = new GoalPair<>(item.a, Arrays.asList(split1, split2), new Add_2<>(split1, split2));
-                outList.add(newItem);
-            }
-        } else {
-            if(scamp5AnalogueConfig.useSub) {
-                G split1 = aWithoutTo;
-                G split2 = item.to.negated();
-                AtomDistanceListItem<G> newItem = new AtomDistanceListItem<>(item);
-                newItem.pair = new GoalPair<>(item.a, Arrays.asList(split1, split2), new Sub<>(split1, split2));
-                outList.add(newItem);
-            }
-        }
-
-        if (scamp5AnalogueConfig.useAdd3) {
-            Distance inverse = item.distance.inverse();
-            G tmpMov = item.to.translated(inverse.x, inverse.y, inverse.z);
-            G tmp = tmpMov;
-            if (item.negate) {
-                tmp = tmpMov.negated();
-            }
-            tmp = tmp.without(item.to);
-            G split1 = aWithoutTo.without(tmp);
-            if(!split1.allZero() && !tmp.allZero()) {
-                G split2 = tmp;
-                G split3 = item.to;
-                AtomDistanceListItem<G> newItem = new AtomDistanceListItem<>(item);
-                newItem.pair = new GoalPair<>(item.a, Arrays.asList(split1, split2, split3), new Add_3<>(split1, split2, split3));
-                outList.add(newItem);
-            }
-        }
-        if(scamp5AnalogueConfig.useAddx && centre.manhattanXY()>0){
-            Dir dir1 = Dir.fromDirection(centre.majorXYDirection());
-            G split1 = aWithoutTo.translated(-dir1.x, -dir1.y, 0);
-            G split2 = item.to.translated(-dir1.x, -dir1.y, 0);
-            Addx<G> addx = new Addx<>(split1, split2, dir1);
-            AtomDistanceListItem<G> newItem = new AtomDistanceListItem<>(item);
-            newItem.pair = new GoalPair<>(item.a, Arrays.asList(split1, split2), addx);
-            outList.add(newItem);
-        }
-
-        //add2x
-        if(scamp5AnalogueConfig.useAdd2x && centre.manhattanXY()>1){
-            SimpleTransformation.Direction d1 = centre.majorXYDirection();
-            SimpleTransformation.Direction d2 = centre.then(d1.opposite()).majorXYDirection();
-            Dir dir1 = Dir.fromDirection(d1);
-            Dir dir2 = Dir.fromDirection(d2);
-            G split1 = aWithoutTo.translated(-dir1.x -dir2.x, -dir1.y-dir2.y, 0);
-            G split2 = item.to.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0);
-            Add2x<G> add2x = new Add2x<>(split1, split2, dir1, dir2);
-            AtomDistanceListItem<G> newItem = new AtomDistanceListItem<>(item);
-            newItem.pair = new GoalPair<>(item.a, Arrays.asList(split1, split2), add2x);
-            outList.add(newItem);
-        }
-
-        if(scamp5AnalogueConfig.useSubx && item.distance.manhattanXY()>0){
-            Dir dir1 = Dir.fromDirection(item.distance.majorXYDirection()).opposite();
-            G split1 = aWithoutTo.translated(-dir1.x, -dir1.y, 0);
-            G split2 = item.to.negated();
-            AtomDistanceListItem<G> newItem = new AtomDistanceListItem<>(item);
-            newItem.pair = new GoalPair<>(item.a, Arrays.asList(split1, split2), new Subx<>(split1, split2, dir1));
-            outList.add(newItem);
-        }
-
-        if(scamp5AnalogueConfig.useSub2x && item.distance.manhattanXY()>1){
-            SimpleTransformation.Direction d1 = item.distance.majorXYDirection();
-            SimpleTransformation.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
-            Dir dir1 = Dir.fromDirection(d1).opposite();
-            Dir dir2 = Dir.fromDirection(d2).opposite();
-            G split1 = aWithoutTo.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0);
-            G split2 = item.to.negated();
-            AtomDistanceListItem<G> newItem = new AtomDistanceListItem<>(item);
-            newItem.pair = new GoalPair<>(item.a, Arrays.asList(split1, split2), new Sub2x<>(split1, split2, dir1, dir2));
-            outList.add(newItem);
-        }
-    }
-
-    @SuppressWarnings("UnnecessaryLocalVariable")
-    private static <G extends Kernel3DGoal<G>> void addAtomDistancePairs(AtomDistanceListItem<G> item,
-                                                                         Scamp5AnalogueConfig<G> scamp5AnalogueConfig, List<AtomDistanceListItem<G>> outList) {
-        Distance inverse = item.distance.inverse();
-        G tmpMov = item.to.translated(inverse.x, inverse.y, inverse.z);
-        G tmp = tmpMov;
-        if(item.negate){
-            tmp = tmpMov.negated();
-        }
-        if(tmp.same(item.a)){
-            if(scamp5AnalogueConfig.useMov2x && item.distance.manhattanXY()>1){
-                //mov2x
-                SimpleTransformation.Direction d1 = item.distance.majorXYDirection();
-                SimpleTransformation.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
-                Dir dir1 = Dir.fromDirection(d1).opposite();
-                Dir dir2 = Dir.fromDirection(d2).opposite();
-                Mov2x<G> mov2x = new Mov2x<>(item.a, dir1, dir2, true);
-                AtomDistanceListItem<G> newItem = new AtomDistanceListItem<>(item);
-                newItem.pair = new GoalPair<>(item.a, mov2x.a, mov2x);
-                outList.add(newItem);
-            }
-            if (scamp5AnalogueConfig.useMovx && item.distance.manhattanXY() > 0){
-                //movx
-                SimpleTransformation.Direction d1 = item.distance.majorXYDirection();
-                Dir dir1 = Dir.fromDirection(d1).opposite();
-                Movx<G> movx = new Movx<>(item.a, dir1, true);
-                AtomDistanceListItem<G> newItem = new AtomDistanceListItem<>(item);
-                newItem.pair = new GoalPair<>(item.a, movx.a, movx);
-                outList.add(newItem);
-            } else if(scamp5AnalogueConfig.useNeg && item.negate){
-                AtomDistanceListItem<G> newItem = new AtomDistanceListItem<>(item);
-                newItem.pair = new GoalPair<>(item.a, item.to, new Neg<>(item.to));
-                outList.add(newItem);
-            }
-        } else if (!scamp5AnalogueConfig.onlyMov()){
-            G aWithoutTmp = item.a.without(tmp);
-
-            //Add_2
-            if(scamp5AnalogueConfig.useAdd) {
-                G split2 = aWithoutTmp;
-                List<G> lowers = Arrays.asList(tmp, split2);
-                AtomDistanceListItem<G> newItem = new AtomDistanceListItem<>(item);
-                newItem.pair = new GoalPair<>(item.a, lowers, new Add_2<>(tmp, split2));
-                outList.add(newItem);
-            }
-
-            //Sub
-            if(scamp5AnalogueConfig.useSub) {
-                G split2 = aWithoutTmp.negated();
-                List<G> lowers = Arrays.asList(tmp, split2);
-                AtomDistanceListItem<G> newItem = new AtomDistanceListItem<>(item);
-                newItem.pair = new GoalPair<>(item.a, lowers, new Sub<>(tmp, split2));
-                outList.add(newItem);
-            }
-            //TODO add_3 support?
-
-            //addx
-            if(scamp5AnalogueConfig.useAddx && item.distance.manhattanXY()>0){
-                Dir dir1 = Dir.fromDirection(item.distance.majorXYDirection()).opposite();
-                G split1 = aWithoutTmp.translated(-dir1.x, -dir1.y, 0);
-                G split2 = tmp.translated(-dir1.x, -dir1.y, 0);
-                Addx<G> addx = new Addx<>(split1, split2, dir1);
-                AtomDistanceListItem<G> newItem = new AtomDistanceListItem<>(item);
-                newItem.pair = new GoalPair<>(item.a, Arrays.asList(split1, split2), addx);
-                outList.add(newItem);
-            }
-
-            //add2x
-            if(scamp5AnalogueConfig.useAdd2x && item.distance.manhattanXY()>1){
-                SimpleTransformation.Direction d1 = item.distance.majorXYDirection();
-                SimpleTransformation.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
-                Dir dir1 = Dir.fromDirection(d1).opposite();
-                Dir dir2 = Dir.fromDirection(d2).opposite();
-                G split1 = aWithoutTmp.translated(-dir1.x -dir2.x, -dir1.y-dir2.y, 0);
-                G split2 = tmp.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0);
-                Add2x<G> add2x = new Add2x<>(split1, split2, dir1, dir2);
-                AtomDistanceListItem<G> newItem = new AtomDistanceListItem<>(item);
-                newItem.pair = new GoalPair<>(item.a, Arrays.asList(split1, split2), add2x);
-                outList.add(newItem);
-            }
-
-            //Subx
-            if(scamp5AnalogueConfig.useSubx && item.distance.manhattanXY()>0){
-                Dir dir1 = Dir.fromDirection(item.distance.majorXYDirection()).opposite();
-                G split1 = tmp.translated(-dir1.x, -dir1.y, 0);
-                G split2 = aWithoutTmp.negated();
-                Subx<G> subx = new Subx<>(split1, split2, dir1);
-                AtomDistanceListItem<G> newItem = new AtomDistanceListItem<>(item);
-                newItem.pair = new GoalPair<>(item.a, Arrays.asList(split1, split2), subx);
-                outList.add(newItem);
-            }
-
-            //Sub2x
-            if(scamp5AnalogueConfig.useSub2x && item.distance.manhattanXY()>1){
-                SimpleTransformation.Direction d1 = item.distance.majorXYDirection();
-                SimpleTransformation.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
-                Dir dir1 = Dir.fromDirection(d1).opposite();
-                Dir dir2 = Dir.fromDirection(d2).opposite();
-                G split1 = tmp.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0);
-                G split2 = aWithoutTmp.negated();
-                Sub2x<G> sub2x = new Sub2x<>(split1, split2, dir1, dir2);
-                AtomDistanceListItem<G> newItem = new AtomDistanceListItem<>(item);
-                newItem.pair = new GoalPair<>(item.a, Arrays.asList(split1, split2), sub2x);
-                outList.add(newItem);
-            }
-        }
-    }
-
-    private static <G extends Kernel3DGoal<G>> List<AtomDistanceListItem<G>> getAtomDistanceList(G a, G b, boolean diagonal) {
-        Map<Tuple<Distance, Boolean>, Kernel3DGoal.Kernel3DGoalFactory<G>> distanceMap = new HashMap<>();
-        for (Iterator<Tuple<Atom, Integer>> ita = a.uniqueCountIterator(); ita.hasNext(); ) {
-            Tuple<Atom, Integer> ta = ita.next();
-            Atom atomA = ta.getA();
-            for (Iterator<Tuple<Atom, Integer>> itb = b.uniqueCountIterator(); itb.hasNext(); ) {
-                Tuple<Atom, Integer> tb = itb.next();
-                Atom atomB = tb.getA();
-
-                Distance d = new Distance(atomA, atomB);
-                boolean negate = atomA.positive ^ atomB.positive;
-                Tuple<Distance, Boolean> key = new Tuple<>(d, negate);
-                Kernel3DGoal.Kernel3DGoalFactory<G> goalFactory = distanceMap.getOrDefault(key, a.newFactory());
-                int count = Math.min(ta.getB(), tb.getB());
-                if (diagonal && d.isZero()){
-                    count /= 2;
-                }
-                for (int i = 0; i < count; i++) {
-                    goalFactory.add(atomB.x, atomB.y, atomB.z, atomB.positive?1:-1);
-                }
-                distanceMap.put(key, goalFactory);
-
-            }
-        }
-        List<AtomDistanceListItem<G>> list = new ArrayList<>(distanceMap.size());
-        distanceMap.forEach((key, value) -> {
-            AtomDistanceListItem<G> i = new AtomDistanceListItem<>();
-            i.a=a;
-            i.b=b;
-            i.distance = key.getA();
-            i.negate = key.getB();
-            i.to = value.get();
-            list.add(i);
-
-        });
-        if (!diagonal) {
-            list.removeIf(t -> !(b.same(t.to)));
-        }
-        list.removeIf(t->t.to.totalI()==0);
-        return list;
-    }
-
-    private static class SteppedCombinationIterator implements Iterator<Tuple<Integer, Integer>> {
-        int ii = 0;
-        int jj = 0;
-        int dia = -1;
-        final int maxSize;
-        private SteppedCombinationIterator(int maxSize) {
-            this.maxSize = maxSize;
-            updateIJ();
-        }
-        private int getI(){
-            if (dia >=0){
-                return dia;
-            }
-            return ii;
-        }
-        private int getJ(){
-            if (dia >=0){
-                return dia;
-            }
-            return jj - ii;
-        }
-        private void updateIJ(){
-            if (dia < 0) {
-                do{
-                    if (ii < Math.min(jj, maxSize - 1)) {
-                        ii++;
-                    } else {
-                        jj++;
-                        int d = jj - maxSize;
-                        if (d < 0) {
-                            ii = 0;
-                        } else {
-                            ii = d + 1;
-                        }
-                    }
-                }
-                while(jj-ii == ii);
-                if (jj-ii >= maxSize || ii >= maxSize) {
-                    dia++;
-                }
-            } else {
-                dia++;
-            }
-
-        }
-
-        @Override
-        public boolean hasNext() {
-            return getJ() < maxSize && getI() < maxSize;
-        }
-
-        @Override
-        public Tuple<Integer, Integer> next() {
-            Tuple<Integer, Integer> t = new Tuple<>(getI(), getJ());
-            updateIJ();
-            return t;
-        }
-    }
-    private static class PlainCombinationIterator implements Iterator<Tuple<Integer, Integer>> {
-        int ii = 0;
-        int jj = 0;
-
-        final int maxSize;
-        private PlainCombinationIterator(int maxSize) {
-            this.maxSize = maxSize;
-        }
-        private void updateIJ(){
-            ii++;
-            if(ii >= maxSize){
-                jj++;
-                ii=0;
-            }
-        }
-
-        @Override
-        public boolean hasNext() {
-            return jj < maxSize;
-        }
-
-        @Override
-        public Tuple<Integer, Integer> next() {
-            Tuple<Integer, Integer> t = new Tuple<>(ii, jj);
-            updateIJ();
-            return t;
         }
     }
 

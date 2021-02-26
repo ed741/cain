@@ -58,7 +58,7 @@ public abstract class Scamp5AnalogueFileRun<G extends Kernel3DGoal<G>> extends F
                 new ThresholdScamp5ConfigGetter<>(
                         initialGoals, threshold,
                         heuristic, scampConfig,
-                        (goals, conf, scamp5Config, h) -> new Scamp5AnaloguePairGenFactory.AtomDistanceSortedPairGen<>(goals, conf, scampConfig, heuristic),
+                        (goals, conf, scamp5Config, h) -> new Scamp5AnaloguePairGenFactory.AnalogueAtomDistanceSortedPairGen<>(goals, conf, scampConfig, heuristic),
                         (goals, conf, scamp5Config, h) -> new Scamp5AnaloguePairGenFactory.ExhaustivePairGen<>(goals, conf, scampConfig, heuristic)
                 )
         );
@@ -75,13 +75,13 @@ public abstract class Scamp5AnalogueFileRun<G extends Kernel3DGoal<G>> extends F
         Scamp5AnalogueConfig<G> scampConfig = getScamp5Config(json, configBuilder);
         CostHeuristic<G, Scamp5AnalogueTransformation<G>> heuristic = getCostHeuristic(json, "heuristic");
         return new Scamp5AnaloguePairGenFactory<>(new BasicScamp5ConfigGetter<>(scampConfig,
-                (goals, conf, scamp5Config) -> new Scamp5AnaloguePairGenFactory.AtomDistanceSortedPairGen<>(goals, conf, scamp5Config, heuristic)
+                (goals, conf, scamp5Config) -> new Scamp5AnaloguePairGenFactory.AnalogueAtomDistanceSortedPairGen<>(goals, conf, scamp5Config, heuristic)
         ));
     }
     private Scamp5AnaloguePairGenFactory<G> getAtomDistancePairGenFactory(JSONObject json, Scamp5AnalogueConfig.Builder<G> configBuilder) {
         Scamp5AnalogueConfig<G> scampConfig = getScamp5Config(json, configBuilder);
         return new Scamp5AnaloguePairGenFactory<>(new BasicScamp5ConfigGetter<>(scampConfig,
-                (goals, conf, scamp5Config) -> new Scamp5AnaloguePairGenFactory.AtomDistancePairGen<>(goals, conf, scamp5Config)
+                (goals, conf, scamp5Config) -> new Scamp5AnaloguePairGenFactory.AnalogueAtomDistancePairGen<>(goals, conf, scamp5Config)
         ));
     }
 

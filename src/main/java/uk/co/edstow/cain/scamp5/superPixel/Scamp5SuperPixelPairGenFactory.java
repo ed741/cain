@@ -1,10 +1,10 @@
 package uk.co.edstow.cain.scamp5.superPixel;
 
 import uk.co.edstow.cain.goals.BankedKernel3DGoal;
-import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.goals.atomGoal.pairGen.Distance;
 import uk.co.edstow.cain.goals.atomGoal.pairGen.SimpleTransformation;
 import uk.co.edstow.cain.nonlinear.LinearPairGenFactory;
+import uk.co.edstow.cain.pairgen.AtomDistancePairGen;
 import uk.co.edstow.cain.pairgen.Context;
 import uk.co.edstow.cain.pairgen.CostHeuristic;
 import uk.co.edstow.cain.regAlloc.BRegister;
@@ -238,137 +238,102 @@ public class Scamp5SuperPixelPairGenFactory<G extends BankedKernel3DGoal<G>> imp
         }
     }
 
-    private static class AtomDistanceListItem<G extends BankedKernel3DGoal<G>> {
-        GoalPair<G,Scamp5SuperPixelTransformation<G>, BRegister> pair;
-        double cost;
-        G a;
-        G b;
-        Distance distance;
-        boolean negate;
-        G to;
 
-        AtomDistanceListItem() {
-        }
-        
-        AtomDistanceListItem(AtomDistanceListItem<G> item) {
-            this.pair = item.pair;
-            this.cost = item.cost;
-            this.a = item.a;
-            this.b = item.b;
-            this.distance = item.distance;
-            this.negate = item.negate;
-            this.to = item.to;
+    public static class SuperPixelAtomDistancePairGen<G extends BankedKernel3DGoal<G>> extends AtomDistancePairGen<G, Scamp5SuperPixelTransformation<G>, BRegister> {
+        final Scamp5SuperPixelConfig<G> scamp5SuperPixelConfig;
 
-        }
-    }
-
-    public static class AtomDistancePairGen<G extends BankedKernel3DGoal<G>, T extends Scamp5SuperPixelConfig<G>> implements PairGen<G, Scamp5SuperPixelTransformation<G>, BRegister> {
-        final T scamp5config;
-        final Context<G, Scamp5SuperPixelTransformation<G>, BRegister> context;
-        final GoalBag<G> goals;
-        final Iterator<Tuple<Integer, Integer>> ijGetter;
-        private int count;
 
         List<GoalPair<G,Scamp5SuperPixelTransformation<G>, BRegister>> currentList = new ArrayList<>();
 
-        public AtomDistancePairGen(GoalBag<G> goals, Context<G, Scamp5SuperPixelTransformation<G>, BRegister> context, T scamp5config) {
-            this.goals = goals;
-            this.scamp5config = scamp5config;
-            this.context = context;
-            this.ijGetter = new SteppedCombinationIterator(goals.size());
+        public SuperPixelAtomDistancePairGen(GoalBag<G> goals, Context<G, Scamp5SuperPixelTransformation<G>, BRegister> context, Scamp5SuperPixelConfig<G> scamp5SuperPixelConfig) {
+            super(goals, context);
+            this.scamp5SuperPixelConfig = scamp5SuperPixelConfig;
         }
 
-        private AtomDistancePairGen(GoalBag<G> goals, Context<G, Scamp5SuperPixelTransformation<G>, BRegister> context, T scamp5config, Iterator<Tuple<Integer, Integer>> ijGetter) {
-            this.goals = goals;
-            this.scamp5config = scamp5config;
-            this.context = context;
-            this.ijGetter = ijGetter;
+        private SuperPixelAtomDistancePairGen(GoalBag<G> goals, Context<G, Scamp5SuperPixelTransformation<G>, BRegister> context, Scamp5SuperPixelConfig<G> scamp5SuperPixelConfig, Iterator<Tuple<Integer, Integer>> ijGetter) {
+            super(goals, context, ijGetter);
+            this.scamp5SuperPixelConfig = scamp5SuperPixelConfig;
         }
+        
 
-        @SuppressWarnings("WeakerAccess")
-        protected void fillCurrentList(){
-            while (currentList.isEmpty()){
-                if(!ijGetter.hasNext()){
-                    return;
-                }
-                Tuple<Integer, Integer> ij = ijGetter.next();
-                G a = goals.get(ij.getA());
-                G b = goals.get(ij.getB());
-
-                boolean diagonal = ij.getA().equals(ij.getB());
-                List<AtomDistanceListItem<G>> inList = getAtomDistanceList(a, b, diagonal);
-                List<AtomDistanceListItem<G>> outList = new ArrayList<>();
-                inList.sort(atomDistanceComparator);
-                addPairs(a, diagonal, inList, outList);
-                outList.forEach(item -> currentList.add(item.pair));
-
+        @Override
+        protected void addAtomDistancePairs(AtomDistancePairGen<G, Scamp5SuperPixelTransformation<G>, BRegister>.Item item, List<AtomDistancePairGen<G, Scamp5SuperPixelTransformation<G>, BRegister>.Item> outList) {
+            Distance inverse = item.distance.inverse();
+            G tmpMov = item.to.translated(inverse.x, inverse.y, inverse.z);
+            G tmp = tmpMov;
+            if(item.negate){
+                tmp = tmpMov.negated();
             }
-        }
-        @SuppressWarnings("WeakerAccess")
-        protected void addPairs(G a, boolean diagonal, List<AtomDistanceListItem<G>> inList, List<AtomDistanceListItem<G>> outList) {
-            if(!diagonal) {
-                for (AtomDistanceListItem<G> item : inList) {
-                    addAtomDistancePairs(item, scamp5config, outList);
+            if(tmp.same(item.a)){
+                if (scamp5SuperPixelConfig.useMovbx && item.distance.manhattanXY() > 0){
+                    //movx
+                    SimpleTransformation.Direction d1 = item.distance.majorXYDirection();
+                    Dir dir1 = Dir.fromDirection(d1).opposite();
+                    Movxb<G> movx = new Movxb<>(item.a, dir1.x, dir1.y, item.a.getBank(), scamp5SuperPixelConfig);
+                    Item newItem = new Item(item, new GoalPair<>(item.a, movx.lower, movx));
+                    outList.add(newItem);
                 }
-            } else {
-                // diagonal == True
-                if(goals.size() < context.registerAllocator.getAvailableRegisters()) {
-                    addDirectMov(a, outList);
-                }
+            } else if (!scamp5SuperPixelConfig.onlyMov()){
+                G aWithoutTmp = item.a.without(tmp);
 
-                for (AtomDistanceListItem<G> item : inList) {
-                    addAtomDistanceDiagonalPairs(item, scamp5config, outList);
-                }
-                if (scamp5config.useDiv) {
-                    for (G initialGoal : context.initialGoals) {
-                        if (initialGoal.hasSubGoal(a)) {
-                            G l = a.added(a);
-                            AtomDistanceListItem<G> newItem = new AtomDistanceListItem<>();
-                            newItem.a = a;
-                            newItem.distance = new Distance(0, 0, 0);
-                            newItem.pair = new GoalPair<>(a, l, new Div<>(l, scamp5config));
-                            outList.add(newItem);
-                        }
-                    }
-                }
-            }
-        }
-
-        @SuppressWarnings("WeakerAccess")
-        protected void addDirectMov(G a, List<AtomDistanceListItem<G>> outList) {
-            Distance centre = new Distance(a.getAveragePos());
-            if(scamp5config.useMovbx && centre.manhattanXY()>0){
-                SimpleTransformation.Direction d1 = centre.majorXYDirection();
-                if(d1!= null) {
-                    Dir dir1 = Dir.fromDirection(d1);
-                    Movxb<G> movx = new Movxb<>(a, dir1.x, dir1.y, a.getBank(), scamp5config);
-                    AtomDistanceListItem<G> newItem = new AtomDistanceListItem<>();
-                    newItem.a = a;
-                    newItem.distance = new Distance(d1, 1);
-                    newItem.pair = new GoalPair<>(a, movx.lower, movx);
+                //Add_2
+                if(scamp5SuperPixelConfig.useAdd) {
+                    G split2 = aWithoutTmp;
+                    List<G> lowers = Arrays.asList(tmp, split2);
+                    Item newItem = new Item(item, new GoalPair<>(item.a, lowers, new Add_2<>(tmp, split2, scamp5SuperPixelConfig)));
                     outList.add(newItem);
                 }
             }
         }
 
         @Override
-        public GoalPair<G,Scamp5SuperPixelTransformation<G>, BRegister> next() {
-            count++;
-            fillCurrentList();
-            return  currentList.isEmpty()? null:currentList.remove(currentList.size()-1);
+        protected void addAtomDistanceDiagonalPairs(AtomDistancePairGen<G, Scamp5SuperPixelTransformation<G>, BRegister>.Item item, List<AtomDistancePairGen<G, Scamp5SuperPixelTransformation<G>, BRegister>.Item> outList) {
+            if(scamp5SuperPixelConfig.onlyMov()){
+                return;
+            }
+            Distance centre = new Distance(item.a.getAveragePos());
+            G aWithoutTo = item.a.without(item.to);
+            //add_2, sub
+            if(!item.negate) {
+                if(scamp5SuperPixelConfig.useAdd) {
+                    G split1 = aWithoutTo;
+                    G split2 = item.to;
+                    Item newItem = new Item(item, new GoalPair<>(item.a, Arrays.asList(split1, split2), new Add_2<>(split1, split2, scamp5SuperPixelConfig)));
+                    outList.add(newItem);
+                }
+            }
         }
 
         @Override
-        public int getNumber() {
-            return count;
+        protected void addDirectTransformation(G a, List<AtomDistancePairGen<G, Scamp5SuperPixelTransformation<G>, BRegister>.Item> outList) {
+            Distance centre = new Distance(a.getAveragePos());
+            if(scamp5SuperPixelConfig.useMovbx && centre.manhattanXY()>0){
+                SimpleTransformation.Direction d1 = centre.majorXYDirection();
+                if(d1!= null) {
+                    Dir dir1 = Dir.fromDirection(d1);
+                    Movxb<G> movx = new Movxb<>(a, dir1.x, dir1.y, a.getBank(), scamp5SuperPixelConfig);
+                    Item newItem = new Item(a, movx.lower, movx);
+                    outList.add(newItem);
+                }
+            }
+
+            if (scamp5SuperPixelConfig.useDiv) {
+                for (G initialGoal : context.initialGoals) {
+                    if (initialGoal.hasSubGoal(a)) {
+                        G l = a.added(a);
+                        Item newItem = new Item(a, l, new Div<>(l, scamp5SuperPixelConfig));
+                        outList.add(newItem);
+                    }
+                }
+            }
         }
     }
 
-    public static class AtomDistanceSortedPairGen<G extends BankedKernel3DGoal<G>, T extends Scamp5SuperPixelConfig<G>> extends AtomDistancePairGen<G, T> {
+    public static class SuperPixelAtomDistanceSortedPairGen<G extends BankedKernel3DGoal<G>> extends SuperPixelAtomDistancePairGen<G> {
 
         private final CostHeuristic<G, Scamp5SuperPixelTransformation<G>> huristic;
 
-        public AtomDistanceSortedPairGen(GoalBag<G> goals, Context<G, Scamp5SuperPixelTransformation<G>, BRegister> conf, T scamp5Config, CostHeuristic<G, Scamp5SuperPixelTransformation<G>> huristic) {
+        public SuperPixelAtomDistanceSortedPairGen(GoalBag<G> goals, Context<G, Scamp5SuperPixelTransformation<G>, BRegister> conf, Scamp5SuperPixelConfig<G> scamp5Config, CostHeuristic<G, Scamp5SuperPixelTransformation<G>> huristic) {
             super(goals, conf, scamp5Config, new PlainCombinationIterator(goals.size()));
             this.huristic = huristic;
         }
@@ -378,225 +343,20 @@ public class Scamp5SuperPixelPairGenFactory<G extends BankedKernel3DGoal<G>> imp
             if(!currentList.isEmpty()){
                 return;
             }
-            List<AtomDistanceListItem<G>> outList = new ArrayList<>();
+            List<Item> outList = new ArrayList<>();
             while (ijGetter.hasNext()){
                 Tuple<Integer, Integer> ij = ijGetter.next();
                 G a = goals.get(ij.getA());
                 G b = goals.get(ij.getB());
                 boolean diagonal = ij.getA().equals(ij.getB());
-                List<AtomDistanceListItem<G>> inList = getAtomDistanceList(a, b, diagonal);
+                List<Item> inList = getAtomDistanceList(a, b, diagonal);
                 //inList.sort(atomDistanceComparator);
                 addPairs(a, diagonal, inList, outList);
             }
             outList.parallelStream().forEach(item -> item.cost = huristic.getCost(item.pair, goals, this.context));
             outList.removeIf(item -> item.cost < 0);
-            outList.sort(Comparator.comparingDouble((AtomDistanceListItem<G> item) -> item.cost).reversed());
+            outList.sort(Comparator.comparingDouble((Item item) -> item.cost).reversed());
             currentList = outList.stream().map(item -> item.pair).collect(Collectors.toList());
-        }
-    }
-
-    private static final Comparator<AtomDistanceListItem<?>> atomDistanceComparator = Comparator.comparingInt((AtomDistanceListItem<?> i) -> i.to.totalI()).thenComparingInt(i -> -i.distance.manhattanXY());
-
-
-    @SuppressWarnings("UnnecessaryLocalVariable")
-    private static <G extends BankedKernel3DGoal<G>> void addAtomDistanceDiagonalPairs(AtomDistanceListItem<G> item,
-                                                                                 Scamp5SuperPixelConfig<G> scamp5SuperPixelConfig, List<AtomDistanceListItem<G>> outList) {
-        if(scamp5SuperPixelConfig.onlyMov()){
-            return;
-        }
-        Distance centre = new Distance(item.a.getAveragePos());
-        G aWithoutTo = item.a.without(item.to);
-        //add_2, sub
-        if(!item.negate) {
-            if(scamp5SuperPixelConfig.useAdd) {
-                G split1 = aWithoutTo;
-                G split2 = item.to;
-                AtomDistanceListItem<G> newItem = new AtomDistanceListItem<G>(item);
-                newItem.pair = new GoalPair<>(item.a, Arrays.asList(split1, split2), new Add_2<>(split1, split2, scamp5SuperPixelConfig));
-                outList.add(newItem);
-            }
-        }
-    }
-
-    @SuppressWarnings("UnnecessaryLocalVariable")
-    private static <G extends BankedKernel3DGoal<G>> void addAtomDistancePairs(AtomDistanceListItem<G> item,
-                                                                         Scamp5SuperPixelConfig<G> scamp5SuperPixelConfig, List<AtomDistanceListItem<G>> outList) {
-        Distance inverse = item.distance.inverse();
-        G tmpMov = item.to.translated(inverse.x, inverse.y, inverse.z);
-        G tmp = tmpMov;
-        if(item.negate){
-            tmp = tmpMov.negated();
-        }
-        if(tmp.same(item.a)){
-            if (scamp5SuperPixelConfig.useMovbx && item.distance.manhattanXY() > 0){
-                //movx
-                SimpleTransformation.Direction d1 = item.distance.majorXYDirection();
-                Dir dir1 = Dir.fromDirection(d1).opposite();
-                Movxb<G> movx = new Movxb<>(item.a, dir1.x, dir1.y, item.a.getBank(), scamp5SuperPixelConfig);
-                AtomDistanceListItem<G> newItem = new AtomDistanceListItem<>(item);
-                newItem.pair = new GoalPair<>(item.a, movx.lower, movx);
-                outList.add(newItem);
-            }
-        } else if (!scamp5SuperPixelConfig.onlyMov()){
-            G aWithoutTmp = item.a.without(tmp);
-
-            //Add_2
-            if(scamp5SuperPixelConfig.useAdd) {
-                G split2 = aWithoutTmp;
-                List<G> lowers = Arrays.asList(tmp, split2);
-                AtomDistanceListItem<G> newItem = new AtomDistanceListItem<>(item);
-                newItem.pair = new GoalPair<>(item.a, lowers, new Add_2<>(tmp, split2, scamp5SuperPixelConfig));
-                outList.add(newItem);
-            }
-        }
-    }
-
-    private static <G extends BankedKernel3DGoal<G>> List<AtomDistanceListItem<G>> getAtomDistanceList(G a, G b, boolean diagonal) {
-        Map<Tuple<Distance, Boolean>, BankedKernel3DGoal.BankedKernel3DGoalFactory<G>> distanceMap = new HashMap<>();
-        for (Iterator<Tuple<Atom, Integer>> ita = a.uniqueCountIterator(); ita.hasNext(); ) {
-            Tuple<Atom, Integer> ta = ita.next();
-            Atom atomA = ta.getA();
-            for (Iterator<Tuple<Atom, Integer>> itb = b.uniqueCountIterator(); itb.hasNext(); ) {
-                Tuple<Atom, Integer> tb = itb.next();
-                Atom atomB = tb.getA();
-
-                Distance d = new Distance(atomA, atomB);
-                boolean negate = atomA.positive ^ atomB.positive;
-                Tuple<Distance, Boolean> key = new Tuple<>(d, negate);
-                BankedKernel3DGoal.BankedKernel3DGoalFactory<G> goalFactory = distanceMap.getOrDefault(key, a.newFactory());
-                int count = Math.min(ta.getB(), tb.getB());
-                if (diagonal && d.isZero()){
-                    count /= 2;
-                }
-                for (int i = 0; i < count; i++) {
-                    goalFactory.add(atomB.x, atomB.y, atomB.z, atomB.positive?1:-1);
-                }
-                distanceMap.put(key, goalFactory);
-
-            }
-        }
-        List<AtomDistanceListItem<G>> list = new ArrayList<>(distanceMap.size());
-        distanceMap.forEach((key, value) -> {
-            AtomDistanceListItem<G> i = new AtomDistanceListItem<>();
-            i.a=a;
-            i.b=b;
-            i.distance = key.getA();
-            i.negate = key.getB();
-            i.to = value.get();
-            list.add(i);
-
-        });
-        if (!diagonal) {
-            list.removeIf(t -> !(b.same(t.to)));
-        }
-        list.removeIf(t->t.to.totalI()==0);
-        return list;
-    }
-
-    private static class SteppedCombinationIterator implements Iterator<Tuple<Integer, Integer>> {
-        int ii = 0;
-        int jj = 0;
-        int dia = -1;
-        final int maxSize;
-        private SteppedCombinationIterator(int maxSize) {
-            this.maxSize = maxSize;
-            updateIJ();
-        }
-        private int getI(){
-            if (dia >=0){
-                return dia;
-            }
-            return ii;
-        }
-        private int getJ(){
-            if (dia >=0){
-                return dia;
-            }
-            return jj - ii;
-        }
-        private void updateIJ(){
-            if (dia < 0) {
-                do{
-                    if (ii < Math.min(jj, maxSize - 1)) {
-                        ii++;
-                    } else {
-                        jj++;
-                        int d = jj - maxSize;
-                        if (d < 0) {
-                            ii = 0;
-                        } else {
-                            ii = d + 1;
-                        }
-                    }
-                }
-                while(jj-ii == ii);
-                if (jj-ii >= maxSize || ii >= maxSize) {
-                    dia++;
-                }
-            } else {
-                dia++;
-            }
-
-        }
-
-        @Override
-        public boolean hasNext() {
-            return getJ() < maxSize && getI() < maxSize;
-        }
-
-        @Override
-        public Tuple<Integer, Integer> next() {
-            Tuple<Integer, Integer> t = new Tuple<>(getI(), getJ());
-            updateIJ();
-            return t;
-        }
-    }
-    private static class PlainCombinationIterator implements Iterator<Tuple<Integer, Integer>> {
-        int ii = 0;
-        int jj = 0;
-
-        final int maxSize;
-        private PlainCombinationIterator(int maxSize) {
-            this.maxSize = maxSize;
-        }
-        private void updateIJ(){
-            ii++;
-            if(ii >= maxSize){
-                jj++;
-                ii=0;
-            }
-        }
-
-        @Override
-        public boolean hasNext() {
-            return jj < maxSize;
-        }
-
-        @Override
-        public Tuple<Integer, Integer> next() {
-            Tuple<Integer, Integer> t = new Tuple<>(ii, jj);
-            updateIJ();
-            return t;
-        }
-    }
-
-    private class IteratorPairGen implements PairGen{
-        private final Iterator<GoalPair> it;
-        private int count;
-
-        private IteratorPairGen(Iterator<GoalPair> it) {
-            this.it = it;
-        }
-
-        @Override
-        public GoalPair next() {
-            count++;
-            return it.hasNext()?it.next():null;
-        }
-
-        @Override
-        public int getNumber() {
-            return count;
         }
     }
 }
