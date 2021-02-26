@@ -1,6 +1,6 @@
 package uk.co.edstow.cain.scamp5.digital;
 
-import uk.co.edstow.cain.Transformation;
+import uk.co.edstow.cain.StandardTransformation;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.goals.atomGoal.pairGen.SimpleTransformation;
@@ -9,7 +9,7 @@ import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 
-public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> implements Transformation {
+public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> implements StandardTransformation {
     protected final Scamp5DigitalConfig<G> config;
 
     protected Scamp5DigitalTransformation(Scamp5DigitalConfig<G> scamp5DigitalConfig) {
@@ -51,7 +51,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
 
 
         @Override
-        public String code(List<? extends RegisterAllocator.Register> uppers, List<? extends RegisterAllocator.Register> lowers, List<? extends RegisterAllocator.Register> trash) {
+        public String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
             return String.format("//Null Instruction: %s <- %s", uppers, lowers);
         }
 
@@ -93,7 +93,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
         }
 
         @Override
-        public String code(List<? extends RegisterAllocator.Register> uppers, List<? extends RegisterAllocator.Register> lowers, List<? extends RegisterAllocator.Register> trash) {
+        public String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
             if (uppers.size() == 1) {
                 return code(uppers.get(0), lowers);
             } else {
@@ -101,7 +101,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
             }
         }
 
-        abstract String code(RegisterAllocator.Register upper, List<? extends RegisterAllocator.Register> lowers);
+        abstract String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers);
 
         public abstract G applyForwards() throws TransformationApplicationException;
         public List<G> applyOpForwards() throws TransformationApplicationException{
@@ -188,7 +188,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<? extends RegisterAllocator.Register> lowers) {
+        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
             List<String> regs = config.registerMapping.get(upper);
             assert regs.size() == config.bits;
@@ -259,7 +259,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
         }
 
         @Override
-        public String code(List<? extends RegisterAllocator.Register> upper, List<? extends RegisterAllocator.Register> lowers, List<? extends RegisterAllocator.Register> trash) {
+        public String code(List<RegisterAllocator.Register> upper, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
             assert lowers.size() == inputCount();
             List<String> regs = new ArrayList<>(config.bits*2);
             regs.addAll(config.registerMapping.get(upper.get(0)));
@@ -353,7 +353,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<? extends RegisterAllocator.Register> lowers) {
+        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
             StringBuilder sb = new StringBuilder(String.format("/*Dmov(%s, %s)*/", upper, lowers.get(0)));
             List<String> outputs = config.registerMapping.get(upper);
@@ -424,7 +424,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
         }
 
         @Override
-        public String code(List<? extends RegisterAllocator.Register> uppers, List<? extends RegisterAllocator.Register> lowers, List<? extends RegisterAllocator.Register> trash) {
+        public String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
             assert lowers.size() == inputCount();
             assert lowers.size() == inputCount();
             StringBuilder sb = new StringBuilder(String.format("/*Dadd(%s, %s, %s)*/\n", uppers.get(0), lowers.get(0), lowers.get(1)));
@@ -439,11 +439,11 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
                 sb.append(String.format("NOR(%s, %s, %s); ", outputs.get(i), inputAs.get(i), inputBs.get(i))); //vs(1) = !(a+b)
                 sb.append(String.format("NOR(%s, %s, %s); ", scratch.get(2), inputAs.get(i), outputs.get(i))); //v2(2) = !(a+vs(1))
                 sb.append(String.format("NOR(%s, %s, %s); ", scratch.get(3), inputBs.get(i), outputs.get(i))); //v3(3) = !(b+vs(1))
-                sb.append(String.format("NOR(%s, %s, %s); ", scratch.get(1), outputs.get(i), scratch.get(2))); //v1(4) = !(vs(1)+v2(2))
-                sb.append(String.format("NOR(%s, %s, %s); ", scratch.get(2), scratch.get(0), scratch.get(1))); //v2(5) = !(C+v1(4))
+                sb.append(String.format("NOR(%s, %s, %s); ", scratch.get(1), scratch.get(2), scratch.get(3))); //v1(4) = !(v2(2)+v3(3))
+                sb.append(String.format("NOR(%s, %s, %s); ", scratch.get(2), scratch.get(0), scratch.get(1))); //v2(5) = !(v0(C)+v1(4))
                 sb.append(String.format("NOR(%s, %s, %s); ", scratch.get(3), scratch.get(1), scratch.get(2))); //v3(6) = !(v1(4)+v2(5))
-                sb.append(String.format("NOR(%s, %s, %s); ", scratch.get(1), scratch.get(0), scratch.get(2))); //v1(7) = !(C+v2(5))
-                sb.append(String.format("NOR(%s, %s, %s); ", scratch.get(0), scratch.get(2), outputs.get(i))); //vC(c) = !(v2(5)+vs(1))
+                sb.append(String.format("NOR(%s, %s, %s); ", scratch.get(1), scratch.get(0), scratch.get(2))); //v1(7) = !(v0(C)+v2(5))
+                sb.append(String.format("NOR(%s, %s, %s); ", scratch.get(0), scratch.get(2), outputs.get(i))); //v0(C) = !(v2(5)+vs(1))
                 sb.append(String.format("NOR(%s, %s, %s); ", outputs.get(i), scratch.get(3), scratch.get(1))); //vs(S) = !(v3(6)+v1(7))
                 sb.append("\n");
             }
@@ -553,7 +553,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
 
 
         @Override
-        public String code(List<? extends RegisterAllocator.Register> uppers, List<? extends RegisterAllocator.Register> lowers, List<? extends RegisterAllocator.Register> trash) {
+        public String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
             assert lowers.size() == inputCount();
             assert lowers.size() == inputCount();
             StringBuilder sb = new StringBuilder(String.format("/*DaddSelf(%s, %s)*/\n", uppers.get(0), lowers.get(0)));
@@ -656,7 +656,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<? extends RegisterAllocator.Register> lowers) {
+        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
             assert lowers.size() == inputCount();
             StringBuilder sb = new StringBuilder(String.format("/*DDiv(%s, %s)*/\n", upper, lowers.get(0)));
@@ -742,7 +742,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<? extends RegisterAllocator.Register> lowers) {
+        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
             StringBuilder sb = new StringBuilder(String.format("/*Dmovx(%s, %s, %s)*/", upper, lowers.get(0), dir.toString()));
             List<String> outputs = config.registerMapping.get(upper);

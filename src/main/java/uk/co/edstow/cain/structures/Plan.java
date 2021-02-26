@@ -136,7 +136,7 @@ public class Plan<G extends Goal<G>, T extends Transformation> {
         public List<G> getLowers(){
             return goalPair.getLowers();
         }
-        public Transformation getTransformation(){
+        public T getTransformation(){
             return goalPair.getTransformation();
         }
 

@@ -1,5 +1,6 @@
 package uk.co.edstow.cain.regAlloc;
 
+import uk.co.edstow.cain.StandardTransformation;
 import uk.co.edstow.cain.Transformation;
 import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.structures.GoalBag;
@@ -9,7 +10,7 @@ import uk.co.edstow.cain.util.Tuple;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class LinearScanRegisterAllocator<G extends Goal<G>, T extends Transformation> implements RegisterAllocator<G, T> {
+public class LinearScanRegisterAllocator<G extends Goal<G>, T extends StandardTransformation> implements RegisterAllocator<G, T> {
     private final List<Register> registers;
     private final List<Register> init;
     private final List<G> initialGoals;
@@ -48,7 +49,7 @@ public class LinearScanRegisterAllocator<G extends Goal<G>, T extends Transforma
 
     @Override
     public Mapping<G> solve(Plan<G, T> plan){
-        List<? extends Plan.Step<G, ?>> all_r = plan.getAll();
+        List<Plan.Step<G, T>> all_r = plan.getAll();
         List<Set<Integer>> requiresInit = new ArrayList<>(init.size());
         for (Register i : init) {
             requiresInit.add(new HashSet<>());
@@ -93,7 +94,7 @@ public class LinearScanRegisterAllocator<G extends Goal<G>, T extends Transforma
         }
 
         for (int i = 0; i < all_r.size(); i++) {
-            Plan.Step<G,?> step = all_r.get(i);
+            Plan.Step<G,T> step = all_r.get(i);
 
             List<G> lowers = step.getLowers();
             for (int lowerIdx = 0; lowerIdx < lowers.size(); lowerIdx++) {

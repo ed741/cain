@@ -36,12 +36,12 @@ public class Scamp5DigitalConfig<G extends Goal<G>> implements Scamp5ConfigGette
     final List<String> scratchRegisters;
     final int bits;
 
-    public Scamp5DigitalConfig(Scamp5AnalogueConfig<G> proto, Map<? extends RegisterAllocator.Register, List<String>> registerMapping, List<String> scratchRegisters, int bits) {
+    public Scamp5DigitalConfig(Scamp5DigitalConfig<G> proto, Map<? extends RegisterAllocator.Register, List<String>> registerMapping, List<String> scratchRegisters, int bits) {
         this.useMov = proto.useMov;
         this.useMovx = proto.useMovx;
         this.useAdd = proto.useAdd;
         this.useAddSelf = proto.useAdd;
-        this.useDiv = proto.useDivq || proto.useDiv3 || proto.useDiv4 || proto.useDiva;
+        this.useDiv = proto.useDiv;
         this.useRes = proto.useRes;
         this.useRes2 = proto.useRes2;
         this.onlyMov = !(this.useAdd || this.useDiv || this.useRes || this.useRes2);

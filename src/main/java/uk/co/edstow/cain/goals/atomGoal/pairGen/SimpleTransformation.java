@@ -1,16 +1,16 @@
 package uk.co.edstow.cain.goals.atomGoal.pairGen;
 
+import uk.co.edstow.cain.StandardTransformation;
 import uk.co.edstow.cain.regAlloc.RegisterAllocator;
-import uk.co.edstow.cain.Transformation;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 
-public abstract class SimpleTransformation implements Transformation {
+public abstract class SimpleTransformation implements StandardTransformation {
     @Override
-    public String code(List<? extends RegisterAllocator.Register> uppers, List<? extends RegisterAllocator.Register> lowers, List<? extends RegisterAllocator.Register> trash) {
+    public String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
         if(uppers.size()==1){
             return code(uppers.get(0), new ArrayList<>(lowers));
         } else {
@@ -124,7 +124,7 @@ public abstract class SimpleTransformation implements Transformation {
 
 
         @Override
-        public String code(List<? extends RegisterAllocator.Register> uppers, List<? extends RegisterAllocator.Register> lowers, List<? extends RegisterAllocator.Register> trash) {
+        public String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
             return String.format("//Null Instruction: %s <- %s", uppers, lowers);
         }
 

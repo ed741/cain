@@ -1,7 +1,7 @@
 package uk.co.edstow.cain.scamp5.analogue;
 
+import uk.co.edstow.cain.StandardTransformation;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
-import uk.co.edstow.cain.Transformation;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.goals.atomGoal.pairGen.SimpleTransformation;
 import uk.co.edstow.cain.regAlloc.RegisterAllocator;
@@ -9,7 +9,7 @@ import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 
-public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> implements Transformation {
+public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> implements StandardTransformation {
     public abstract List<G> applyOpForwards() throws TransformationApplicationException;
 
 
@@ -43,7 +43,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
 
 
         @Override
-        public String code(List<? extends RegisterAllocator.Register> uppers, List<? extends RegisterAllocator.Register> lowers, List<? extends RegisterAllocator.Register> trash) {
+        public String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
             return String.format("//Null Instruction: %s <- %s", uppers, lowers);
         }
 
@@ -81,7 +81,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
     abstract static class SimpleScamp5AnalogueTransformation<G extends Kernel3DGoal<G>> extends Scamp5AnalogueTransformation<G> {
 
         @Override
-        public String code(List<? extends RegisterAllocator.Register> uppers, List<? extends RegisterAllocator.Register> lowers, List<? extends RegisterAllocator.Register> trash) {
+        public String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
             if (uppers.size() == 1) {
                 return code(uppers.get(0), lowers);
             } else {
@@ -89,7 +89,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
             }
         }
 
-        abstract String code(RegisterAllocator.Register upper, List<? extends RegisterAllocator.Register> lowers);
+        abstract String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers);
 
         public abstract G applyForwards() throws TransformationApplicationException;
         public List<G> applyOpForwards() throws TransformationApplicationException{
@@ -177,7 +177,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<? extends RegisterAllocator.Register> lowers) {
+        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
             return String.format("res(%s);", upper);
         }
@@ -233,7 +233,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         }
 
         @Override
-        public String code(List<? extends RegisterAllocator.Register> upper, List<? extends RegisterAllocator.Register> lowers, List<? extends RegisterAllocator.Register> trash) {
+        public String code(List<RegisterAllocator.Register> upper, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
             assert lowers.size() == inputCount();
             return String.format("res(%s, %s);", upper.get(0), upper.get(1));
         }
@@ -309,7 +309,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<? extends RegisterAllocator.Register> lowers) {
+        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
             return String.format("mov(%s, %s);", upper, lowers.get(0));
         }
@@ -371,7 +371,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
             this.sum = null;
         }
         @Override
-        public String code(RegisterAllocator.Register upper, List<? extends RegisterAllocator.Register> lowers) {
+        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
             return String.format("add(%s, %s, %s);", upper, lowers.get(0), lowers.get(1));
         }
@@ -435,7 +435,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
             this.sum = null;
         }
         @Override
-        public String code(RegisterAllocator.Register upper, List<? extends RegisterAllocator.Register> lowers) {
+        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
             return String.format("add(%s, %s, %s, %s);", upper, lowers.get(0), lowers.get(1), lowers.get(2));
         }
@@ -496,7 +496,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
              this.difference = null;
          }
          @Override
-         public String code(RegisterAllocator.Register upper, List<? extends RegisterAllocator.Register> lowers) {
+         public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
              assert lowers.size() == inputCount();
              return String.format("sub(%s, %s, %s);", upper, lowers.get(0), lowers.get(1));
          }
@@ -566,7 +566,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<? extends RegisterAllocator.Register> lowers) {
+        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
             return String.format("neg(%s, %s);", upper, lowers.get(0));
         }
@@ -647,7 +647,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<? extends RegisterAllocator.Register> lowers) {
+        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
             return String.format("divq(%s, %s);", upper, lowers.get(0));
         }
@@ -724,7 +724,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<? extends RegisterAllocator.Register> lowers) {
+        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
             return String.format("movx(%s, %s, %s);", upper, lowers.get(0), dir.toCode());
         }
@@ -764,7 +764,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<? extends RegisterAllocator.Register> lowers) {
+        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
             return String.format("mov2x(%s, %s, %s, %s);", upper, lowers.get(0), dir1.toCode(), dir2.toCode());
         }
@@ -796,7 +796,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<? extends RegisterAllocator.Register> lowers) {
+        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
             return String.format("addx(%s, %s, %s, %s);", upper, lowers.get(0), lowers.get(1), dir.toCode());
         }
@@ -830,7 +830,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<? extends RegisterAllocator.Register> lowers) {
+        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
             return String.format("add2x(%s, %s, %s, %s, %s);", upper, lowers.get(0), lowers.get(1), dir1.toCode(), dir2.toCode());
         }
@@ -861,7 +861,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<? extends RegisterAllocator.Register> lowers) {
+        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
             return String.format("subx(%s, %s, %s, %s);", upper, lowers.get(0), dir.toCode(), lowers.get(1));
         }
@@ -894,7 +894,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
             this.difference = null;
         }
         @Override
-        public String code(RegisterAllocator.Register upper, List<? extends RegisterAllocator.Register> lowers) {
+        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
             assert lowers.size() == inputCount();
             return String.format("sub2x(%s, %s, %s, %s, %s);", upper, lowers.get(0), dir1.toCode(), dir2.toCode(), lowers.get(1));
         }
@@ -952,7 +952,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         }
 
         @Override
-        public String code(List<? extends RegisterAllocator.Register> uppers, List<? extends RegisterAllocator.Register> lowers, List<? extends RegisterAllocator.Register> trash) {
+        public String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
             assert lowers.size() == inputCount();
             assert uppers.size() == outputCount();
             if(uppers.get(0).equals(lowers.get(0))){

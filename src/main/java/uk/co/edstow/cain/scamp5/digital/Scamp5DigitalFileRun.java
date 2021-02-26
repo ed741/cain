@@ -18,7 +18,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public abstract class Scamp5DigitalFileRun<G extends Kernel3DGoal<G>> extends FileRun.Kernel3DFileRun<G, Scamp5DigitalTransformation<G>> {
+public abstract class Scamp5DigitalFileRun<G extends Kernel3DGoal<G>> extends FileRun.Kernel3DStdTransFileRun<G, Scamp5DigitalTransformation<G>> {
 
     public Scamp5DigitalFileRun(JSONObject config) {
         super(config);

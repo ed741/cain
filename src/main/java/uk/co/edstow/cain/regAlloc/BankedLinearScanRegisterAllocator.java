@@ -1,6 +1,6 @@
 package uk.co.edstow.cain.regAlloc;
 
-import uk.co.edstow.cain.Transformation;
+import uk.co.edstow.cain.BankedTransformation;
 import uk.co.edstow.cain.goals.BankedGoal;
 import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.structures.GoalBag;
@@ -10,7 +10,7 @@ import uk.co.edstow.cain.util.Tuple;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>, T extends Transformation> implements RegisterAllocator<G, T> {
+public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>, T extends BankedTransformation> implements BankedRegisterAllocator<G, T> {
     private final List<BRegister> registers;
     private final int banks;
     private final List<List<BRegister>> bankedRegisters;
@@ -39,18 +39,32 @@ public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>
     }
 
     @Override
-    public List<? extends RegisterAllocator.Register> getAvailableRegistersArray() {
+    public int getsBanks() {
+        return banks;
+    }
+
+    @Override
+    public List<? extends BankedLinearScanRegisterAllocator.BRegister> getAvailableRegistersArray() {
         return registers;
     }
 
     @Override
-    public List<? extends RegisterAllocator.Register> getInitRegisters() {
+    public List<? extends BankedLinearScanRegisterAllocator.BRegister> getInitRegisters() {
         return init;
     }
 
     @Override
     public boolean checkValid(GoalBag<G> current, T lastTransformation) {
-        return current.size() +lastTransformation.ExtraRegisterCount() <= registers.size();
+        int[] count = new int[banks];
+        for (G g : current) {
+            count[g.getBank()]++;
+        }
+        for (int i = 0; i < banks; i++) {
+            int c = count[i] + lastTransformation.ExtraRegisterCount(i);
+            if(c>bankedRegisters.get(i).size()) return false;
+        }
+
+        return true;
     }
 
     @Override
@@ -58,25 +72,27 @@ public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>
         return solve(p) != null;
     }
 
+
+
     @Override
-    public Mapping<G> solve(Plan<G, T> plan){
-        List<? extends Plan.Step<G, ?>> all_r = plan.getAll();
-        List<Set<Integer>> requiresInit = new ArrayList<>(init.size());
+    public BankedRegisterAllocator.Mapping<G> solve(Plan<G, T> plan){
+        List<Plan.Step<G, T>> all_r = plan.getAll();
+        List<Set<Integer>> requiresInit = new ArrayList<>(init.size());// a set of step indices for each init-Reg
         for (BRegister i : init) {
             requiresInit.add(new HashSet<>());
         }
 
-        List<G> initialTrueGoals = new ArrayList<>(init.size());
+        List<G> initialTrueGoals = new ArrayList<>(init.size()); // True goals (ones that are 'equivalent')
 
-        for (int j = 0; j < init.size(); j++) {
+        for (int j = 0; j < init.size(); j++) {// for each init register/Goal:
             inits:
-            for (int i = all_r.size() - 1; i >= 0; i--) {
-                Plan.Step<G,?> step = all_r.get(i);
-                for (int l = 0; l < step.getLowers().size(); l++) {
+            for (int i = all_r.size() - 1; i >= 0; i--) { // from the beginning of the plan, search
+                Plan.Step<G,T> step = all_r.get(i);
+                for (int l = 0; l < step.getLowers().size(); l++) { // check every lower
                     G g = step.getLowerTrueGoal(l);
                     if(g.same(initialGoals.get(j))){
                         initialTrueGoals.add(g);
-                        break inits;
+                        break inits; // only need the first occurrence to get the correct equivalent goal (one per init)
                     }
                 }
             }
@@ -84,12 +100,14 @@ public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>
 
 
 
-        List<List<Integer>> liveness = new ArrayList<>();
+        List<List<Integer>> liveness = new ArrayList<>(); // list of live values(index of step that produces it) for every step
 
 
-        List<BRegister> availableRegisters = new ArrayList<>(registers);
+        List<List<BRegister>> availableRegisters = new ArrayList<>(bankedRegisters.size());
+        bankedRegisters.forEach(l -> availableRegisters.add(new ArrayList<>(l)));// Copy available registers
+
         Set<Tuple<Integer, Integer>> live = new HashSet<>();
-        Mapping<G> map = new Mapping<>(init);
+        BankedLinearScanRegisterAllocator.Mapping<G> map = new Mapping<>(init);
         Map<Tuple<Integer, Integer>, BRegister> lineMap = new HashMap<>();
 
         for (int i = 0; i < all_r.size() + initialGoals.size(); i++) {
@@ -105,7 +123,7 @@ public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>
         }
 
         for (int i = 0; i < all_r.size(); i++) {
-            Plan.Step<G,?> step = all_r.get(i);
+            Plan.Step<G,T> step = all_r.get(i);
 
             List<G> lowers = step.getLowers();
             for (int lowerIdx = 0; lowerIdx < lowers.size(); lowerIdx++) {
@@ -143,10 +161,10 @@ public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>
                     j += offset;
                     k = 0;
                 }
-                liveness.get(j).set(k, Math.min(liveness.get(j).get(k), i));
+                liveness.get(j).set(k, Math.min(liveness.get(j).get(k), liveUntil));
                 if(i==0){
                     live.add(new Tuple<>(j, k));
-                    availableRegisters.remove(registers.get(lowerIdx));
+                    availableRegisters.get(registers.get(lowerIdx).bank).remove(registers.get(lowerIdx));
                     lineMap.put(new Tuple<>(j, k), registers.get(lowerIdx));
                     map.put(trueGoal, registers.get(lowerIdx));
                 }
@@ -167,12 +185,13 @@ public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>
 
 
         for (int i = 0; i < liveness.size(); i++) {
-            List<BRegister> trash = new ArrayList<>(availableRegisters);
+            List<BRegister> trash = availableRegisters.stream().flatMap(Collection::stream).collect(Collectors.toList());
 //            System.out.println("Av " + availableRegisters);
             for (int u = 0; u < liveness.get(i).size(); u++) {
                 if (live.contains(new Tuple<>(i, u))) {
                     live.remove(new Tuple<>(i, u));
-                    availableRegisters.add(0, lineMap.get(new Tuple<>(i, u)));
+                    BRegister returned = lineMap.get(new Tuple<>(i, u));
+                    availableRegisters.get(returned.bank).add(0, returned);
                 }
             }
             List<Tuple<Integer, Integer>> needAllocatingInit = new ArrayList<>();
@@ -219,14 +238,13 @@ public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>
             needAllocating.addAll(needAllocatingConstrained);
             needAllocating.addAll(needAllocatingOther);
             for (Tuple<Integer, Integer> jk : needAllocating) {
+
                 live.add(jk);
                 BRegister r = null;
-                if (availableRegisters.isEmpty()) {
-                    return null;
-                }
                 if (jk.getA() >= all_r.size()) {
                     int initIdx = jk.getA() - all_r.size();
-                    boolean valid = availableRegisters.remove(init.get(initIdx));
+                    BRegister initReg = init.get(initIdx);
+                    boolean valid = availableRegisters.get(initReg.bank).remove(initReg);
                     if (!valid) {
                         boolean initInAv = false;
                         for (BRegister register : registers) {
@@ -242,8 +260,9 @@ public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>
                     }
                     r = init.get(initIdx);
                 } else {
+                    int bank = all_r.get(jk.getA()).getUppers().get(jk.getB()).getBank();
                     registerPicker:
-                    for (BRegister availableRegister : availableRegisters) {
+                    for (BRegister availableRegister : availableRegisters.get(bank)) {
                         // Check if reg needs to be saved for init reg
                         for (int lu = 0; lu < initLastUsed.length; lu++) {
                             if (jk.getA() > initLastUsed[lu] && availableRegister.equals(init.get(lu))) {
@@ -271,7 +290,7 @@ public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>
                     if (r == null) {
                         return null;
                     }
-                    availableRegisters.remove(r);
+                    availableRegisters.get(bank).remove(r);
                 }
                 trash.remove(r);
                 if (jk.getA() < all_r.size()) {
@@ -294,34 +313,8 @@ public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>
 
         return map;
     }
-    public static class BRegister extends RegisterAllocator.Register {
-        public final int bank;
-        public BRegister(int bank, String name) {
-            super(name);
-            this.bank = bank;
-        }
 
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            if (!super.equals(o)) return false;
-            BRegister bRegister = (BRegister) o;
-            return this.bank == bRegister.bank;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(super.hashCode(), bank);
-        }
-
-        @Override
-        public String toString() {
-            return this.bank+"."+this.name;
-        }
-    }
-
-    public static class Mapping<G extends Goal<G>> implements RegisterAllocator.Mapping<G> {
+    public static class Mapping<G extends Goal<G>> implements BankedRegisterAllocator.Mapping<G> {
         private final Map<Wrapper, BRegister> map;
         private final Map<Integer, List<BRegister>> trashMap;
         private final List<BRegister> init;

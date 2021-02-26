@@ -4,9 +4,9 @@ import uk.co.edstow.cain.regAlloc.RegisterAllocator;
 
 import java.util.*;
 
-public interface Transformation {
+public interface Transformation<R extends RegisterAllocator.Register> {
 
-    String code(List<? extends RegisterAllocator.Register> uppers, List<? extends RegisterAllocator.Register> lowers, List<? extends RegisterAllocator.Register> trash);
+    String code(List<R> uppers, List<R> lowers, List<R> trash);
 
     class TransformationApplicationException extends Exception{
 
@@ -16,42 +16,6 @@ public interface Transformation {
 
     }
 
-    /**
-     * @return the number of inputs the transformation has (aka the size of Lowers)
-     */
-    int inputCount();
-
-    /**
-     * @return the number of outputs the transformation has (aka the size of Uppers)
-     */
-    int outputCount();
-
-
-    /**
-     * @param u An index into the Transformation's Uppers
-     * @return A boolean array of length equal to inputCount() where values are True iff the register for that upper and
-     * that lower cannot be the same.
-     */
-    boolean[] inputRegisterOutputInterference(int u);
-
-
-    /**
-     * @return the number of extra registers required to use this transformation
-     * If we have a goalBag with k registers, n of which are inputs (Lowers) to this transformation, how many more than
-     * n or k registers are needed to apply this function
-     */
-    default int ExtraRegisterCount(){
-        int count = 0;
-        for (int u = 0; u < outputCount(); u++) {
-            for (boolean b : inputRegisterOutputInterference(u)) {
-                if(b){
-                    count++;
-                    break;
-                }
-            }
-        }
-        return count;
-    }
 
     /**
      * @return array of ints, size equal to inputCount() that describes if inputs can be from the same register or not.
@@ -64,67 +28,69 @@ public interface Transformation {
     int[] inputRegisterIntraInterference();
     boolean clobbersInput(int i);
     double cost();
-    String toStringN();
-
-    class Null implements Transformation {
-        private final int inputCount;
-        private final int outputCount;
-
-        public Null(int inputCount, int outputCount) {
-            this.inputCount = inputCount;
-            this.outputCount = outputCount;
-        }
-
-        @Override
-        public boolean[] inputRegisterOutputInterference(int u){
-            return new boolean[inputCount()];
-        }
-
-        @Override
-        public int[] inputRegisterIntraInterference() {
-            int[] out = new int[inputCount()];
-            for (int i = 0; i < out.length; i++) {
-                out[i]=i;
-            }
-            return out;
-        }
-
-        @Override
-        public boolean clobbersInput(int i) {
-            return false;
-        }
 
 
-        @Override
-        public String code(List<? extends RegisterAllocator.Register> uppers, List<? extends RegisterAllocator.Register> lowers, List<? extends RegisterAllocator.Register> trash) {
-            return String.format("//Null Instruction: %s <- %s", uppers, lowers);
-        }
 
-        @Override
-        public int inputCount() {
-            return inputCount;
-        }
-
-        @Override
-        public int outputCount() {
-            return outputCount;
-        }
-
-        @Override
-        public double cost() {
-            return 0;
-        }
-
-        @Override
-        public String toStringN() {
-            return "Null_t";
-        }
-
-        @Override
-        public String toString() {
-            return "Null_t";
-        }
-    }
+    // ProtoType Null transformation to show what's required by PairGenFactory.getDummyTransformation(...)
+//    class Null implements Transformation {
+//        private final int inputCount;
+//        private final int outputCount;
+//
+//        public Null(int inputCount, int outputCount) {
+//            this.inputCount = inputCount;
+//            this.outputCount = outputCount;
+//        }
+//
+//        @Override
+//        public boolean[] inputRegisterOutputInterference(int u){
+//            return new boolean[inputCount()];
+//        }
+//
+//        @Override
+//        public int[] inputRegisterIntraInterference() {
+//            int[] out = new int[inputCount()];
+//            for (int i = 0; i < out.length; i++) {
+//                out[i]=i;
+//            }
+//            return out;
+//        }
+//
+//        @Override
+//        public boolean clobbersInput(int i) {
+//            return false;
+//        }
+//
+//
+//        @Override
+//        public String code(List<? extends RegisterAllocator.Register> uppers, List<? extends RegisterAllocator.Register> lowers, List<? extends RegisterAllocator.Register> trash) {
+//            return String.format("//Null Instruction: %s <- %s", uppers, lowers);
+//        }
+//
+//        @Override
+//        public int inputCount() {
+//            return inputCount;
+//        }
+//
+//        @Override
+//        public int outputCount() {
+//            return outputCount;
+//        }
+//
+//        @Override
+//        public double cost() {
+//            return 0;
+//        }
+//
+//        @Override
+//        public String toStringN() {
+//            return "Null_t";
+//        }
+//
+//        @Override
+//        public String toString() {
+//            return "Null_t";
+//        }
+//    }
 
 
 }

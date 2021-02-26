@@ -78,6 +78,5 @@ public interface RegisterAllocator<G extends Goal<G>, T extends Transformation> 
         List<? extends Register> initRegisters();
         List<? extends Register> getTrash(int i);
         Register get(G goal);
-
     }
 }

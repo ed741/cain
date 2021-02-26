@@ -24,7 +24,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public abstract class FileRun<G extends Goal<G>, T extends Transformation> {
+public abstract class FileRun<G extends Goal<G>, T extends Transformation<?>> {
     private static int verbose;
 
     public static FileRun<?,?> loadFromJson(String path) {
@@ -300,8 +300,7 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation> {
         return results;
     }
 
-
-    public static abstract class Kernel3DFileRun<G extends Kernel3DGoal<G>, T extends Transformation> extends FileRun<G,T> {
+    public static abstract class Kernel3DFileRun<G extends Kernel3DGoal<G>, T extends Transformation<?>> extends FileRun<G,T> {
         protected int approximationDepth;
 
         public static Kernel3DFileRun<?,?> getKernel3DFileRun(JSONObject config) {
@@ -380,12 +379,6 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation> {
             return finalGoals;
         }
 
-        protected int[] getInitDivisions(){
-            int[] divisions = new int[config.getJSONObject("registerAllocator").getJSONArray("initialRegisters").length()];
-            Arrays.fill(divisions, this.approximationDepth);
-            return divisions;
-        };
-
         @Override
         protected List<G> makeInitialGoals() {
             int[] divisions = getInitDivisions();
@@ -397,46 +390,15 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation> {
             return initialGoals;
         }
 
-        protected List<? extends RegisterAllocator.Register> getRegisterArray(JSONArray availableRegisters) {
-            ArrayList<RegisterAllocator.Register> out = new ArrayList<>(availableRegisters.length());
-            for (int i = 0; i < availableRegisters.length(); i++) {
-                out.add(new RegisterAllocator.Register(availableRegisters.getString(i)));
-            }
-            return out;
-        }
+        protected int[] getInitDivisions(){
+            int[] divisions = new int[config.getJSONObject("registerAllocator").getJSONArray("initialRegisters").length()];
+            Arrays.fill(divisions, this.approximationDepth);
+            return divisions;
+        };
 
-        protected List<? extends RegisterAllocator.Register> getInputRegisters(){
-            return getRegisterArray(config.getJSONObject("registerAllocator").getJSONArray("initialRegisters"));
-        }
+        protected abstract List<? extends RegisterAllocator.Register> getRegisterArray(JSONArray availableRegisters);
+        protected abstract List<? extends RegisterAllocator.Register> getInputRegisters();
 
-        protected RegisterAllocator<G, T> makeRegisterAllocator() {
-            JSONObject regAllocConf = config.getJSONObject("registerAllocator");
-            switch (regAllocConf.getString("name")){
-                case "linearScan":
-                    printLn("\tMaking Linear Scan Register Allocator:");
-                    List<RegisterAllocator.Register> availableRegisters = new ArrayList<>();
-                    {
-                        JSONArray regArray =config.getJSONObject("registerAllocator").getJSONArray("availableRegisters");
-                        for (int i = 0; i < regArray.length(); i++) {
-                            availableRegisters.add(new RegisterAllocator.Register(regArray.getString(i)));
-                        }
-                    }
-                    printLn("Available registers  : " + availableRegisters.toString());
-
-                    List<RegisterAllocator.Register> available = new ArrayList<>(getOutputRegisters());
-                    for (RegisterAllocator.Register availableRegister : availableRegisters) {
-                        if (!available.contains(availableRegister)) {
-                            available.add(availableRegister);
-                        }
-                    }
-                    List<RegisterAllocator.Register> initRegisters = new ArrayList<>(getInputRegisters());
-                    printLn("Initial registers    : " + initRegisters.toString());
-                    return new LinearScanRegisterAllocator<>(initRegisters, initialGoals, available);
-                default:
-                    throw new IllegalArgumentException("Register Allocator Unknown");
-            }
-
-        }
 
         protected Verifier<G> makeVerifier() {
             String verf = config.getString("verifier");
@@ -494,14 +456,52 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation> {
 
     }
 
+    public static abstract class Kernel3DStdTransFileRun<G extends Kernel3DGoal<G>, T extends StandardTransformation> extends Kernel3DFileRun<G,T>{
+        public Kernel3DStdTransFileRun(JSONObject config) {
+            super(config);
+        }
 
+        protected List<? extends RegisterAllocator.Register> getRegisterArray(JSONArray availableRegisters) {
+            ArrayList<RegisterAllocator.Register> out = new ArrayList<>(availableRegisters.length());
+            for (int i = 0; i < availableRegisters.length(); i++) {
+                out.add(new RegisterAllocator.Register(availableRegisters.getString(i)));
+            }
+            return out;
+        }
+        protected List<? extends RegisterAllocator.Register> getInputRegisters(){
+            return getRegisterArray(config.getJSONObject("registerAllocator").getJSONArray("initialRegisters"));
+        }
+        protected RegisterAllocator<G, T> makeRegisterAllocator() {
+            JSONObject regAllocConf = config.getJSONObject("registerAllocator");
+            switch (regAllocConf.getString("name")){
+                case "linearScan":
+                    printLn("\tMaking Linear Scan Register Allocator:");
+                    List<RegisterAllocator.Register> availableRegisters = new ArrayList<>();
+                {
+                    JSONArray regArray =config.getJSONObject("registerAllocator").getJSONArray("availableRegisters");
+                    for (int i = 0; i < regArray.length(); i++) {
+                        availableRegisters.add(new RegisterAllocator.Register(regArray.getString(i)));
+                    }
+                }
+                printLn("Available registers  : " + availableRegisters.toString());
 
+                List<RegisterAllocator.Register> available = new ArrayList<>(getOutputRegisters());
+                for (RegisterAllocator.Register availableRegister : availableRegisters) {
+                    if (!available.contains(availableRegister)) {
+                        available.add(availableRegister);
+                    }
+                }
+                List<RegisterAllocator.Register> initRegisters = new ArrayList<>(getInputRegisters());
+                printLn("Initial registers    : " + initRegisters.toString());
+                return new LinearScanRegisterAllocator<>(initRegisters, initialGoals, available);
+                default:
+                    throw new IllegalArgumentException("Register Allocator Unknown");
+            }
 
+        }
 
+    };
 
-    public int getAvailableRegisterCount() {
-        return registerAllocator.getAvailableRegisters();
-    }
 
     public String getAvailableRegisters() {
         return registerAllocator.getAvailableRegistersArray().toString();

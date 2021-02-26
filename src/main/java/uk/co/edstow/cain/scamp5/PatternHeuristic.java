@@ -1,5 +1,6 @@
 package uk.co.edstow.cain.scamp5;
 
+import uk.co.edstow.cain.StandardTransformation;
 import uk.co.edstow.cain.Transformation;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.pairgen.Context;
@@ -11,7 +12,7 @@ import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 
-public class PatternHeuristic<G extends Kernel3DGoal<G>, T extends Transformation> implements CostHeuristic<G, T> {
+public class PatternHeuristic<G extends Kernel3DGoal<G>, T extends StandardTransformation> implements CostHeuristic<G, T> {
 
     private final int[] initialDivisions;
     private final int initialDivisionsMax;
