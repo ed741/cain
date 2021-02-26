@@ -1,6 +1,6 @@
 package uk.co.edstow.cain.scamp5.superPixel;
 
-import uk.co.edstow.cain.BankedTransformation;
+import uk.co.edstow.cain.transformations.BankedTransformation;
 import uk.co.edstow.cain.goals.BankedKernel3DGoal;
 import uk.co.edstow.cain.regAlloc.BankedRegisterAllocator.BRegister;
 import uk.co.edstow.cain.goals.Kernel3DGoal;

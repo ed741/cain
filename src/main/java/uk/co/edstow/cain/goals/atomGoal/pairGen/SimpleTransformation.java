@@ -1,6 +1,6 @@
 package uk.co.edstow.cain.goals.atomGoal.pairGen;
 
-import uk.co.edstow.cain.StandardTransformation;
+import uk.co.edstow.cain.transformations.StandardTransformation;
 import uk.co.edstow.cain.regAlloc.RegisterAllocator;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.goals.atomGoal.AtomGoal;

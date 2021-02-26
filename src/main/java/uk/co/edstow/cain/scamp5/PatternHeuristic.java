@@ -1,7 +1,6 @@
 package uk.co.edstow.cain.scamp5;
 
-import uk.co.edstow.cain.StandardTransformation;
-import uk.co.edstow.cain.Transformation;
+import uk.co.edstow.cain.transformations.StandardTransformation;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.pairgen.Context;
 import uk.co.edstow.cain.pairgen.CostHeuristic;

@@ -8,7 +8,6 @@ import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
 import uk.co.edstow.cain.util.Tuple;
-import uk.co.edstow.cain.Transformation;
 
 import java.util.*;
 import java.util.stream.Collectors;

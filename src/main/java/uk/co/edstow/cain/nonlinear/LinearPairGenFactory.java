@@ -1,6 +1,6 @@
 package uk.co.edstow.cain.nonlinear;
 
-import uk.co.edstow.cain.Transformation;
+import uk.co.edstow.cain.transformations.Transformation;
 import uk.co.edstow.cain.pairgen.Context;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.structures.Goal;

@@ -7,6 +7,7 @@ import uk.co.edstow.cain.goals.atomGoal.pairGen.SimpleTransformation;
 import uk.co.edstow.cain.nonlinear.LinearPairGenFactory;
 import uk.co.edstow.cain.pairgen.Context;
 import uk.co.edstow.cain.pairgen.CostHeuristic;
+import uk.co.edstow.cain.regAlloc.BankedRegisterAllocator;
 import uk.co.edstow.cain.scamp5.Scamp5ConfigGetter;
 import uk.co.edstow.cain.scamp5.digital.Scamp5DigitalTransformation;
 import uk.co.edstow.cain.structures.GoalBag;
@@ -21,9 +22,9 @@ import static uk.co.edstow.cain.scamp5.superPixel.Scamp5SuperPixelTransformation
 
 public class Scamp5SuperPixelPairGenFactory<G extends BankedKernel3DGoal<G>> implements LinearPairGenFactory<G, Scamp5SuperPixelTransformation<G>> {
 
-    private final Scamp5ConfigGetter<G, Scamp5SuperPixelTransformation<G>, Scamp5SuperPixelConfig<G>> scamp5ConfGet;
+    private final Scamp5ConfigGetter<G, Scamp5SuperPixelTransformation<G>, BankedRegisterAllocator.BRegister, Scamp5SuperPixelConfig<G>> scamp5ConfGet;
 
-    public Scamp5SuperPixelPairGenFactory(Scamp5ConfigGetter<G, Scamp5SuperPixelTransformation<G>, Scamp5SuperPixelConfig<G>> confGetter) {
+    public Scamp5SuperPixelPairGenFactory(Scamp5ConfigGetter<G, Scamp5SuperPixelTransformation<G>, BankedRegisterAllocator.BRegister, Scamp5SuperPixelConfig<G>> confGetter) {
         this.scamp5ConfGet = confGetter;
     }
 

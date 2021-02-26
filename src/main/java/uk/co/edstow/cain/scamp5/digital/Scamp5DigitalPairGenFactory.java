@@ -1,6 +1,5 @@
 package uk.co.edstow.cain.scamp5.digital;
 
-import uk.co.edstow.cain.Transformation;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.goals.atomGoal.pairGen.Distance;
@@ -8,10 +7,10 @@ import uk.co.edstow.cain.goals.atomGoal.pairGen.SimpleTransformation;
 import uk.co.edstow.cain.nonlinear.LinearPairGenFactory;
 import uk.co.edstow.cain.pairgen.Context;
 import uk.co.edstow.cain.pairgen.CostHeuristic;
+import uk.co.edstow.cain.regAlloc.RegisterAllocator;
 import uk.co.edstow.cain.scamp5.Scamp5ConfigGetter;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
-import uk.co.edstow.cain.structures.Plan;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
@@ -22,9 +21,9 @@ import static uk.co.edstow.cain.scamp5.digital.Scamp5DigitalTransformation.*;
 
 public class Scamp5DigitalPairGenFactory<G extends Kernel3DGoal<G>> implements LinearPairGenFactory<G, Scamp5DigitalTransformation<G>> {
 
-    private final Scamp5ConfigGetter<G, Scamp5DigitalTransformation<G>, Scamp5DigitalConfig<G>> scamp5ConfGet;
+    private final Scamp5ConfigGetter<G, Scamp5DigitalTransformation<G>, RegisterAllocator.Register, Scamp5DigitalConfig<G>> scamp5ConfGet;
 
-    public Scamp5DigitalPairGenFactory(Scamp5ConfigGetter<G, Scamp5DigitalTransformation<G>, Scamp5DigitalConfig<G>> confGetter) {
+    public Scamp5DigitalPairGenFactory(Scamp5ConfigGetter<G, Scamp5DigitalTransformation<G>, RegisterAllocator.Register, Scamp5DigitalConfig<G>> confGetter) {
         this.scamp5ConfGet = confGetter;
     }
 

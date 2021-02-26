@@ -1,7 +1,6 @@
 package uk.co.edstow.cain.regAlloc;
 
-import uk.co.edstow.cain.StandardTransformation;
-import uk.co.edstow.cain.Transformation;
+import uk.co.edstow.cain.transformations.StandardTransformation;
 import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.Plan;

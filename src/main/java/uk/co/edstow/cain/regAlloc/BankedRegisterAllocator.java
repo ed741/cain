@@ -1,14 +1,11 @@
 package uk.co.edstow.cain.regAlloc;
 
-import uk.co.edstow.cain.Transformation;
+import uk.co.edstow.cain.transformations.Transformation;
 import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.structures.Plan;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public interface BankedRegisterAllocator<G extends Goal<G>, T extends Transformation> extends RegisterAllocator<G, T>{
 

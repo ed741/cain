@@ -1,6 +1,6 @@
 package uk.co.edstow.cain.scamp5.analogue;
 
-import uk.co.edstow.cain.StandardTransformation;
+import uk.co.edstow.cain.transformations.StandardTransformation;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.goals.atomGoal.pairGen.SimpleTransformation;

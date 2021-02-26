@@ -4,6 +4,7 @@ import uk.co.edstow.cain.pairgen.Context;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.regAlloc.RegisterAllocator;
 import uk.co.edstow.cain.structures.*;
+import uk.co.edstow.cain.transformations.Transformation;
 import uk.co.edstow.cain.traversal.SOT;
 import uk.co.edstow.cain.traversal.TraversalSystem;
 

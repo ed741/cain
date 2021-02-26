@@ -14,6 +14,8 @@ import uk.co.edstow.cain.scamp5.emulator.Scamp5Verifier;
 import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.Plan;
+import uk.co.edstow.cain.transformations.StandardTransformation;
+import uk.co.edstow.cain.transformations.Transformation;
 import uk.co.edstow.cain.traversal.*;
 
 

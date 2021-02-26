@@ -1,10 +1,9 @@
 package uk.co.edstow.cain.structures;
 
 import uk.co.edstow.cain.regAlloc.RegisterAllocator;
-import uk.co.edstow.cain.Transformation;
+import uk.co.edstow.cain.transformations.Transformation;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;

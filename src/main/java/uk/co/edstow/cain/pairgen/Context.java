@@ -2,7 +2,7 @@ package uk.co.edstow.cain.pairgen;
 
 
 import uk.co.edstow.cain.regAlloc.RegisterAllocator;
-import uk.co.edstow.cain.Transformation;
+import uk.co.edstow.cain.transformations.Transformation;
 import uk.co.edstow.cain.structures.Goal;
 
 import java.util.List;

@@ -1,6 +1,6 @@
 package uk.co.edstow.cain.structures;
 
-import uk.co.edstow.cain.Transformation;
+import uk.co.edstow.cain.transformations.Transformation;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 
 public class WorkState<G extends Goal<G>, T extends Transformation> {

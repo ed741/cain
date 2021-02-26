@@ -6,9 +6,9 @@ import uk.co.edstow.cain.goals.atomGoal.pairGen.SimpleTransformation;
 import uk.co.edstow.cain.nonlinear.LinearPairGenFactory;
 import uk.co.edstow.cain.pairgen.*;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
-import uk.co.edstow.cain.Transformation;
+import uk.co.edstow.cain.regAlloc.RegisterAllocator;
+import uk.co.edstow.cain.transformations.Transformation;
 import uk.co.edstow.cain.scamp5.Scamp5ConfigGetter;
-import uk.co.edstow.cain.scamp5.digital.Scamp5DigitalTransformation;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
 import uk.co.edstow.cain.util.Tuple;
@@ -21,9 +21,9 @@ import static uk.co.edstow.cain.scamp5.analogue.Scamp5AnalogueTransformation.*;
 
 public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements LinearPairGenFactory<G, Scamp5AnalogueTransformation<G>> {
 
-    private final Scamp5ConfigGetter<G, Scamp5AnalogueTransformation<G>, Scamp5AnalogueConfig<G>> scamp5ConfGet;
+    private final Scamp5ConfigGetter<G, Scamp5AnalogueTransformation<G>, RegisterAllocator.Register, Scamp5AnalogueConfig<G>> scamp5ConfGet;
 
-    public Scamp5AnaloguePairGenFactory(Scamp5ConfigGetter<G, Scamp5AnalogueTransformation<G>, Scamp5AnalogueConfig<G>> confGetter) {
+    public Scamp5AnaloguePairGenFactory(Scamp5ConfigGetter<G, Scamp5AnalogueTransformation<G>, RegisterAllocator.Register, Scamp5AnalogueConfig<G>> confGetter) {
         this.scamp5ConfGet = confGetter;
     }
 

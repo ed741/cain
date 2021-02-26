@@ -1,4 +1,4 @@
-package uk.co.edstow.cain;
+package uk.co.edstow.cain.transformations;
 
 import uk.co.edstow.cain.regAlloc.RegisterAllocator;
 
