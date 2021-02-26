@@ -139,8 +139,7 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
         printLn("\t Making Pair Generation Factory:");
         printLn("Name                        : " + json.getString("name"));
 
-        if(!json.has("bits")) {throw new IllegalArgumentException("you need to define " + "bits" + " inside pairGen");}
-        int bits = json.getInt("bits");
+        Scamp5SuperPixelConfig.Builder<G> configBuilder = new Scamp5SuperPixelConfig.Builder<>();
 
         if(!json.has("scratchRegs")) {throw new IllegalArgumentException("you need to define " + "scratchRegs" + " inside pairGen");}
         JSONArray jScratchRegs = json.getJSONArray("scratchRegs");
@@ -148,34 +147,44 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
         for (int i = 0; i < jScratchRegs.length(); i++) {
             scratchRegs.add(jScratchRegs.getString(i));
         }
+        configBuilder.setScratchRegisters(scratchRegs);
 
 
         if(!json.has("selectReg")) {throw new IllegalArgumentException("you need to define " + "selectReg" + " inside pairGen");}
         String selectReg = json.getString("selectReg");
+        configBuilder.setSelectReg(selectReg);
 
         if(!json.has("maskReg")) {throw new IllegalArgumentException("you need to define " + "maskReg" + " inside pairGen");}
         String maskReg = json.getString("maskReg");
+        configBuilder.setMaskReg(maskReg);
 
         if(!json.has("maskedReg")) {throw new IllegalArgumentException("you need to define " + "maskedReg" + " inside pairGen");}
         String maskedReg = json.getString("maskedReg");
+        configBuilder.setMaskedReg(maskedReg);
 
         if(!json.has("northReg")) {throw new IllegalArgumentException("you need to define " + "northReg" + " inside pairGen");}
         String northReg = json.getString("northReg");
+        configBuilder.setNorthReg(northReg);
 
         if(!json.has("eastReg")) {throw new IllegalArgumentException("you need to define " + "eastReg" + " inside pairGen");}
         String eastReg = json.getString("eastReg");
+        configBuilder.setEastReg(eastReg);
 
         if(!json.has("southReg")) {throw new IllegalArgumentException("you need to define " + "southReg" + " inside pairGen");}
         String southReg = json.getString("southReg");
+        configBuilder.setSouthReg(southReg);
 
         if(!json.has("westReg")) {throw new IllegalArgumentException("you need to define " + "westReg" + " inside pairGen");}
         String westReg = json.getString("westReg");
+        configBuilder.setWestReg(westReg);
 
         if(!json.has("width")) {throw new IllegalArgumentException("you need to define " + "width" + " inside pairGen");}
         int width = json.getInt("width");
+        configBuilder.setWidth(width);
 
         if(!json.has("height")) {throw new IllegalArgumentException("you need to define " + "height" + " inside pairGen");}
         int height = json.getInt("height");
+        configBuilder.setHeight(height);
 
         if(!json.has("bitOrder")) {throw new IllegalArgumentException("you need to define " + "bitOrder" + " inside pairGen");}
         JSONArray jbitOrder = json.getJSONArray("bitOrder");
@@ -188,8 +197,11 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
                 }
             }
         }
+        configBuilder.setBanks(banks);
+        configBuilder.setBitOrder(bitOrder);
 
-        Scamp5SuperPixelConfig<G> scampConfig = new Scamp5SuperPixelConfig<G>(true, true, true, true, true, scratchRegs, selectReg, maskReg, maskedReg, northReg, eastReg, southReg, westReg, width, height, banks, bitOrder);
+        configBuilder.setUseMovbx(true).setUseAdd(true).setUseAddSelf(true).setUseDiv(true).setUseRes(true);
+
 
         if(!json.has("configGetter")) {throw new IllegalArgumentException("you need to define " + "configGetter" + " inside pairGen");}
         String configGetterName = json.getJSONObject("configGetter").getString("name");
@@ -198,22 +210,23 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
             default:
                 throw new IllegalArgumentException("Unknown Scamp5 Scamp5ConfigGetter " + json.getString("configGetter"));
             case "Threshold":
-                return getThresholdPairGenFactory(json.getJSONObject("configGetter"), scampConfig);
+                return getThresholdPairGenFactory(json.getJSONObject("configGetter"), configBuilder);
             case "Exhaustive":
-                return getExhaustivePairGenFactory(json.getJSONObject("configGetter"), scampConfig);
+                return getExhaustivePairGenFactory(json.getJSONObject("configGetter"), configBuilder);
             case "AtomDistanceSorted":
-                return getAtomDistanceSortedPairGenFactory(json.getJSONObject("configGetter"), scampConfig);
+                return getAtomDistanceSortedPairGenFactory(json.getJSONObject("configGetter"), configBuilder);
             case "AtomDistance":
-                return getAtomDistancePairGenFactory(json.getJSONObject("configGetter"), scampConfig);
+                return getAtomDistancePairGenFactory(json.getJSONObject("configGetter"), configBuilder);
         }
 
     }
 
-    private Scamp5SuperPixelPairGenFactory<G> getThresholdPairGenFactory(JSONObject json, Scamp5SuperPixelConfig<G> scampConfig) {
+    private Scamp5SuperPixelPairGenFactory<G> getThresholdPairGenFactory(JSONObject json, Scamp5SuperPixelConfig.Builder<G> configBuilder) {
         if(!json.has("threshold")) {throw new IllegalArgumentException("you need to define " + "threshold" + " inside configGetter");}
         int threshold = json.getInt("threshold");
         printLn("Exhaustive Search Threshold  : " + threshold);
         CostHeuristic<G, Scamp5SuperPixelTransformation<G>> heuristic = getCostHeuristic(json, "heuristic");
+        Scamp5SuperPixelConfig<G> scampConfig = configBuilder.build();
 
         return new Scamp5SuperPixelPairGenFactory<>(
                 new ThresholdScamp5ConfigGetter<>(
@@ -225,20 +238,20 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
         );
     }
 
-    private Scamp5SuperPixelPairGenFactory<G> getExhaustivePairGenFactory(JSONObject json, Scamp5SuperPixelConfig<G> scampConfig) {
+    private Scamp5SuperPixelPairGenFactory<G> getExhaustivePairGenFactory(JSONObject json, Scamp5SuperPixelConfig.Builder<G> configBuilder) {
         CostHeuristic<G, Scamp5SuperPixelTransformation<G>> heuristic = getCostHeuristic(json, "heuristic");
-        return new Scamp5SuperPixelPairGenFactory<>(new BasicScamp5ConfigGetter<>(scampConfig,
+        return new Scamp5SuperPixelPairGenFactory<>(new BasicScamp5ConfigGetter<>(configBuilder.build(),
                 (goals, conf, scamp5Config) -> new Scamp5SuperPixelPairGenFactory.ExhaustivePairGen<>(goals, conf, scamp5Config, heuristic)
         ));
     }
-    private Scamp5SuperPixelPairGenFactory<G> getAtomDistanceSortedPairGenFactory(JSONObject json, Scamp5SuperPixelConfig<G> scampConfig) {
+    private Scamp5SuperPixelPairGenFactory<G> getAtomDistanceSortedPairGenFactory(JSONObject json, Scamp5SuperPixelConfig.Builder<G> configBuilder) {
         CostHeuristic<G, Scamp5SuperPixelTransformation<G>> heuristic = getCostHeuristic(json, "heuristic");
-        return new Scamp5SuperPixelPairGenFactory<>(new BasicScamp5ConfigGetter<>(scampConfig,
+        return new Scamp5SuperPixelPairGenFactory<>(new BasicScamp5ConfigGetter<>(configBuilder.build(),
                 (goals, conf, scamp5Config) -> new Scamp5SuperPixelPairGenFactory.AtomDistanceSortedPairGen<>(goals, conf, scamp5Config, heuristic)
         ));
     }
-    private Scamp5SuperPixelPairGenFactory<G> getAtomDistancePairGenFactory(JSONObject json, Scamp5SuperPixelConfig<G> scampConfig) {
-        return new Scamp5SuperPixelPairGenFactory<>(new BasicScamp5ConfigGetter<>(scampConfig,
+    private Scamp5SuperPixelPairGenFactory<G> getAtomDistancePairGenFactory(JSONObject json, Scamp5SuperPixelConfig.Builder<G> configBuilder) {
+        return new Scamp5SuperPixelPairGenFactory<>(new BasicScamp5ConfigGetter<>(configBuilder.build(),
                 (goals, conf, scamp5Config) -> new Scamp5SuperPixelPairGenFactory.AtomDistancePairGen<>(goals, conf, scamp5Config)
         ));
     }

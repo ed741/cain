@@ -23,29 +23,32 @@ public abstract class Scamp5AnalogueFileRun<G extends Kernel3DGoal<G>> extends F
         JSONObject json = config.getJSONObject("pairGen");
         printLn("\t Making Pair Generation Factory:");
         printLn("Name                        : " + json.getString("name"));
-        if(!json.has("configGetter")) {throw new IllegalArgumentException("you need to define " + "configGetter" + " inside pairGen");}
-        String configGetterName = json.getJSONObject("configGetter").getString("name");
-        printLn("Config Getter               : " + configGetterName);
+
+        Scamp5AnalogueConfig.Builder<G> configBuilder = new Scamp5AnalogueConfig.Builder<>();
+        String factory = "configGetter";
+        if(!json.has(factory)) {throw new IllegalArgumentException("you need to define " + factory + " inside pairGen");}
+        String configGetterName = json.getJSONObject(factory).getString("name");
+        printLn(factory+"               : " + configGetterName);
         switch (configGetterName) {
             default:
-                throw new IllegalArgumentException("Unknown Scamp5 Scamp5ConfigGetter " + json.getString("configGetter"));
+                throw new IllegalArgumentException("Unknown Scamp5 " + factory + " : " + json.getString("configGetter"));
             case "Threshold":
-                return getThresholdPairGenFactory(json.getJSONObject("configGetter"));
+                return getThresholdPairGenFactory(json.getJSONObject("configGetter"), configBuilder);
             case "Exhaustive":
-                return getExhaustivePairGenFactory(json.getJSONObject("configGetter"));
+                return getExhaustivePairGenFactory(json.getJSONObject("configGetter"), configBuilder);
             case "AtomDistanceSorted":
-                return getAtomDistanceSortedPairGenFactory(json.getJSONObject("configGetter"));
+                return getAtomDistanceSortedPairGenFactory(json.getJSONObject("configGetter"), configBuilder);
             case "AtomDistance":
-                return getAtomDistancePairGenFactory(json.getJSONObject("configGetter"));
+                return getAtomDistancePairGenFactory(json.getJSONObject("configGetter"), configBuilder);
         }
 
     }
 
-    private Scamp5AnaloguePairGenFactory<G> getThresholdPairGenFactory(JSONObject json) {
+    private Scamp5AnaloguePairGenFactory<G> getThresholdPairGenFactory(JSONObject json, Scamp5AnalogueConfig.Builder<G> configBuilder) {
         if(!json.has("threshold")) {throw new IllegalArgumentException("you need to define " + "threshold" + " inside configGetter");}
         int threshold = json.getInt("threshold");
         printLn("Exhaustive Search Threshold  : " + threshold);
-        Scamp5AnalogueConfig<G> scampConfig = getScamp5Config(json, "ops");
+        Scamp5AnalogueConfig<G> scampConfig = getScamp5Config(json, configBuilder);
         CostHeuristic<G, Scamp5AnalogueTransformation<G>> heuristic = getCostHeuristic(json, "heuristic");
 
         return new Scamp5AnaloguePairGenFactory<>(
@@ -58,37 +61,37 @@ public abstract class Scamp5AnalogueFileRun<G extends Kernel3DGoal<G>> extends F
         );
     }
 
-    private Scamp5AnaloguePairGenFactory<G> getExhaustivePairGenFactory(JSONObject json) {
-        Scamp5AnalogueConfig<G> scampConfig = getScamp5Config(json, "ops");
+    private Scamp5AnaloguePairGenFactory<G> getExhaustivePairGenFactory(JSONObject json, Scamp5AnalogueConfig.Builder<G> configBuilder) {
+        Scamp5AnalogueConfig<G> scampConfig = getScamp5Config(json, configBuilder);
         CostHeuristic<G, Scamp5AnalogueTransformation<G>> heuristic = getCostHeuristic(json, "heuristic");
         return new Scamp5AnaloguePairGenFactory<>(new BasicScamp5ConfigGetter<>(scampConfig,
                 (goals, conf, scamp5Config) -> new Scamp5AnaloguePairGenFactory.ExhaustivePairGen<>(goals, conf, scamp5Config, heuristic)
         ));
     }
-    private Scamp5AnaloguePairGenFactory<G> getAtomDistanceSortedPairGenFactory(JSONObject json) {
-        Scamp5AnalogueConfig<G> scampConfig = getScamp5Config(json, "ops");
+    private Scamp5AnaloguePairGenFactory<G> getAtomDistanceSortedPairGenFactory(JSONObject json, Scamp5AnalogueConfig.Builder<G> configBuilder) {
+        Scamp5AnalogueConfig<G> scampConfig = getScamp5Config(json, configBuilder);
         CostHeuristic<G, Scamp5AnalogueTransformation<G>> heuristic = getCostHeuristic(json, "heuristic");
         return new Scamp5AnaloguePairGenFactory<>(new BasicScamp5ConfigGetter<>(scampConfig,
                 (goals, conf, scamp5Config) -> new Scamp5AnaloguePairGenFactory.AtomDistanceSortedPairGen<>(goals, conf, scamp5Config, heuristic)
         ));
     }
-    private Scamp5AnaloguePairGenFactory<G> getAtomDistancePairGenFactory(JSONObject json) {
-        Scamp5AnalogueConfig<G> scampConfig = getScamp5Config(json, "ops");
+    private Scamp5AnaloguePairGenFactory<G> getAtomDistancePairGenFactory(JSONObject json, Scamp5AnalogueConfig.Builder<G> configBuilder) {
+        Scamp5AnalogueConfig<G> scampConfig = getScamp5Config(json, configBuilder);
         return new Scamp5AnaloguePairGenFactory<>(new BasicScamp5ConfigGetter<>(scampConfig,
                 (goals, conf, scamp5Config) -> new Scamp5AnaloguePairGenFactory.AtomDistancePairGen<>(goals, conf, scamp5Config)
         ));
     }
 
-    private Scamp5AnalogueConfig<G> getScamp5Config(JSONObject json, String name) {
-        if(!json.has(name)) {throw new IllegalArgumentException("you need to define " + name + " inside configGetter");}
+    private Scamp5AnalogueConfig<G> getScamp5Config(JSONObject json, Scamp5AnalogueConfig.Builder<G> configBuilder) {
+        if(!json.has("ops")) {throw new IllegalArgumentException("you need to define " + "ops" + " inside configGetter");}
         printLn("Instruction to use          : " + json.getString("ops"));
-        switch (json.getString(name)) {
+        switch (json.getString("ops")) {
             default:
-                throw new IllegalArgumentException("Unknown Instructions option " + json.getString(name));
+                throw new IllegalArgumentException("Unknown Instructions option " + json.getString("ops"));
             case "all":
-                return new Scamp5AnalogueConfig.Builder<G>().useAll().setSubPowerOf2(true).build();
+                return configBuilder.useAll().setSubPowerOf2(true).build();
             case "basic":
-                return new Scamp5AnalogueConfig.Builder<G>().useBasic().setSubPowerOf2(true).build();
+                return configBuilder.useBasic().setSubPowerOf2(true).build();
         }
     }
 
