@@ -1,7 +1,6 @@
 package uk.co.edstow.cain.scamp5.superPixel;
 
 import uk.co.edstow.cain.scamp5.Scamp5ConfigGetter;
-import uk.co.edstow.cain.scamp5.Scamp5DefaultOutputFormatter;
 import uk.co.edstow.cain.scamp5.Scamp5OutputFormatter;
 import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.util.Bits;
@@ -15,12 +14,13 @@ import java.util.stream.Collectors;
 public class Scamp5SuperPixelConfig<G extends Goal<G>> implements Scamp5ConfigGetter.Scamp5Config<G, Scamp5SuperPixelConfig<G>> {
 
 
-    public Scamp5SuperPixelConfig(boolean useMovbx, boolean useAdd, boolean useAddSelf, boolean useDiv, boolean useRes, List<String> scratchRegisters, String selectReg, String maskReg, String maskedReg, String northReg, String eastReg, String southReg, String westReg, int width, int height, int banks, int[][][] bitOrder) {
+    public Scamp5SuperPixelConfig(boolean useMovbx, boolean useAdd, boolean useAddSelf, boolean useDiv, boolean useRes, List<String> scratchRegisters, String selectReg, String maskReg, String maskedReg, String northReg, String eastReg, String southReg, String westReg, int width, int height, int banks, int[][][] bitOrder, Scamp5OutputFormatter outputFormatter) {
         this.useMovbx = useMovbx;
         this.useAdd = useAdd;
         this.useAddSelf = useAddSelf;
         this.useDiv = useDiv;
         this.useRes = useRes;
+        this.outputFormatter = outputFormatter;
 
         this.onlyMov = !(this.useAdd || this.useDiv || this.useRes);
 
@@ -72,7 +72,7 @@ public class Scamp5SuperPixelConfig<G extends Goal<G>> implements Scamp5ConfigGe
     public final int[] yBankStart;
     public final boolean[][] sameShapeLookup;
 
-    public final Scamp5OutputFormatter outputFormatter = new Scamp5DefaultOutputFormatter(); // TODO(td158) config
+    public final Scamp5OutputFormatter outputFormatter;
 
     public Scamp5SuperPixelConfig(Scamp5SuperPixelConfig<G> proto, List<String> scratchRegisters, String selectReg, String maskReg, String maskedReg, String northReg, String eastReg, String southReg, String westReg, int width, int height, int banks, int[][][] bitOrder) {
         this.useMovbx = proto.useMovbx;
@@ -80,6 +80,7 @@ public class Scamp5SuperPixelConfig<G extends Goal<G>> implements Scamp5ConfigGe
         this.useAddSelf = proto.useAddSelf;
         this.useDiv = proto.useDiv;
         this.useRes = proto.useRes;
+        this.outputFormatter = proto.outputFormatter;
 
 
         this.onlyMov = !(this.useAdd || this.useAddSelf || this.useDiv || this.useRes);
@@ -134,6 +135,7 @@ public class Scamp5SuperPixelConfig<G extends Goal<G>> implements Scamp5ConfigGe
         this.xBankStart = proto.xBankStart;
         this.yBankStart = proto.yBankStart;
         this.sameShapeLookup = proto.sameShapeLookup;
+        this.outputFormatter = proto.outputFormatter;
 
     }
 
@@ -654,6 +656,7 @@ public class Scamp5SuperPixelConfig<G extends Goal<G>> implements Scamp5ConfigGe
         public int height;
         public int banks;
         public int[][][] bitOrder;
+        public Scamp5OutputFormatter outputFormatter;
         List<String> scratchRegisters;
         String selectReg;
 
@@ -745,8 +748,16 @@ public class Scamp5SuperPixelConfig<G extends Goal<G>> implements Scamp5ConfigGe
             return this;
         }
 
+        public Scamp5OutputFormatter getOutputFormatter() {
+            return outputFormatter;
+        }
+
+        public void setOutputFormatter(Scamp5OutputFormatter outputFormatter) {
+            this.outputFormatter = outputFormatter;
+        }
+
         public Scamp5SuperPixelConfig<G> build() {
-            return new Scamp5SuperPixelConfig<>(useMovbx, useAdd, useAddSelf, useDiv, useRes, scratchRegisters, selectReg, maskReg, maskedReg, northReg, eastReg, southReg, westReg, width, height, banks, bitOrder);
+            return new Scamp5SuperPixelConfig<>(useMovbx, useAdd, useAddSelf, useDiv, useRes, scratchRegisters, selectReg, maskReg, maskedReg, northReg, eastReg, southReg, westReg, width, height, banks, bitOrder, outputFormatter);
         }
     }
 }

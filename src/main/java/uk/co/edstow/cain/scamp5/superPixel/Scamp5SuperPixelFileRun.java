@@ -9,9 +9,7 @@ import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.goals.arrayGoal.BankedArrayGoal;
 import uk.co.edstow.cain.pairgen.CostHeuristic;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
-import uk.co.edstow.cain.scamp5.BasicScamp5ConfigGetter;
-import uk.co.edstow.cain.scamp5.PatternHeuristic;
-import uk.co.edstow.cain.scamp5.ThresholdScamp5ConfigGetter;
+import uk.co.edstow.cain.scamp5.*;
 import uk.co.edstow.cain.transformations.BankedTransformation;
 
 import java.util.*;
@@ -89,6 +87,24 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
         }
         configBuilder.setBanks(banks);
         configBuilder.setBitOrder(bitOrder);
+
+        Scamp5OutputFormatter outputFormatter;
+        if (!json.has("outputFormat")) {
+            throw new IllegalArgumentException("you need to define outputFormat inside pairGen");
+        }
+        JSONObject outputFormatConfig = json.getJSONObject("outputFormat");
+        switch (outputFormatConfig.getString("name")) {
+            default:
+                throw new IllegalArgumentException("Unknown Scamp5 outputFormat : " + outputFormatConfig.getString("name"));
+            case "defaultFormat":
+                outputFormatter = new Scamp5DefaultOutputFormatter();
+                break;
+            case "jssFormat":
+                String jssSimulatorName = outputFormatConfig.getString("simulatorName");
+                outputFormatter = new Scamp5JssOutputFormatter(jssSimulatorName);
+                break;
+        }
+        configBuilder.setOutputFormatter(outputFormatter);
 
         configBuilder.setUseMovbx(true).setUseAdd(true).setUseAddSelf(true).setUseDiv(true).setUseRes(true);
 
