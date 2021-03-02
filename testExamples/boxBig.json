@@ -1,4 +1,4 @@
-{"name":"Guassian5x5",
+{"name":"Box7x7",
   "verbose": -1,
   "goalSystem":"Kernel3D",
   "maxApproximationDepth":6,

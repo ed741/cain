@@ -10,6 +10,12 @@ import uk.co.edstow.cain.util.Tuple;
 import java.util.*;
 
 public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> implements StandardTransformation {
+    private final Scamp5AnalogueConfig<G> config;
+
+    protected Scamp5AnalogueTransformation(Scamp5AnalogueConfig<G> config) {
+        this.config = config;
+    }
+
     public abstract List<G> applyOpForwards() throws TransformationApplicationException;
 
 
@@ -17,7 +23,8 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         private final int inputCount;
         private final int outputCount;
 
-        public Null(int inputCount, int outputCount) {
+        public Null(int inputCount, int outputCount, Scamp5AnalogueConfig<G> config) {
+            super(config);
             this.inputCount = inputCount;
             this.outputCount = outputCount;
         }
@@ -79,6 +86,10 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
     }
 
     abstract static class SimpleScamp5AnalogueTransformation<G extends Kernel3DGoal<G>> extends Scamp5AnalogueTransformation<G> {
+
+        SimpleScamp5AnalogueTransformation(Scamp5AnalogueConfig<G> config) {
+            super(config);
+        }
 
         @Override
         public String code(List<Register> uppers, List<Register> lowers, List<Register> trash) {
@@ -172,7 +183,8 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         // u := {}
         final G result;
 
-        public Res(G result) {
+        public Res(G result, Scamp5AnalogueConfig<G> config) {
+            super(config);
             this.result = result;
         }
 
@@ -227,7 +239,8 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         final G result1;
         final G result2;
 
-        public Res_2(G a, G b) {
+        public Res_2(G a, G b, Scamp5AnalogueConfig<G> config) {
+            super(config);
             this.result1 = a;
             this.result2 = b;
         }
@@ -294,12 +307,14 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         G moved = null;
 
         @SuppressWarnings("WeakerAccess")
-        public Mov(G a) {
+        public Mov(G a, Scamp5AnalogueConfig<G> config) {
+            super(config);
             this.a = a;
         }
 
         @SuppressWarnings("WeakerAccess")
-        public Mov(G in, boolean upper) {
+        public Mov(G in, boolean upper, Scamp5AnalogueConfig<G> config) {
+            super(config);
             if (upper) {
                 this.a = in.copy();
                 this.moved = in;
@@ -365,7 +380,8 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         G sum;
 
 
-        public Add_2(G a, G b) {
+        public Add_2(G a, G b, Scamp5AnalogueConfig<G> config) {
+            super(config);
             this.a = a;
             this.b = b;
             this.sum = null;
@@ -428,7 +444,8 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         G sum;
 
 
-        public Add_3(G a, G b, G c) {
+        public Add_3(G a, G b, G c, Scamp5AnalogueConfig<G> config) {
+            super(config);
             this.a = a;
             this.b = b;
             this.c = c;
@@ -490,7 +507,8 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
          G difference;
 
 
-         public Sub(G a, G b) {
+         public Sub(G a, G b, Scamp5AnalogueConfig<G> config) {
+             super(config);
              this.a = a;
              this.b = b;
              this.difference = null;
@@ -549,13 +567,15 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         final G a;
         G neg;
 
-        public Neg(G a) {
+        public Neg(G a, Scamp5AnalogueConfig<G> config) {
+            super(config);
             this.a = a;
             this.neg = null;
 
         }
 
-        public Neg(G in, boolean upper){
+        public Neg(G in, boolean upper, Scamp5AnalogueConfig<G> config){
+            super(config);
             if (upper) {
                 this.a = in.negated();
                 this.neg = in;
@@ -619,12 +639,14 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         final G a;
         G div;
 
-        public Divq(G a) {
+        public Divq(G a, Scamp5AnalogueConfig<G> config) {
+            super(config);
             this.a = a;
             this.div = null;
         }
 
-        public Divq(G in, boolean upper){
+        public Divq(G in, boolean upper, Scamp5AnalogueConfig<G> config){
+            super(config);
             if(!upper){
                 this.a = in;
                 this.div = null;
@@ -711,13 +733,13 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
 
         final Dir dir;
 
-        public Movx(G a, Dir dir) {
-            super(a);
+        public Movx(G a, Dir dir, Scamp5AnalogueConfig<G> config) {
+            super(a, config);
             this.dir = dir;
         }
 
-        public Movx(G in, Dir dir, boolean upper) {
-            super(upper?in.translated(-dir.x, -dir.y, 0):in);
+        public Movx(G in, Dir dir, boolean upper, Scamp5AnalogueConfig<G> config) {
+            super(upper?in.translated(-dir.x, -dir.y, 0):in, config);
             this.moved = upper?in:null;
             this.dir = dir;
         }
@@ -749,14 +771,14 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         final Dir dir1;
         final Dir dir2;
 
-        public Mov2x(G a, Dir dir1, Dir dir2) {
-            super(a);
+        public Mov2x(G a, Dir dir1, Dir dir2, Scamp5AnalogueConfig<G> config) {
+            super(a, config);
             this.dir1 = dir1;
             this.dir2 = dir2;
         }
 
-        public Mov2x(G in, Dir dir1, Dir dir2, boolean upper) {
-            super(upper?in.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0):in);
+        public Mov2x(G in, Dir dir1, Dir dir2, boolean upper, Scamp5AnalogueConfig<G> config) {
+            super(upper?in.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0):in, config);
             this.moved = upper?in:null;
             this.dir1 = dir1;
             this.dir2 = dir2;
@@ -789,8 +811,8 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
 
         final Dir dir;
 
-        public Addx(G a, G b, Dir dir) {
-            super(a, b);
+        public Addx(G a, G b, Dir dir, Scamp5AnalogueConfig<G> config) {
+            super(a, b, config);
             this.dir = dir;
         }
 
@@ -822,8 +844,8 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         final Dir dir1;
         final Dir dir2;
 
-        public Add2x(G a, G b, Dir dir1, Dir dir2) {
-            super(a, b);
+        public Add2x(G a, G b, Dir dir1, Dir dir2, Scamp5AnalogueConfig<G> config) {
+            super(a, b, config);
             this.dir1 = dir1;
             this.dir2 = dir2;
         }
@@ -854,8 +876,8 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
 
         final Dir dir;
 
-        public Subx(G a, G b, Dir dir) {
-            super(a, b);
+        public Subx(G a, G b, Dir dir, Scamp5AnalogueConfig<G> config) {
+            super(a, b, config);
             this.dir = dir;
         }
 
@@ -886,8 +908,8 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         final Dir dir1;
         final Dir dir2;
 
-        public Sub2x(G a, G b, Dir dir1, Dir dir2) {
-            super(a, b);
+        public Sub2x(G a, G b, Dir dir1, Dir dir2, Scamp5AnalogueConfig<G> config) {
+            super(a, b, config);
             this.dir1 = dir1;
             this.dir2 = dir2;
             this.difference = null;
@@ -921,13 +943,15 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         G div;
 
 
-        public Div(G a, boolean clobber) {
+        public Div(G a, boolean clobber, Scamp5AnalogueConfig<G> config) {
+            super(config);
             this.a = a;
             this.div = null;
             this.clobber = clobber;
         }
 
-        public Div(G in, boolean upper, boolean clobber){
+        public Div(G in, boolean upper, boolean clobber, Scamp5AnalogueConfig<G> config){
+            super(config);
             this.clobber = clobber;
             if(!upper){
                 this.a = in;

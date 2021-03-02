@@ -8,7 +8,7 @@ import uk.co.edstow.cain.util.Tuple;
 import java.util.*;
 
 
-public class AtomGoal implements List<Atom>, Kernel3DGoal<AtomGoal> {
+public final class AtomGoal implements List<Atom>, Kernel3DGoal<AtomGoal> {
 
     private final List<Atom> list;
 

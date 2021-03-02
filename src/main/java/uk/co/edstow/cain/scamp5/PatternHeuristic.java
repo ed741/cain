@@ -1,5 +1,6 @@
 package uk.co.edstow.cain.scamp5;
 
+import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.transformations.StandardTransformation;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.pairgen.Context;
@@ -7,11 +8,12 @@ import uk.co.edstow.cain.pairgen.CostHeuristic;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
+import uk.co.edstow.cain.transformations.Transformation;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 
-public class PatternHeuristic<G extends Kernel3DGoal<G>, T extends StandardTransformation> implements CostHeuristic<G, T> {
+public class PatternHeuristic<G extends Kernel3DGoal<G>, T extends Transformation<R>, R extends Register> implements CostHeuristic<G, T, R> {
 
     private final int[] initialDivisions;
     private final int initialDivisionsMax;
@@ -34,20 +36,20 @@ public class PatternHeuristic<G extends Kernel3DGoal<G>, T extends StandardTrans
 
 
     @Override
-    public double getCost(GoalPair<G, T, ?> pair, GoalBag<G> goals, Context<G, T,?> context) {
+    public double getCost(GoalPair<G, T, R> pair, GoalBag<G> goals, Context<G, T,R> context) {
         GoalBag<G> proposedGoals = new GoalBag<>(goals);
         for (G upper : pair.getUppers()) {
             proposedGoals.remove(upper);
         }
-
-
-        List<G> toAdd = new ArrayList<>();
         for (G goal : pair.getLowers()) {
             proposedGoals.remove(goal);
-            toAdd.add(goal);
         }
-        proposedGoals.addAll(toAdd);
-        if(proposedGoals.size() +(pair.getTransformation().ExtraRegisterCount()) > context.registerAllocator.getAvailableRegisters()){
+        proposedGoals.addAll(pair.getLowers());
+        // this quick 'n' dirty proposed goals generator disregards the transformation's properties but will always
+        // underestimate the register usage so we dont accidentally exit early on potentially valid solutions.
+        // We might want to do away with this check and make this check a problem for the pairGeneration code
+
+        if(!context.registerAllocator.checkValid(proposedGoals, pair.getTransformation())){
             return -1; // exit early if too many registers are used.
         }
         double cost = 0;

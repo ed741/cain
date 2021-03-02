@@ -4,17 +4,17 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
+import uk.co.edstow.cain.goals.BankedKernel3DGoal;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
-import uk.co.edstow.cain.regAlloc.LinearScanRegisterAllocator;
-import uk.co.edstow.cain.regAlloc.Register;
-import uk.co.edstow.cain.regAlloc.RegisterAllocator;
+import uk.co.edstow.cain.regAlloc.*;
 import uk.co.edstow.cain.scamp5.analogue.Scamp5AnalogueFileRun;
 import uk.co.edstow.cain.scamp5.digital.Scamp5DigitalFileRun;
-import uk.co.edstow.cain.scamp5.emulator.Scamp5AnalogueVerifier;
+import uk.co.edstow.cain.scamp5.superPixel.Scamp5SuperPixelFileRun;
 import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.Plan;
+import uk.co.edstow.cain.transformations.BankedTransformation;
 import uk.co.edstow.cain.transformations.StandardTransformation;
 import uk.co.edstow.cain.transformations.Transformation;
 import uk.co.edstow.cain.traversal.*;
@@ -303,6 +303,8 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
                     return new Scamp5DigitalFileRun.AtomGoalFileRun(config);
                 case "Scamp5DigitalArrayGoal":
                     return new Scamp5DigitalFileRun.ArrayGoalFileRun(config);
+                case "Scamp5SuperPixel":
+                    return new Scamp5SuperPixelFileRun.ArrayGoalFileRun(config);
             }
         }
 
@@ -482,6 +484,86 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
             }
 
         }
+
+    }
+
+    public static abstract class Kernel3DBankedFileRun<G extends BankedKernel3DGoal<G>, T extends BankedTransformation> extends FileRun.Kernel3DFileRun<G, T, BRegister> {
+
+        public Kernel3DBankedFileRun(JSONObject config) {
+            super(config);
+        }
+
+
+        @Override
+        protected List<? extends BRegister> getRegisterArray(JSONArray availableRegisters) {
+            ArrayList<BRegister> out = new ArrayList<>(availableRegisters.length());
+            if(availableRegisters.length() > 0 && availableRegisters.get(0) instanceof JSONArray){
+
+                for (int i = 0; i < availableRegisters.length(); i++) {
+                    JSONArray bank = availableRegisters.getJSONArray(i);
+                    for (int j = 0; j < bank.length(); j++) {
+                        out.add(new BRegister(i, bank.getString(j)));
+                    }
+                }
+
+            } else {
+                for (int i = 0; i < availableRegisters.length(); i++) {
+                    String s = availableRegisters.getString(i);
+                    String[] strs = s.split(":");
+                    if(strs.length!=2) throw new IllegalArgumentException("using Banked Kernel3D goal requires that" +
+                            " registers are specified as '0:A' where 0 is the bank and A is the virtual" +
+                            " Register. '"+ s+ "; does not conform");
+                    out.add(new BRegister(Integer.parseInt(strs[0]), strs[1]));
+                }
+            }
+            return out;
+        }
+
+        @Override
+        protected List<? extends BRegister> getOutputRegisters() {
+            if (config.has("filter")) {
+                JSONObject filter = config.getJSONObject("filter");
+                return filter.keySet().stream().map((String bank) -> {
+                    String[] strs = bank.split(":");
+                    if(strs.length!=2) throw new IllegalArgumentException("using Banked Kernel3D goal requires that" +
+                            " filter registers are specified as '0:A' where 0 is the bank and A is the virtual" +
+                            " Register. '"+ bank+ "; does not conform");
+                    return new BRegister(Integer.parseInt(strs[0]), strs[1]);
+                }).collect(Collectors.toList());
+            } else {
+                return new ArrayList<>();
+            }
+        }
+
+        @Override
+        protected List<? extends BRegister> getInputRegisters(){
+            return getRegisterArray(config.getJSONObject("registerAllocator").getJSONArray("initialRegisters"));
+        }
+
+        @Override
+        protected BankedRegisterAllocator<G, T, BRegister> makeRegisterAllocator() {
+            JSONObject regAllocConf = config.getJSONObject("registerAllocator");
+            switch (regAllocConf.getString("name")){
+                case "linearScan":
+                    printLn("\tMaking Linear Scan Register Allocator:");
+                    List<BRegister> availableRegisters = new ArrayList<>(getRegisterArray(regAllocConf.getJSONArray("availableRegisters")));
+                    printLn("Available registers  : " + availableRegisters.toString());
+
+                    List<BRegister> available = new ArrayList<>(getOutputRegisters());
+                    for (BRegister availableRegister : availableRegisters) {
+                        if (!available.contains(availableRegister)) {
+                            available.add(availableRegister);
+                        }
+                    }
+                    List<BRegister> initRegisters = new ArrayList<>(getInputRegisters());
+                    printLn("Initial registers    : " + initRegisters.toString());
+                    return new BankedLinearScanRegisterAllocator<>(available.stream().mapToInt(bRegister -> bRegister.bank).max().orElse(0)+1, initRegisters, initialGoals, available);
+                default:
+                    throw new IllegalArgumentException("Register Allocator Unknown");
+            }
+
+        }
+
 
     }
 

@@ -13,4 +13,13 @@ public class Bits {
     public static boolean isOne(int val, int bit){
         return ((val >>> bit) & 1) != 0;
     }
+
+    public static String Str(int val, int count){
+        char[] chars = new char[count];
+        for (int i = chars.length - 1; i >= 0; i--) {
+            chars[i] = (val & 1) == 1? '1': '0';
+            val = val >> 1;
+        }
+        return new String(chars);
+    }
 }

@@ -1,8 +1,6 @@
 package uk.co.edstow.cain.goals.arrayGoal;
 
-import uk.co.edstow.cain.goals.BankedGoal;
 import uk.co.edstow.cain.goals.BankedKernel3DGoal;
-import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
 import uk.co.edstow.cain.structures.Bounds;
@@ -10,7 +8,7 @@ import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 
-public class BankedArrayGoal implements BankedKernel3DGoal<BankedArrayGoal> {
+public final class BankedArrayGoal implements BankedKernel3DGoal<BankedArrayGoal> {
 
     private final int bank;
     private final int[] arr;
@@ -219,7 +217,7 @@ public class BankedArrayGoal implements BankedKernel3DGoal<BankedArrayGoal> {
 
     @Override
     public int hashCode() {
-        int result = Objects.hash(total, centerX, centerY, centerZ, xSize, ySize, zSize);
+        int result = Objects.hash(total, centerX, centerY, centerZ, xSize, ySize, zSize, bank);
         result = 31 * result + Arrays.hashCode(arr);
         return result;
     }

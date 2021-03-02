@@ -42,10 +42,10 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
         if(!scamp5AnalogueConfig.onlyMov()) {
             for (int i = 0; i < empties.size(); i++) {
                 if (scamp5AnalogueConfig.useRes2 && i + 1 < empties.size()) {
-                    allPairs.add(new GoalPair<>(Arrays.asList(empties.get(i), empties.get(i + 1)), Collections.emptyList(), new Res_2<>(empties.get(i), empties.get(i + 1))));
+                    allPairs.add(new GoalPair<>(Arrays.asList(empties.get(i), empties.get(i + 1)), Collections.emptyList(), new Res_2<>(empties.get(i), empties.get(i + 1), scamp5AnalogueConfig)));
                     i++;
                 } else if (scamp5AnalogueConfig.useRes) {
-                    allPairs.add(new GoalPair<>(empties.get(i), Collections.emptyList(), new Res<>(empties.get(i))));
+                    allPairs.add(new GoalPair<>(empties.get(i), Collections.emptyList(), new Res<>(empties.get(i), scamp5AnalogueConfig)));
                 }
             }
         }
@@ -69,14 +69,14 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
 
         //Res
         if(scamp5AnalogueConfig.useRes && goal.allZero()){
-            Res<G> res = new Res<>(goal);
+            Res<G> res = new Res<>(goal, scamp5AnalogueConfig);
             list.add(new Tuple<>(Collections.singletonList((new GoalPair<>(goal, Collections.emptyList(), res))), initialGoals.get(0)));
             return list;
         }
 
         //Negate
         if(scamp5AnalogueConfig.useNeg) {
-            Neg<G> neg = new Neg<>(goal, true);
+            Neg<G> neg = new Neg<>(goal, true, scamp5AnalogueConfig);
             if (initialGoals.contains(neg.a)) {
                 list.add(new Tuple<>(Collections.singletonList(new GoalPair<>(neg.applyForwards(), neg.a, neg)), neg.a));
             }
@@ -95,10 +95,10 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
                     }
                     if (ic != null) {
                         List<GoalPair<G, Scamp5AnalogueTransformation<G>, Register>> pairs = new ArrayList<>();
-                        Div<G> div = new Div<>(goal, true, scamp5AnalogueConfig.useDiv3);
+                        Div<G> div = new Div<>(goal, true, scamp5AnalogueConfig.useDiv3, scamp5AnalogueConfig);
                         pairs.add(new GoalPair<>(div.applyOpForwards(), Collections.singletonList(div.a), div));
                         while (div.a.totalI() < ic.totalI()) {
-                            div = new Div<>(div.a, true, scamp5AnalogueConfig.useDiv3);
+                            div = new Div<>(div.a, true, scamp5AnalogueConfig.useDiv3, scamp5AnalogueConfig);
                             pairs.add(new GoalPair<>(div.applyOpForwards(), Collections.singletonList(div.a), div));
                         }
                         if (div.a.equals(ic)) {
@@ -124,10 +124,10 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
                     }
                     if (ic != null) {
                         List<GoalPair<G, Scamp5AnalogueTransformation<G>, Register>> pairs = new ArrayList<>();
-                        Divq<G> div = new Divq<>(goal, true);
+                        Divq<G> div = new Divq<>(goal, true, scamp5AnalogueConfig);
                         pairs.add(new GoalPair<>(div.applyOpForwards(), Collections.singletonList(div.a), div));
                         while (div.a.totalI() < ic.totalI()) {
-                            div = new Divq<>(div.a, true);
+                            div = new Divq<>(div.a, true, scamp5AnalogueConfig);
                             pairs.add(new GoalPair<>(div.applyOpForwards(), Collections.singletonList(div.a), div));
                         }
                         if (div.a.equals(ic)) {
@@ -146,7 +146,7 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
         //Move x
         if(scamp5AnalogueConfig.useMovx) {
             for (Dir dir : Dir.values()) {
-                Movx<G> movx = new Movx<>(goal, dir, true);
+                Movx<G> movx = new Movx<>(goal, dir, true, scamp5AnalogueConfig);
                 if (initialGoals.contains(movx.a)) {
                     list.add(new Tuple<>(Collections.singletonList(new GoalPair<>(goal, movx.a, movx)), movx.a));
                 }
@@ -156,11 +156,11 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
         //Move 2x
         if(scamp5AnalogueConfig.useMov2x) {
             for (Dir dir1 : Dir.values()) {
-                Mov2x<G> mov2xa = new Mov2x<>(goal, dir1, dir1, true);
+                Mov2x<G> mov2xa = new Mov2x<>(goal, dir1, dir1, true, scamp5AnalogueConfig);
                 if(initialGoals.contains(mov2xa.a)) {
                     list.add(new Tuple<>(Collections.singletonList(new GoalPair<>(goal, mov2xa.a, mov2xa)), mov2xa.a));
                 }
-                Mov2x<G> mov2xb = new Mov2x<>(goal, dir1, dir1.cw(), true);
+                Mov2x<G> mov2xb = new Mov2x<>(goal, dir1, dir1.cw(), true, scamp5AnalogueConfig);
                 if(initialGoals.contains(mov2xb.a)) {
                     list.add(new Tuple<>(Collections.singletonList(new GoalPair<>(goal, mov2xb.a, mov2xb)), mov2xb.a));
                 }
@@ -181,7 +181,7 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
 
     @Override
     public Scamp5AnalogueTransformation<G> getDummyTransformation(List<G> upperGoals, List<G> lowerGoals, Context<G, Scamp5AnalogueTransformation<G>, Register> context) {
-        return new Scamp5AnalogueTransformation.Null<>(lowerGoals.size(), upperGoals.size());
+        return new Scamp5AnalogueTransformation.Null<>(lowerGoals.size(), upperGoals.size(), this.scamp5ConfGet.getScamp5ConfigForDirectSolve(new GoalBag<>(lowerGoals), context));
     }
 
     public Collection<Tuple<List<G>, Scamp5AnalogueTransformation<G>>> generateValueConstantOps(List<G> goal, Context<G, Scamp5AnalogueTransformation<G>, Register> context) {
@@ -194,7 +194,7 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
     public static class ExhaustivePairGen<G extends Kernel3DGoal<G>> extends uk.co.edstow.cain.pairgen.ExhaustivePairGen<G, Scamp5AnalogueTransformation<G>, Register>{
 
         Scamp5AnalogueConfig<G> scamp5AnalogueConfig;
-        public ExhaustivePairGen(GoalBag<G> goals, Context<G, Scamp5AnalogueTransformation<G>, Register> context, Scamp5AnalogueConfig<G> scamp5AnalogueConfig, CostHeuristic<G, Scamp5AnalogueTransformation<G>> heuristic) {
+        public ExhaustivePairGen(GoalBag<G> goals, Context<G, Scamp5AnalogueTransformation<G>, Register> context, Scamp5AnalogueConfig<G> scamp5AnalogueConfig, CostHeuristic<G, Scamp5AnalogueTransformation<G>, Register> heuristic) {
             super(goals, context, heuristic);
             this.scamp5AnalogueConfig = scamp5AnalogueConfig;
         }
@@ -204,13 +204,13 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
             if(!scamp5AnalogueConfig.onlyMov()) {
                 //Negate
                 if(scamp5AnalogueConfig.useNeg) {
-                    Neg<G> neg = new Neg<>(upper, true);
+                    Neg<G> neg = new Neg<>(upper, true, scamp5AnalogueConfig);
                     pairs.add(new GoalPair<>(upper, neg.a, neg));
                 }
 
                 if (upper.allZero()) {
                     if(scamp5AnalogueConfig.useRes) {
-                        Res<G> res = new Res<>(upper);
+                        Res<G> res = new Res<>(upper, scamp5AnalogueConfig);
                         pairs.add(new GoalPair<>(upper, Collections.emptyList(), res));
 
                     }
@@ -223,7 +223,7 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
                             }
                         }
                         if (other != null) {
-                            Res_2<G> res_2 = new Res_2<>(upper, other);
+                            Res_2<G> res_2 = new Res_2<>(upper, other, scamp5AnalogueConfig);
                             pairs.add(new GoalPair<>(Arrays.asList(upper, other), Collections.emptyList(), res_2));
                         }
                     }
@@ -232,39 +232,39 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
 
                 //Divide
                 if(scamp5AnalogueConfig.useDiv3) {
-                    Div<G> divC = new Div<>(upper, true, true);
+                    Div<G> divC = new Div<>(upper, true, true, scamp5AnalogueConfig);
                     pairs.add(new GoalPair<>(upper, divC.a, divC));
                 }
                 if(scamp5AnalogueConfig.useDiv4) {
-                    Div<G> div = new Div<>(upper, true, false);
+                    Div<G> div = new Div<>(upper, true, false, scamp5AnalogueConfig);
                     pairs.add(new GoalPair<>(upper, div.a, div));
                 }
                 //Divide
                 if(scamp5AnalogueConfig.useDivq) {
-                    Divq<G> divq = new Divq<>(upper, true);
+                    Divq<G> divq = new Divq<>(upper, true, scamp5AnalogueConfig);
                     pairs.add(new GoalPair<>(upper, divq.a, divq));
                 }
             }
 
             //Mov
             if(scamp5AnalogueConfig.useMov) {
-                Mov<G> mov = new Mov<>(upper, true);
+                Mov<G> mov = new Mov<>(upper, true, scamp5AnalogueConfig);
                 pairs.add(new GoalPair<>(upper, mov.a, mov));
             }
 
             //Move x
             if(scamp5AnalogueConfig.useMovx) {
                 for (Dir dir : Dir.values()) {
-                    Movx<G> movx = new Movx<>(upper, dir, true);
+                    Movx<G> movx = new Movx<>(upper, dir, true, scamp5AnalogueConfig);
                     pairs.add(new GoalPair<>(upper, movx.a, movx));
                 }
             }
 
             if(scamp5AnalogueConfig.useMov2x) {
                 for (Dir dir1 : Dir.values()) {
-                    Mov2x<G> mov2xa = new Mov2x<>(upper, dir1, dir1, true);
+                    Mov2x<G> mov2xa = new Mov2x<>(upper, dir1, dir1, true, scamp5AnalogueConfig);
                     pairs.add(new GoalPair<>(upper, mov2xa.a, mov2xa));
-                    Mov2x<G> mov2xb = new Mov2x<>(upper, dir1, dir1.cw(), true);
+                    Mov2x<G> mov2xb = new Mov2x<>(upper, dir1, dir1.cw(), true, scamp5AnalogueConfig);
                     pairs.add(new GoalPair<>(upper, mov2xb.a, mov2xb));
                 }
             }
@@ -320,14 +320,14 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
                 }
                 if (!skipAdd_2) {
                     if(scamp5AnalogueConfig.useAdd) {
-                        Add_2<G> add = new Add_2<>(a, b);
+                        Add_2<G> add = new Add_2<>(a, b, scamp5AnalogueConfig);
                         pairs.add(new GoalPair<>(upper, Arrays.asList(a, b), add));
                     }
                     if (scamp5AnalogueConfig.useAddx) {
                         for (Dir dir : Dir.values()) {
                             G movA = a.translated(-dir.x, -dir.y, 0);
                             G movB = b.translated(-dir.x, -dir.y, 0);
-                            Addx<G> addx = new Addx<>(movA, movB, dir);
+                            Addx<G> addx = new Addx<>(movA, movB, dir, scamp5AnalogueConfig);
                             pairs.add(new GoalPair<>(upper, Arrays.asList(movA, movB), addx));
                         }
                     }
@@ -335,12 +335,12 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
                         for (Dir dir1 : Dir.values()) {
                             G aMovA = a.translated(-dir1.x - dir1.x, -dir1.y - dir1.y, 0);
                             G bMovA = b.translated(-dir1.x - dir1.x, -dir1.y - dir1.y, 0);
-                            Add2x<G> add2xa = new Add2x<>(aMovA, bMovA, dir1, dir1);
+                            Add2x<G> add2xa = new Add2x<>(aMovA, bMovA, dir1, dir1, scamp5AnalogueConfig);
                             pairs.add(new GoalPair<>(upper, Arrays.asList(aMovA, bMovA), add2xa));
                             Dir dir2 = dir1.cw();
                             G aMovB = a.translated(-dir1.x - dir2.x, -dir1.y - dir2.y, 0);
                             G bMovB = b.translated(-dir1.x - dir2.x, -dir1.y - dir2.y, 0);
-                            Add2x<G> add2xb = new Add2x<>(aMovB, bMovB, dir1, dir2);
+                            Add2x<G> add2xb = new Add2x<>(aMovB, bMovB, dir1, dir2, scamp5AnalogueConfig);
                             pairs.add(new GoalPair<>(upper, Arrays.asList(aMovB, bMovB), add2xb));
                         }
                     }
@@ -348,24 +348,24 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
 
                 G negB = b.negated();
                 if(scamp5AnalogueConfig.useSub) {
-                    Sub<G> sub = new Sub<>(a, negB);
+                    Sub<G> sub = new Sub<>(a, negB, scamp5AnalogueConfig);
                     pairs.add(new GoalPair<>(upper, Arrays.asList(a, negB), sub));
                 }
                 if (scamp5AnalogueConfig.useSubx) {
                     for (Dir dir : Dir.values()) {
                         G movA = a.translated(-dir.x, -dir.y, 0);
-                        Subx<G> subx = new Subx<>(movA, negB, dir);
+                        Subx<G> subx = new Subx<>(movA, negB, dir, scamp5AnalogueConfig);
                         pairs.add(new GoalPair<>(upper, Arrays.asList(movA, negB), subx));
                     }
                 }
                 if (scamp5AnalogueConfig.useSub2x) {
                     for (Dir dir1 : Dir.values()) {
                         G aMovA = a.translated(-dir1.x - dir1.x, -dir1.y - dir1.y, 0);
-                        Sub2x<G> sub2xa = new Sub2x<>(aMovA, negB, dir1, dir1);
+                        Sub2x<G> sub2xa = new Sub2x<>(aMovA, negB, dir1, dir1, scamp5AnalogueConfig);
                         pairs.add(new GoalPair<>(upper, Arrays.asList(aMovA, negB), sub2xa));
                         Dir dir2 = dir1.cw();
                         G aMovB = a.translated(-dir1.x - dir2.x, -dir1.y - dir2.y, 0);
-                        Sub2x<G> sub2xb = new Sub2x<>(aMovB, negB, dir1, dir2);
+                        Sub2x<G> sub2xb = new Sub2x<>(aMovB, negB, dir1, dir2, scamp5AnalogueConfig);
                         pairs.add(new GoalPair<>(upper, Arrays.asList(aMovB, negB), sub2xb));
                     }
                 }
@@ -385,7 +385,7 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
                             continue;
                         }
                         if (!skipAdd_3) {
-                            Add_3<G> add = new Add_3<>(aa, ab, b);
+                            Add_3<G> add = new Add_3<>(aa, ab, b, scamp5AnalogueConfig);
                             pairs.add(new GoalPair<>(upper, Arrays.asList(aa, ab, b), add));
                         }
                     }
@@ -424,7 +424,7 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
                     SimpleTransformation.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
                     Dir dir1 = Dir.fromDirection(d1).opposite();
                     Dir dir2 = Dir.fromDirection(d2).opposite();
-                    Mov2x<G> mov2x = new Mov2x<>(item.a, dir1, dir2, true);
+                    Mov2x<G> mov2x = new Mov2x<>(item.a, dir1, dir2, true, scamp5AnalogueConfig);
                     Item newItem = new Item(item, new GoalPair<>(item.a, mov2x.a, mov2x));
                     outList.add(newItem);
                 }
@@ -432,11 +432,11 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
                     //movx
                     SimpleTransformation.Direction d1 = item.distance.majorXYDirection();
                     Dir dir1 = Dir.fromDirection(d1).opposite();
-                    Movx<G> movx = new Movx<>(item.a, dir1, true);
+                    Movx<G> movx = new Movx<>(item.a, dir1, true, scamp5AnalogueConfig);
                     Item newItem = new Item(item, new GoalPair<>(item.a, movx.a, movx));
                     outList.add(newItem);
                 } else if(scamp5AnalogueConfig.useNeg && item.negate){
-                    Item newItem = new Item(item, new GoalPair<>(item.a, item.to, new Neg<>(item.to)));
+                    Item newItem = new Item(item, new GoalPair<>(item.a, item.to, new Neg<>(item.to, scamp5AnalogueConfig)));
                     outList.add(newItem);
                 }
             } else if (!scamp5AnalogueConfig.onlyMov()){
@@ -446,7 +446,7 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
                 if(scamp5AnalogueConfig.useAdd) {
                     G split2 = aWithoutTmp;
                     List<G> lowers = Arrays.asList(tmp, split2);
-                    Item newItem = new Item(item, new GoalPair<>(item.a, lowers, new Add_2<>(tmp, split2)));
+                    Item newItem = new Item(item, new GoalPair<>(item.a, lowers, new Add_2<>(tmp, split2, scamp5AnalogueConfig)));
                     outList.add(newItem);
                 }
 
@@ -454,7 +454,7 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
                 if(scamp5AnalogueConfig.useSub) {
                     G split2 = aWithoutTmp.negated();
                     List<G> lowers = Arrays.asList(tmp, split2);
-                    Item newItem = new Item(item, new GoalPair<>(item.a, lowers, new Sub<>(tmp, split2)));
+                    Item newItem = new Item(item, new GoalPair<>(item.a, lowers, new Sub<>(tmp, split2, scamp5AnalogueConfig)));
                     outList.add(newItem);
                 }
                 //TODO add_3 support?
@@ -464,7 +464,7 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
                     Dir dir1 = Dir.fromDirection(item.distance.majorXYDirection()).opposite();
                     G split1 = aWithoutTmp.translated(-dir1.x, -dir1.y, 0);
                     G split2 = tmp.translated(-dir1.x, -dir1.y, 0);
-                    Addx<G> addx = new Addx<>(split1, split2, dir1);
+                    Addx<G> addx = new Addx<>(split1, split2, dir1, scamp5AnalogueConfig);
                     Item newItem = new Item(item, new GoalPair<>(item.a, Arrays.asList(split1, split2), addx));
                     outList.add(newItem);
                 }
@@ -477,7 +477,7 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
                     Dir dir2 = Dir.fromDirection(d2).opposite();
                     G split1 = aWithoutTmp.translated(-dir1.x -dir2.x, -dir1.y-dir2.y, 0);
                     G split2 = tmp.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0);
-                    Add2x<G> add2x = new Add2x<>(split1, split2, dir1, dir2);
+                    Add2x<G> add2x = new Add2x<>(split1, split2, dir1, dir2, scamp5AnalogueConfig);
                     Item newItem = new Item(item, new GoalPair<>(item.a, Arrays.asList(split1, split2), add2x));
                     
                     outList.add(newItem);
@@ -488,7 +488,7 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
                     Dir dir1 = Dir.fromDirection(item.distance.majorXYDirection()).opposite();
                     G split1 = tmp.translated(-dir1.x, -dir1.y, 0);
                     G split2 = aWithoutTmp.negated();
-                    Subx<G> subx = new Subx<>(split1, split2, dir1);
+                    Subx<G> subx = new Subx<>(split1, split2, dir1, scamp5AnalogueConfig);
                     Item newItem = new Item(item, new GoalPair<>(item.a, Arrays.asList(split1, split2), subx));
                     outList.add(newItem);
                 }
@@ -501,7 +501,7 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
                     Dir dir2 = Dir.fromDirection(d2).opposite();
                     G split1 = tmp.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0);
                     G split2 = aWithoutTmp.negated();
-                    Sub2x<G> sub2x = new Sub2x<>(split1, split2, dir1, dir2);
+                    Sub2x<G> sub2x = new Sub2x<>(split1, split2, dir1, dir2, scamp5AnalogueConfig);
                     Item newItem = new Item(item, new GoalPair<>(item.a, Arrays.asList(split1, split2), sub2x));
                     outList.add(newItem);
                 }
@@ -520,14 +520,14 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
                 if(scamp5AnalogueConfig.useAdd) {
                     G split1 = aWithoutTo;
                     G split2 = item.to;
-                   Item newItem = new Item(item, new GoalPair<>(item.a, Arrays.asList(split1, split2), new Add_2<>(split1, split2)));
+                   Item newItem = new Item(item, new GoalPair<>(item.a, Arrays.asList(split1, split2), new Add_2<>(split1, split2, scamp5AnalogueConfig)));
                     outList.add(newItem);
                 }
             } else {
                 if(scamp5AnalogueConfig.useSub) {
                     G split1 = aWithoutTo;
                     G split2 = item.to.negated();
-                   Item newItem = new Item(item, new GoalPair<>(item.a, Arrays.asList(split1, split2), new Sub<>(split1, split2)));
+                   Item newItem = new Item(item, new GoalPair<>(item.a, Arrays.asList(split1, split2), new Sub<>(split1, split2, scamp5AnalogueConfig)));
                     outList.add(newItem);
                 }
             }
@@ -544,7 +544,7 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
                 if(!split1.allZero() && !tmp.allZero()) {
                     G split2 = tmp;
                     G split3 = item.to;
-                   Item newItem = new Item(item, new GoalPair<>(item.a, Arrays.asList(split1, split2, split3), new Add_3<>(split1, split2, split3)));
+                   Item newItem = new Item(item, new GoalPair<>(item.a, Arrays.asList(split1, split2, split3), new Add_3<>(split1, split2, split3, scamp5AnalogueConfig)));
                     outList.add(newItem);
                 }
             }
@@ -552,7 +552,7 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
                 Dir dir1 = Dir.fromDirection(centre.majorXYDirection());
                 G split1 = aWithoutTo.translated(-dir1.x, -dir1.y, 0);
                 G split2 = item.to.translated(-dir1.x, -dir1.y, 0);
-                Addx<G> addx = new Addx<>(split1, split2, dir1);
+                Addx<G> addx = new Addx<>(split1, split2, dir1, scamp5AnalogueConfig);
                 Item newItem = new Item(item, new GoalPair<>(item.a, Arrays.asList(split1, split2), addx));
                 outList.add(newItem);
             }
@@ -565,7 +565,7 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
                 Dir dir2 = Dir.fromDirection(d2);
                 G split1 = aWithoutTo.translated(-dir1.x -dir2.x, -dir1.y-dir2.y, 0);
                 G split2 = item.to.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0);
-                Add2x<G> add2x = new Add2x<>(split1, split2, dir1, dir2);
+                Add2x<G> add2x = new Add2x<>(split1, split2, dir1, dir2, scamp5AnalogueConfig);
                 Item newItem = new Item(item, new GoalPair<>(item.a, Arrays.asList(split1, split2), add2x));
                 outList.add(newItem);
             }
@@ -574,7 +574,7 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
                 Dir dir1 = Dir.fromDirection(item.distance.majorXYDirection()).opposite();
                 G split1 = aWithoutTo.translated(-dir1.x, -dir1.y, 0);
                 G split2 = item.to.negated();
-                Item newItem = new Item(item, new GoalPair<>(item.a, Arrays.asList(split1, split2), new Subx<>(split1, split2, dir1)));
+                Item newItem = new Item(item, new GoalPair<>(item.a, Arrays.asList(split1, split2), new Subx<>(split1, split2, dir1, scamp5AnalogueConfig)));
                 outList.add(newItem);
             }
 
@@ -585,7 +585,7 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
                 Dir dir2 = Dir.fromDirection(d2).opposite();
                 G split1 = aWithoutTo.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0);
                 G split2 = item.to.negated();
-                Item newItem = new Item(item, new GoalPair<>(item.a, Arrays.asList(split1, split2), new Sub2x<>(split1, split2, dir1, dir2)));
+                Item newItem = new Item(item, new GoalPair<>(item.a, Arrays.asList(split1, split2), new Sub2x<>(split1, split2, dir1, dir2, scamp5AnalogueConfig)));
                 outList.add(newItem);
             }
         }
@@ -597,7 +597,7 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
                 SimpleTransformation.Direction d1 = centre.majorXYDirection();
                 if(d1!= null) {
                     Dir dir1 = Dir.fromDirection(d1);
-                    Movx<G> movx = new Movx<>(a, dir1, true);
+                    Movx<G> movx = new Movx<>(a, dir1, true, scamp5AnalogueConfig);
                     Item newItem = new Item(a, movx.a, movx, new Distance(d1, 1), false);
                     outList.add(newItem);
                 }
@@ -609,7 +609,7 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
                     if (d2 != null) {
                         Dir dir1 = Dir.fromDirection(d1).opposite();
                         Dir dir2 = Dir.fromDirection(d2).opposite();
-                        Mov2x<G> mov2x = new Mov2x<>(a, dir1, dir2, true);
+                        Mov2x<G> mov2x = new Mov2x<>(a, dir1, dir2, true, scamp5AnalogueConfig);
                         Item newItem = new Item(a, mov2x.a, mov2x, new Distance(d1, 1).then(d2), false);
                         outList.add(newItem);
                     }
@@ -619,7 +619,7 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
                 for (G initialGoal : context.initialGoals) {
                     if (initialGoal.hasSubGoal(a)) {
                         G l = a.added(a);
-                        Item newItem = new Item(a, l, new Divq<>(l));
+                        Item newItem = new Item(a, l, new Divq<>(l, scamp5AnalogueConfig));
                         outList.add(newItem);
                     }
                 }
@@ -630,9 +630,9 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
 
     public static class AnalogueAtomDistanceSortedPairGen<G extends Kernel3DGoal<G>> extends AnalogueAtomDistancePairGen<G> {
 
-        private final CostHeuristic<G, Scamp5AnalogueTransformation<G>> heuristic;
+        private final CostHeuristic<G, Scamp5AnalogueTransformation<G>, Register> heuristic;
 
-        public AnalogueAtomDistanceSortedPairGen(GoalBag<G> goals, Context<G, Scamp5AnalogueTransformation<G>, Register> conf, Scamp5AnalogueConfig<G> scamp5Config, CostHeuristic<G, Scamp5AnalogueTransformation<G>> heuristic) {
+        public AnalogueAtomDistanceSortedPairGen(GoalBag<G> goals, Context<G, Scamp5AnalogueTransformation<G>, Register> conf, Scamp5AnalogueConfig<G> scamp5Config, CostHeuristic<G, Scamp5AnalogueTransformation<G>, Register> heuristic) {
             super(goals, conf, scamp5Config, new PlainCombinationIterator(goals.size()));
             this.heuristic = heuristic;
         }

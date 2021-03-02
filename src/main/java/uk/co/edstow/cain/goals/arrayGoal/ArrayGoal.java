@@ -9,7 +9,7 @@ import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 
-public class ArrayGoal implements Kernel3DGoal<ArrayGoal> {
+public final class ArrayGoal implements Kernel3DGoal<ArrayGoal> {
 
     private final int[] arr;
     private final int total;

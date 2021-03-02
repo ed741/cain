@@ -2,10 +2,13 @@ package uk.co.edstow.cain.scamp5.superPixel;
 
 import uk.co.edstow.cain.scamp5.Scamp5ConfigGetter;
 import uk.co.edstow.cain.structures.Goal;
+import uk.co.edstow.cain.util.Bits;
 import uk.co.edstow.cain.util.Tuple;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class Scamp5SuperPixelConfig<G extends Goal<G>> implements Scamp5ConfigGetter.Scamp5Config<G, Scamp5SuperPixelConfig<G>> {
 
@@ -37,19 +40,8 @@ public class Scamp5SuperPixelConfig<G extends Goal<G>> implements Scamp5ConfigGe
         this.bits = new int[banks];
         this.xBankStart = new int[banks];
         this.yBankStart = new int[banks];
-        for (int i = 0; i < this.banks; i++) {
-            this.bits[i] = Arrays.stream(this.bitOrder[i]).mapToInt(is -> Arrays.stream(is).max().orElse(0)).max().orElse(0);
-
-            loop: for (int x = 0; x < this.width; x++) {
-                for (int y = 0; y < this.height; y++) {
-                    if(this.bitOrder[i][x][y] == 1){
-                        this.xBankStart[i] = x;
-                        this.yBankStart[i] = y;
-                        break loop;
-                    }
-                }
-            }
-        }
+        this.sameShapeLookup = new boolean[banks][banks];
+        generateBankInfo();
     }
 
     public final boolean useMovbx;
@@ -76,6 +68,7 @@ public class Scamp5SuperPixelConfig<G extends Goal<G>> implements Scamp5ConfigGe
     public final int[] bits;
     public final int[] xBankStart;
     public final int[] yBankStart;
+    public final boolean[][] sameShapeLookup;
 
     public Scamp5SuperPixelConfig(Scamp5SuperPixelConfig<G> proto, List<String> scratchRegisters, String selectReg, String maskReg, String maskedReg, String northReg, String eastReg, String southReg, String westReg, int width, int height, int banks, int[][][] bitOrder) {
         this.useMovbx = proto.useMovbx;
@@ -105,19 +98,8 @@ public class Scamp5SuperPixelConfig<G extends Goal<G>> implements Scamp5ConfigGe
         this.bits = new int[banks];
         this.xBankStart = new int[banks];
         this.yBankStart = new int[banks];
-        for (int i = 0; i < this.banks; i++) {
-            this.bits[i] = Arrays.stream(this.bitOrder[i]).mapToInt(is -> Arrays.stream(is).max().orElse(0)).max().orElse(0);
-
-            loop: for (int x = 0; x < this.width; x++) {
-                for (int y = 0; y < this.height; y++) {
-                    if(this.bitOrder[i][x][y] == 1){
-                        this.xBankStart[i] = x;
-                        this.yBankStart[i] = y;
-                        break loop;
-                    }
-                }
-            }
-        }
+        this.sameShapeLookup = new boolean[banks][banks];
+        generateBankInfo();
 
     }
 
@@ -147,8 +129,43 @@ public class Scamp5SuperPixelConfig<G extends Goal<G>> implements Scamp5ConfigGe
         this.bits = proto.bits;
         this.xBankStart = proto.xBankStart;
         this.yBankStart = proto.yBankStart;
+        this.sameShapeLookup = proto.sameShapeLookup;
+
+    }
 
 
+    private void generateBankInfo() {
+        for (int i = 0; i < this.banks; i++) {
+            this.bits[i] = Arrays.stream(this.bitOrder[i]).mapToInt(is -> Arrays.stream(is).max().orElse(0)).max().orElse(0);
+
+            loop:
+            for (int x = 0; x < this.width; x++) {
+                for (int y = 0; y < this.height; y++) {
+                    if (this.bitOrder[i][x][y] == 1) {
+                        this.xBankStart[i] = x;
+                        this.yBankStart[i] = y;
+                        break loop;
+                    }
+                }
+            }
+        }
+        for (int i = 0; i < this.banks; i++) {
+            for (int j = 0; j < this.banks; j++) {
+                boolean same = true;
+                for (int x = 0; x < width; x++) {
+                    for (int y = 0; y < height; y++) {
+                        if(this.bitOrder[i][x][y]>0){
+                            int jx = x-this.xBankStart[i]+this.xBankStart[j];
+                            int jy = y-this.yBankStart[i]+this.yBankStart[j];
+                            same &= 0 <= jx && jx < this.width &&
+                                    0 <= jy && jy < this.height &&
+                                    this.bitOrder[i][x][y] == this.bitOrder[j][jx][jy];
+                        }
+                    }
+                }
+                this.sameShapeLookup[i][j] = same;
+            }
+        }
     }
 
     @Override
@@ -165,11 +182,455 @@ public class Scamp5SuperPixelConfig<G extends Goal<G>> implements Scamp5ConfigGe
         return this.bits[bank];
     }
     public boolean isBankSameShape(int bank1, int bank2){
-        return Arrays.deepEquals(this.bitOrder[bank1], this.bitOrder[bank2]);
+        return this.sameShapeLookup[bank1][bank2];
     }
 
     public Tuple<Integer, Integer> getBankTranslation(int fromBank, int toBank) {
         return new Tuple<>(xBankStart[toBank] - xBankStart[fromBank], yBankStart[toBank] - yBankStart[fromBank]);
+    }
+
+
+
+    private enum Dir{
+        N(0,'N','n', 0,1, c->c.northReg),
+        E(1,'E','e',1,0, c->c.eastReg),
+        S(2,'S','s',0,-1, c->c.southReg),
+        W(3,'W','w',-1,0, c->c.westReg);
+        final char u;
+        final char l;
+        final int idx;
+        final int x;
+        final int y;
+        private final Function<Scamp5SuperPixelConfig<?>, String> getReg;
+        Dir(int idx, char u, char l, int x, int y, Function<Scamp5SuperPixelConfig<?>, String> getReg) {
+            this.idx = idx;
+            this.u = u;
+            this.l = l;
+            this.x = x;
+            this.y = y;
+            this.getReg = getReg;
+        }
+        String getReg(Scamp5SuperPixelConfig<?> config){
+            return this.getReg.apply(config);
+        }
+        int get(int[] arr){
+            return arr[idx];
+        }
+        int inc(int[] arr){
+            arr[idx] = arr[idx]+1;
+            return arr[idx];
+        }
+        int dec(int[] arr){
+            arr[idx] = arr[idx]-1;
+            return arr[idx];
+        }
+        int add(int[] arr, int val){
+            arr[idx] = arr[idx]+val;
+            return arr[idx];
+        }
+        int set(int[] arr, int val){
+            int t = arr[idx];
+            arr[idx] = val;
+            return t;
+        }
+        static int[] makeArray(int d){
+            int[] ints = new int[Dir.values().length];
+            Arrays.fill(ints, d);
+            return ints;
+        }
+        boolean get(boolean[] arr){
+            return arr[idx];
+        }
+        boolean or(boolean[] arr, boolean v){
+            arr[idx] = arr[idx] || v;
+            return arr[idx];
+        }
+        boolean and(boolean[] arr, boolean v){
+            arr[idx] = arr[idx] && v;
+            return arr[idx];
+        }
+        boolean set(boolean[] arr, boolean v){
+            boolean t = arr[idx];
+            arr[idx] =  v;
+            return t;
+        }
+        static boolean[] makeArray(boolean d){
+            boolean[] booleans = new boolean[Dir.values().length];
+            Arrays.fill(booleans, d);
+            return booleans;
+        }
+        static <V> Map<Dir, V> makeMap(Supplier<V> defaultVal){
+            Map<Dir, V> map = new HashMap<>();
+            for (Dir value : Dir.values()) {
+                map.put(value, defaultVal.get());
+            }
+            return map;
+        }
+        static Dir getDir(char c){
+            for (int i = 0; i < Dir.values().length; i++) {
+                if(Dir.values()[i].u == c || Dir.values()[i].l == c) return Dir.values()[i];
+            }
+            throw new IllegalArgumentException("char isn't a Dir");
+        }
+
+    }
+
+    private static class Pattern {
+        public final int xMask;
+        public final int yMask;
+        public final int xVal;
+        public final int yVal;
+        public final int count;
+        public final boolean[][] set;
+
+
+        Pattern(int xMask, int yMask, int xVal, int yVal, int count, boolean[][] set) {
+            this.xMask = xMask;
+            this.yMask = yMask;
+            this.xVal = xVal;
+            this.yVal = yVal;
+            this.count = count;
+            this.set = set;
+        }
+    }
+//    void printBitCharMask(char[][] dirs, int w, int h){
+//        for (int y = h-1; y >= 0 ; y--) {
+//            for (int x = 0; x < w; x++) {
+//                System.out.print(dirs[x][y]=='\0'?'_':dirs[x][y]);
+//                if(x<w-1) {
+//                    System.out.print(',');
+//                }
+//            }
+//            System.out.println();
+//        }
+//    }
+//    void printBitSet(boolean[][] set, int w, int h){
+//        for (int y = h-1; y >= 0 ; y--) {
+//            for (int x = 0; x < w; x++) {
+//                System.out.print(set[x][y]?'1':'0');
+//                if(x<w-1) {
+//                    System.out.print(',');
+//                }
+//            }
+//            System.out.println();
+//        }
+//    }
+
+    void selectBank(StringBuilder sb, int bank, String reg, List<String> scratchRegisters) {
+        char[][] mask = new char[this.width][this.height];
+        for (int x = 0; x < this.width; x++) {
+            for (int y = 0; y < this.height; y++) {
+                mask[x][y] = this.bitOrder[bank][x][y] > 0? 'O':'#';
+            }
+        }
+//        printBitCharMask(mask, this.width, this.height);
+        List<Pattern> patternList = generateBitPatterns(mask, this.getBits(bank));
+        List<String> toClear = new ArrayList<>();
+        sb.append(String.format("/*SetSelectBank %s -> %s*/", bank, reg));
+        List<String> availableRegs = new ArrayList<>(scratchRegisters);
+        if(!availableRegs.contains(reg)) availableRegs.add(reg);
+        generateCodeForPatternsReg(sb, availableRegs, toClear, reg, patternList);
+        sb.append("/*done - SetSelectBank*/");
+    }
+
+
+
+    void setDirLessSignificant(StringBuilder sb, int bank) {
+        int[][] bitOrder = this.bitOrder[bank];
+        char[][] bitDir = new char[this.width][this.height];
+        int[] count = generateBitDirectionArray(bank, bitOrder, bitDir, true);
+        Map<Dir, List<Pattern>> patterns = generateBitDirectionPatterns(bitDir, count);
+        sb.append("/*SetDirLessSignificant*/");
+        generateCodeForDirectionPatterns(sb, patterns);
+        sb.append("/*done - SetDirLessSignificant*/");
+
+    }
+
+    void setDirMoreSignificant(StringBuilder sb, int bank) {
+        int[][] bitOrder = this.bitOrder[bank];
+        char[][] bitDir = new char[this.width][this.height];
+        int[] count = generateBitDirectionArray(bank, bitOrder, bitDir, false);
+        Map<Dir, List<Pattern>> patterns = generateBitDirectionPatterns(bitDir, count);
+        sb.append("/*SetDirMoreSignificant*/");
+        generateCodeForDirectionPatterns(sb, patterns);
+        sb.append("/*done - SetDirMoreSignificant*/");
+    }
+
+    private void generateCodeForDirectionPatterns(StringBuilder sb, Map<Dir, List<Pattern>> patterns) {
+        List<Map.Entry<Dir, List<Pattern>>> patternList = patterns.entrySet().stream().sorted(Comparator.comparingInt(e -> -e.getValue().size())).collect(Collectors.toList());
+        List<String> availableRegs = new ArrayList<>(Arrays.asList(this.northReg, this.southReg, this.eastReg, this.westReg, this.maskReg));
+        List<String> toClear = new ArrayList<>();
+        for (Map.Entry<Dir, List<Pattern>> entry : patternList) {
+            Dir dir = entry.getKey();
+            List<Pattern> list = entry.getValue();
+            String reg = dir.getReg(this);
+            sb.append(String.format("/* loading Dir: %s into %s */", dir.u, reg));
+            generateCodeForPatternsReg(sb, availableRegs, toClear, reg, list);
+        }
+        if(!toClear.isEmpty()){
+            sb.append(String.format("CLR(%s",toClear.get(0)));
+            for (int i = 1; i < toClear.size(); i++) {
+                sb.append(String.format(", %s", toClear.get(i)));
+            }
+            sb.append("); ");
+        }
+    }
+
+    private void generateCodeForPatternsReg(StringBuilder sb, List<String> availableRegs, List<String> toClear, String reg, List<Pattern> list) {
+        availableRegs.remove(reg);
+        if (list.isEmpty()){
+            toClear.add(reg);
+        } else if (list.size()==1){
+            Pattern pattern = list.get(0);
+            if(reg.equals(this.selectReg)) {
+                sb.append(String.format("scamp5_select_pattern(%s, %s, %s, %s); ", pattern.xVal, pattern.yVal, pattern.xMask, pattern.yMask));
+            } else {
+                sb.append(String.format("scamp5_load_pattern(%s, %s, %s, %s, %s); ", reg, pattern.xVal, pattern.yVal, pattern.xMask, pattern.yMask));
+            }
+        } else if (list.size() <= 4 && list.size() <= availableRegs.size()+1) {
+            if(reg.equals(this.selectReg)) {
+                throw new IllegalArgumentException("Scamp5 cannot have multiple patterns together in select register: "+this.selectReg);
+            }
+            Pattern pattern;
+            for (int i = 0; i < list.size() - 1; i++) {
+                pattern = list.get(i);
+                sb.append(String.format("scamp5_load_pattern(%s, %s, %s, %s, %s); ", availableRegs.get(i), pattern.xVal, pattern.yVal, pattern.xMask, pattern.yMask));
+            }
+            pattern = list.get(list.size()-1);
+            sb.append(String.format("scamp5_select_pattern(%s, %s, %s, %s); ", pattern.xVal, pattern.yVal, pattern.xMask, pattern.yMask));
+            sb.append(String.format("OR(%s, ", reg));
+            for (int i = 0; i < list.size() - 1; i++) {
+                sb.append(availableRegs.get(i)).append(", ");
+            }
+            sb.append(String.format("%s); ", this.selectReg));
+        } else {
+            throw new IllegalArgumentException("More complex Direction-Pattern loading not supported. Ask a developer for support");
+        }
+    }
+
+
+    private Map<Dir, List<Pattern>> generateBitDirectionPatterns(char[][] bitDir, int[] count) {
+
+
+        Map<Dir, List<Pattern>> patterns = Dir.makeMap(ArrayList::new);
+
+
+        List<Tuple<Integer, Integer>> masks = new ArrayList<>();
+        {
+            for (int i = 0; i < this.width; i++) {
+                for (int j = 0; j < this.height; j++) {
+                    masks.add(new Tuple<>(i, j));
+                }
+            }
+            masks.sort(Comparator.comparingInt(a -> -Bits.countOnes(a.getA()) - Bits.countOnes(a.getB())));
+        }
+
+        while(Arrays.stream(count).sum()>0){
+
+            Map<Dir, List<Pattern>> nextPatterns = Dir.makeMap(ArrayList::new);
+
+            for (Tuple<Integer, Integer> mask : masks) {
+                int xMask = mask.getA();
+                int yMask = mask.getB();
+                for (int xVal = 0; xVal < this.width; xVal++) {
+                    for (int yVal = 0; yVal < this.height; yVal++) {
+                        if ((xMask & xVal) > 0 || (yMask & yVal) > 0) continue;
+
+                        boolean[][] set = getPatternSetArray(xMask, yMask, xVal, yVal);
+//                        System.out.println("xMask: " + Bits.Str(xMask, 2) + " xVal: " + Bits.Str(xVal, 2) + " yMask: " + Bits.Str(yMask, 2) + " yVal: " + Bits.Str(yVal, 2));
+//                        printBitSet(set, this.width, this.height);
+
+                        boolean[] match = Dir.makeArray(true);
+                        int[] newCount = Dir.makeArray(0);
+                        for (int x = 0; x < this.width; x++) {
+                            for (int y = 0; y < this.height; y++) {
+                                if (set[x][y]) {
+                                    for (Dir dir : Dir.values()) {
+                                        dir.and(match, bitDir[x][y] == dir.u || bitDir[x][y] == dir.l || bitDir[x][y] == 0);
+                                        dir.add(newCount, bitDir[x][y] == dir.u ? 1 : 0);
+                                    }
+                                }
+                            }
+                        }
+//                        for (Dir dir : Dir.values()) {
+//                            System.out.print(dir.u+":" + (dir.get(match) ? "T " : "F ") + dir.get(newCount) + ",  ");
+//                        } System.out.println();
+
+
+                        for (Dir dir : Dir.values()) {
+                            if(dir.get(match) && dir.get(newCount)>0){
+                                nextPatterns.get(dir).add(new Pattern(xMask, yMask, xVal, yVal, dir.get(newCount), set));
+                                break;
+                            }
+                        }
+
+                    }
+                }
+            }
+            nextPatterns.forEach((dir, ps) -> ps.sort(Comparator.comparingInt(pattern -> -pattern.count)));
+            for (Dir dir : Dir.values()) {
+                List<Pattern> patternList = nextPatterns.get(dir);
+                if(!patternList.isEmpty()){
+                    Pattern pattern = patternList.get(0);
+                    patterns.get(dir).add(pattern);
+                    dir.add(count, -pattern.count);
+                    for (int x = 0; x < this.width; x++) {
+                        for (int y = 0; y < this.height; y++) {
+                            if (pattern.set[x][y] && bitDir[x][y] != 0) {
+                                bitDir[x][y] = dir.l;
+                            }
+                        }
+                    }
+                }
+            }
+//            printBitCharMask(bitDir, this.width, this.height);
+
+        }
+        if (Arrays.stream(count).sum()!=0) throw new IllegalArgumentException("Cannot find patterns to match bank");
+        return patterns;
+    }
+
+    private int[] generateBitDirectionArray(int bank, int[][] bitOrder, char[][] bitDir, boolean forwards) {
+        int bits = this.getBits(bank);
+        int xPos = -1;
+        int yPos = -1;
+        if(forwards) {
+            xPos = this.xBankStart[bank];
+            yPos = this.yBankStart[bank];
+        } else {
+            boolean found = false;
+            // start at the highest number (most significant bit)
+            for (int x = 0; x < this.width; x++) {
+                for (int y = 0; y < this.height; y++) {
+                    if(bitOrder[x][y] == bits){
+                        xPos = x;
+                        yPos = y;
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            if (!found) throw new IllegalArgumentException("getBits("+bank+") returned returned "+bits+" but this value isn't in BitOrder");
+        }
+        int place;
+
+        int[] count = Dir.makeArray(0);
+        bitDir[xPos][yPos] = 'O';// origin (least or most significant bit depending on 'forwards')
+        do {
+            place = bitOrder[xPos][yPos];
+            for (int i = 0; i < Dir.values().length; i++) {
+                Dir dir = Dir.values()[i];
+                if (0 <= xPos - dir.x && xPos - dir.x < this.width && 0 <= yPos - dir.y && yPos - dir.y < this.height && bitOrder[xPos - dir.x][yPos - dir.y] == place + (forwards?1:-1) && place + (forwards?1:-1)>0) {
+                    bitDir[xPos - dir.x][yPos - dir.y] = dir.u;
+                    dir.inc(count);
+                    xPos = xPos - dir.x;
+                    yPos = yPos - dir.y;
+                    break;
+                }
+            }
+        } while (place != bitOrder[xPos][yPos]);
+//        printBitCharMask(bitDir, this.width, this.height);
+        if (place != (forwards?bits:1)) throw new IllegalArgumentException("Cannot find bits!");
+        return count;
+    }
+
+
+
+    private List<Pattern> generateBitPatterns(char[][] bitMask, int count) {
+
+        List<Pattern> patterns = new ArrayList<>();
+
+
+        List<Tuple<Integer, Integer>> masks = new ArrayList<>();
+        {
+            for (int i = 0; i < this.width; i++) {
+                for (int j = 0; j < this.height; j++) {
+                    masks.add(new Tuple<>(i, j));
+                }
+            }
+            masks.sort(Comparator.comparingInt(a -> -Bits.countOnes(a.getA()) - Bits.countOnes(a.getB())));
+        }
+
+        while(count>0){
+
+            List<Pattern> nextPattern = new ArrayList<>();
+
+            for (Tuple<Integer, Integer> mask : masks) {
+                int xMask = mask.getA();
+                int yMask = mask.getB();
+                for (int xVal = 0; xVal < this.width; xVal++) {
+                    for (int yVal = 0; yVal < this.height; yVal++) {
+                        if ((xMask & xVal) > 0 || (yMask & yVal) > 0) continue;
+
+                        boolean[][] set = getPatternSetArray(xMask, yMask, xVal, yVal);
+//                        System.out.println("xMask: " + Bits.Str(xMask, 2) + " xVal: " + Bits.Str(xVal, 2) + " yMask: " + Bits.Str(yMask, 2) + " yVal: " + Bits.Str(yVal, 2));
+//                        printBitSet(set, this.width, this.height);
+
+                        boolean match = true;
+                        int newCount = 0;
+                        for (int x = 0; x < this.width; x++) {
+                            for (int y = 0; y < this.height; y++) {
+                                if (set[x][y]) {
+                                    match &= bitMask[x][y] == 'O' || bitMask[x][y] == 'o' || bitMask[x][y] == 0;
+                                    newCount += bitMask[x][y] == 'O'?1:0;
+                                }
+                            }
+                        }
+//                        System.out.println("O:" + (match ? "T " : "F ") + newCount);
+
+                        if(match && newCount>0){
+                            nextPattern.add(new Pattern(xMask, yMask, xVal, yVal, newCount, set));
+                        }
+
+                    }
+                }
+            }
+            nextPattern.sort(Comparator.comparingInt(pattern -> -pattern.count));
+
+            if(!nextPattern.isEmpty()){
+                Pattern pattern = nextPattern.get(0);
+                patterns.add(pattern);
+                count -= pattern.count;
+                for (int x = 0; x < this.width; x++) {
+                    for (int y = 0; y < this.height; y++) {
+                        if (pattern.set[x][y] && bitMask[x][y] != 0) {
+                            bitMask[x][y] = 'o';
+                        }
+                    }
+                }
+            }
+
+//            printBitCharMask(bitMask, this.width, this.height);
+
+        }
+        if (count!=0) throw new IllegalArgumentException("Cannot find patterns to match bank");
+        return patterns;
+    }
+
+    private boolean[][] getPatternSetArray(int xMask, int yMask, int xVal, int yVal) {
+        boolean[][] set = new boolean[this.width][this.height];
+        for (int x = 0; x < this.width; x++) {
+            boolean xSet = true;
+            for (int i = 0; i < Bits.log2nlz(this.width); i++) {
+                if (!Bits.isOne(xMask, i) && Bits.isOne(xVal, i) != Bits.isOne(x, i)) {
+                    xSet = false;
+                    break;
+                }
+            }
+            if (xSet) {
+                for (int y = 0; y < this.height; y++) {
+                    boolean ySet = true;
+                    for (int i = 0; i < Bits.log2nlz(this.height); i++) {
+                        if (!Bits.isOne(yMask, i) && Bits.isOne(yVal, i) != Bits.isOne(y, i)) {
+                            ySet = false;
+                            break;
+                        }
+                    }
+                    set[x][y] = ySet;
+                }
+            }
+        }
+        return set;
     }
 
 

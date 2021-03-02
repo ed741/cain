@@ -10,7 +10,7 @@ import uk.co.edstow.cain.util.Tuple;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>, T extends BankedTransformation> implements BankedRegisterAllocator<G, T> {
+public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>, T extends BankedTransformation> implements BankedRegisterAllocator<G, T, BRegister> {
     private final List<BRegister> registers;
     private final int banks;
     private final List<List<BRegister>> bankedRegisters;
@@ -61,7 +61,9 @@ public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>
         }
         for (int i = 0; i < banks; i++) {
             int c = count[i] + lastTransformation.ExtraRegisterCount(i);
-            if(c>bankedRegisters.get(i).size()) return false;
+            if(c>bankedRegisters.get(i).size()) {
+                return false;
+            }
         }
 
         return true;
@@ -69,13 +71,14 @@ public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>
 
     @Override
     public boolean checkPossible(Plan<G, T, BRegister> p) {
-        return solve(p) != null;
+        BankedRegisterAllocator.Mapping<G, BRegister> solve = solve(p);
+        return solve != null;
     }
 
 
 
     @Override
-    public BankedRegisterAllocator.Mapping<G> solve(Plan<G, T, BRegister> plan){
+    public BankedRegisterAllocator.Mapping<G, BRegister> solve(Plan<G, T, BRegister> plan){
         List<Plan.Step<G, T, BRegister>> all_r = plan.getAll();
         List<Set<Integer>> requiresInit = new ArrayList<>(init.size());// a set of step indices for each init-Reg
         for (BRegister i : init) {
@@ -87,7 +90,7 @@ public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>
         for (int j = 0; j < init.size(); j++) {// for each init register/Goal:
             inits:
             for (int i = all_r.size() - 1; i >= 0; i--) { // from the beginning of the plan, search
-                Plan.Step<G,T, BRegister> step = all_r.get(i);
+                Plan.Step<G,T,BRegister> step = all_r.get(i);
                 for (int l = 0; l < step.getLowers().size(); l++) { // check every lower
                     G g = step.getLowerTrueGoal(l);
                     if(g.same(initialGoals.get(j))){
@@ -123,7 +126,7 @@ public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>
         }
 
         for (int i = 0; i < all_r.size(); i++) {
-            Plan.Step<G,T, BRegister> step = all_r.get(i);
+            Plan.Step<G,T,BRegister> step = all_r.get(i);
 
             List<G> lowers = step.getLowers();
             for (int lowerIdx = 0; lowerIdx < lowers.size(); lowerIdx++) {
@@ -307,7 +310,7 @@ public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>
         return map;
     }
 
-    public static class Mapping<G extends Goal<G>> implements BankedRegisterAllocator.Mapping<G> {
+    public static class Mapping<G extends Goal<G>> implements BankedRegisterAllocator.Mapping<G, BRegister> {
         private final Map<Wrapper, BRegister> map;
         private final Map<Integer, List<BRegister>> trashMap;
         private final List<BRegister> init;

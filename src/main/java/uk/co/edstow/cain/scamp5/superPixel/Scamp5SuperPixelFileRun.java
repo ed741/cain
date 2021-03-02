@@ -3,85 +3,25 @@ package uk.co.edstow.cain.scamp5.superPixel;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import uk.co.edstow.cain.FileRun;
-import uk.co.edstow.cain.regAlloc.BRegister;
-import uk.co.edstow.cain.regAlloc.BankedLinearScanRegisterAllocator;
-import uk.co.edstow.cain.regAlloc.BankedRegisterAllocator;
+import uk.co.edstow.cain.regAlloc.*;
 import uk.co.edstow.cain.goals.BankedKernel3DGoal;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.goals.arrayGoal.BankedArrayGoal;
 import uk.co.edstow.cain.pairgen.CostHeuristic;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.scamp5.BasicScamp5ConfigGetter;
+import uk.co.edstow.cain.scamp5.PatternHeuristic;
 import uk.co.edstow.cain.scamp5.ThresholdScamp5ConfigGetter;
+import uk.co.edstow.cain.transformations.BankedTransformation;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
-public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> extends FileRun.Kernel3DFileRun<G, Scamp5SuperPixelTransformation<G>, BRegister> {
+public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> extends FileRun.Kernel3DBankedFileRun<G, Scamp5SuperPixelTransformation<G>> {
 
     public Scamp5SuperPixelFileRun(JSONObject config) {
         super(config);
     }
-
-    @Override
-    protected List<? extends BRegister> getRegisterArray(JSONArray availableRegisters) {
-        ArrayList<BRegister> out = new ArrayList<>(availableRegisters.length());
-
-        for (int i = 0; i < availableRegisters.length(); i++) {
-            JSONArray bank = availableRegisters.getJSONArray(i);
-            for (int j = 0; j < bank.length(); j++) {
-                out.add(new BRegister(i, bank.getString(j)));
-            }
-        }
-        return out;
-    }
-
-    @Override
-    protected List<? extends BRegister> getOutputRegisters() {
-        if (config.has("filter")) {
-            JSONObject filter = config.getJSONObject("filter");
-            return filter.keySet().stream().map((String bank) -> {
-                String[] strs = bank.split(":");
-                if(strs.length!=2) throw new IllegalArgumentException("using Banked Kernel3D goal requires that" +
-                        " filter registers are specified as '0:A' where 0 is the bank and A is the virtual" +
-                        " Register. '"+ bank+ "; does not conform");
-                return new BRegister(Integer.parseInt(strs[0]), strs[1]);
-            }).collect(Collectors.toList());
-        } else {
-            return new ArrayList<>();
-        }
-    }
-
-    @Override
-    protected List<? extends BRegister> getInputRegisters(){
-        return getRegisterArray(config.getJSONObject("registerAllocator").getJSONArray("initialRegisters"));
-    }
-
-    @Override
-    protected BankedRegisterAllocator<G, Scamp5SuperPixelTransformation<G>> makeRegisterAllocator() {
-        JSONObject regAllocConf = config.getJSONObject("registerAllocator");
-        switch (regAllocConf.getString("name")){
-            case "linearScan":
-                printLn("\tMaking Linear Scan Register Allocator:");
-                List<BRegister> availableRegisters = new ArrayList<>(getRegisterArray(regAllocConf.getJSONArray("availableRegisters")));
-                printLn("Available registers  : " + availableRegisters.toString());
-
-                List<BRegister> available = new ArrayList<>(getOutputRegisters());
-                for (BRegister availableRegister : availableRegisters) {
-                    if (!available.contains(availableRegister)) {
-                        available.add(availableRegister);
-                    }
-                }
-                List<BRegister> initRegisters = new ArrayList<>(getInputRegisters());
-                printLn("Initial registers    : " + initRegisters.toString());
-                return new BankedLinearScanRegisterAllocator<>(available.stream().mapToInt(bRegister -> bRegister.bank).max().orElse(0), initRegisters, initialGoals, available);
-            default:
-                throw new IllegalArgumentException("Register Allocator Unknown");
-        }
-
-    }
-
-
 
     @Override
     protected PairGenFactory<G,Scamp5SuperPixelTransformation<G>, BRegister> makePairGenFactory() {
@@ -143,7 +83,7 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
         for (int i = 0; i < bitOrder.length; i++) {
             for (int x = 0; x < width; x++) {
                 for (int y = 0; y < height; y++) {
-                    bitOrder[i][x][y] = jbitOrder.getJSONArray(i).getJSONArray(x).getInt(y);
+                    bitOrder[i][x][y] = jbitOrder.getJSONArray(i).getJSONArray(height-1-y).getInt(x);
                 }
             }
         }
@@ -175,7 +115,7 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
         if(!json.has("threshold")) {throw new IllegalArgumentException("you need to define " + "threshold" + " inside configGetter");}
         int threshold = json.getInt("threshold");
         printLn("Exhaustive Search Threshold  : " + threshold);
-        CostHeuristic<G, Scamp5SuperPixelTransformation<G>> heuristic = getCostHeuristic(json, "heuristic");
+        CostHeuristic<G, Scamp5SuperPixelTransformation<G>, BRegister> heuristic = getCostHeuristic(json, "heuristic");
         Scamp5SuperPixelConfig<G> scampConfig = configBuilder.build();
 
         return new Scamp5SuperPixelPairGenFactory<>(
@@ -189,13 +129,13 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
     }
 
     private Scamp5SuperPixelPairGenFactory<G> getExhaustivePairGenFactory(JSONObject json, Scamp5SuperPixelConfig.Builder<G> configBuilder) {
-        CostHeuristic<G, Scamp5SuperPixelTransformation<G>> heuristic = getCostHeuristic(json, "heuristic");
+        CostHeuristic<G, Scamp5SuperPixelTransformation<G>, BRegister> heuristic = getCostHeuristic(json, "heuristic");
         return new Scamp5SuperPixelPairGenFactory<>(new BasicScamp5ConfigGetter<>(configBuilder.build(),
                 (goals, conf, scamp5Config) -> new Scamp5SuperPixelPairGenFactory.ExhaustivePairGen<>(goals, conf, scamp5Config, heuristic)
         ));
     }
     private Scamp5SuperPixelPairGenFactory<G> getAtomDistanceSortedPairGenFactory(JSONObject json, Scamp5SuperPixelConfig.Builder<G> configBuilder) {
-        CostHeuristic<G, Scamp5SuperPixelTransformation<G>> heuristic = getCostHeuristic(json, "heuristic");
+        CostHeuristic<G, Scamp5SuperPixelTransformation<G>, BRegister> heuristic = getCostHeuristic(json, "heuristic");
         return new Scamp5SuperPixelPairGenFactory<>(new BasicScamp5ConfigGetter<>(configBuilder.build(),
                 (goals, conf, scamp5Config) -> new Scamp5SuperPixelPairGenFactory.SuperPixelAtomDistanceSortedPairGen<>(goals, conf, scamp5Config, heuristic)
         ));
@@ -206,14 +146,14 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
         ));
     }
 
-    private CostHeuristic<G, Scamp5SuperPixelTransformation<G>> getCostHeuristic(JSONObject json, String name) {
+    private CostHeuristic<G, Scamp5SuperPixelTransformation<G>, BRegister> getCostHeuristic(JSONObject json, String name) {
         if(!json.has(name)) {throw new IllegalArgumentException("you need to define " + name + " inside configGetter");}
         printLn("CostHeuristic to use          : " + json.getString(name));
         switch (json.getString(name)) {
             default:
                 throw new IllegalArgumentException("Unknown Heuristic option " + json.getString(name));
             case "Pattern":
-                return null;//new PatternHeuristic<>(initialGoals);
+                return new PatternHeuristic<>(initialGoals);
         }
     }
 

@@ -149,7 +149,7 @@ public class Scamp5DigitalPairGenFactory<G extends Kernel3DGoal<G>> implements L
     public static class ExhaustivePairGen<G extends Kernel3DGoal<G>> extends uk.co.edstow.cain.pairgen.ExhaustivePairGen<G, Scamp5DigitalTransformation<G>, Register> {
 
         Scamp5DigitalConfig<G> scamp5DigitalConfig;
-        public ExhaustivePairGen(GoalBag<G> goals, Context<G, Scamp5DigitalTransformation<G>, Register> context, Scamp5DigitalConfig<G> scamp5DigitalConfig, CostHeuristic<G, Scamp5DigitalTransformation<G>> huristic) {
+        public ExhaustivePairGen(GoalBag<G> goals, Context<G, Scamp5DigitalTransformation<G>, Register> context, Scamp5DigitalConfig<G> scamp5DigitalConfig, CostHeuristic<G, Scamp5DigitalTransformation<G>, Register> huristic) {
             super(goals, context, huristic);
             this.scamp5DigitalConfig = scamp5DigitalConfig;
         }
@@ -338,9 +338,9 @@ public class Scamp5DigitalPairGenFactory<G extends Kernel3DGoal<G>> implements L
 
     public static class DigitalAtomDistanceSortedPairGen<G extends Kernel3DGoal<G>, T extends Scamp5DigitalConfig<G>> extends DigitalAtomDistancePairGen<G> {
 
-        private final CostHeuristic<G, Scamp5DigitalTransformation<G>> heuristic;
+        private final CostHeuristic<G, Scamp5DigitalTransformation<G>, Register> heuristic;
 
-        public DigitalAtomDistanceSortedPairGen(GoalBag<G> goals, Context<G, Scamp5DigitalTransformation<G>, Register> context, T scamp5Config, CostHeuristic<G, Scamp5DigitalTransformation<G>> heuristic) {
+        public DigitalAtomDistanceSortedPairGen(GoalBag<G> goals, Context<G, Scamp5DigitalTransformation<G>, Register> context, T scamp5Config, CostHeuristic<G, Scamp5DigitalTransformation<G>, Register> heuristic) {
             super(goals, context, scamp5Config, new uk.co.edstow.cain.pairgen.AtomDistancePairGen.PlainCombinationIterator(goals.size()));
             this.heuristic = heuristic;
         }

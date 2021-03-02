@@ -40,7 +40,7 @@ public class Scamp5SuperPixelPairGenFactory<G extends BankedKernel3DGoal<G>> imp
           }
         }
         if(!scamp5SuperPixelConfig.onlyMov()) {
-            if(scamp5SuperPixelConfig.useRes) {
+            if(scamp5SuperPixelConfig.useRes && !empties.isEmpty()) {
                 allPairs.add(new GoalPair<>(empties, Collections.emptyList(), new Res<>(empties, scamp5SuperPixelConfig)));
             }
         }
@@ -147,7 +147,7 @@ public class Scamp5SuperPixelPairGenFactory<G extends BankedKernel3DGoal<G>> imp
     public static class ExhaustivePairGen<G extends BankedKernel3DGoal<G>> extends uk.co.edstow.cain.pairgen.ExhaustivePairGen<G, Scamp5SuperPixelTransformation<G>, BRegister> {
 
         Scamp5SuperPixelConfig<G> scamp5SuperPixelConfig;
-        public ExhaustivePairGen(GoalBag<G> goals, Context<G, Scamp5SuperPixelTransformation<G>, BRegister> context, Scamp5SuperPixelConfig<G> scamp5SuperPixelConfig, CostHeuristic<G, Scamp5SuperPixelTransformation<G>> heuristic) {
+        public ExhaustivePairGen(GoalBag<G> goals, Context<G, Scamp5SuperPixelTransformation<G>, BRegister> context, Scamp5SuperPixelConfig<G> scamp5SuperPixelConfig, CostHeuristic<G, Scamp5SuperPixelTransformation<G>, BRegister> heuristic) {
             super(goals, context, heuristic);
             this.scamp5SuperPixelConfig = scamp5SuperPixelConfig;
         }
@@ -243,7 +243,6 @@ public class Scamp5SuperPixelPairGenFactory<G extends BankedKernel3DGoal<G>> imp
         final Scamp5SuperPixelConfig<G> scamp5SuperPixelConfig;
 
 
-        List<GoalPair<G,Scamp5SuperPixelTransformation<G>, BRegister>> currentList = new ArrayList<>();
 
         public SuperPixelAtomDistancePairGen(GoalBag<G> goals, Context<G, Scamp5SuperPixelTransformation<G>, BRegister> context, Scamp5SuperPixelConfig<G> scamp5SuperPixelConfig) {
             super(goals, context);
@@ -331,9 +330,9 @@ public class Scamp5SuperPixelPairGenFactory<G extends BankedKernel3DGoal<G>> imp
 
     public static class SuperPixelAtomDistanceSortedPairGen<G extends BankedKernel3DGoal<G>> extends SuperPixelAtomDistancePairGen<G> {
 
-        private final CostHeuristic<G, Scamp5SuperPixelTransformation<G>> huristic;
+        private final CostHeuristic<G, Scamp5SuperPixelTransformation<G>, BRegister> huristic;
 
-        public SuperPixelAtomDistanceSortedPairGen(GoalBag<G> goals, Context<G, Scamp5SuperPixelTransformation<G>, BRegister> conf, Scamp5SuperPixelConfig<G> scamp5Config, CostHeuristic<G, Scamp5SuperPixelTransformation<G>> huristic) {
+        public SuperPixelAtomDistanceSortedPairGen(GoalBag<G> goals, Context<G, Scamp5SuperPixelTransformation<G>, BRegister> conf, Scamp5SuperPixelConfig<G> scamp5Config, CostHeuristic<G, Scamp5SuperPixelTransformation<G>, BRegister> huristic) {
             super(goals, conf, scamp5Config, new PlainCombinationIterator(goals.size()));
             this.huristic = huristic;
         }

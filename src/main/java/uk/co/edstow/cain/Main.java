@@ -10,6 +10,10 @@ class Main {
             fileRun.run();
 
             String code = fileRun.getBest();
+            List<? extends FileRun<?, ?, ?>.Result> results = fileRun.getResults();
+            results.sort(Comparator.comparingInt(result -> result.cost));
+            System.out.println(results.get(0).plan.toGoalsString());
+
             System.out.println(code);
         }
     }

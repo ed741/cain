@@ -20,257 +20,6 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
     }
 
 
-    void selectBank(StringBuilder sb, int bank, String reg) {
-        sb.append("scamp5_kernel_end(); ");
-        if(reg.equals(config.selectReg)){
-            sb.append(String.format("scamp5_select_pattern(); "));
-        }else{
-            boolean[][] mask = new boolean[config.width][config.height];
-            for (int x = 0; x < config.width; x++) {
-                for (int y = 0; y < config.height; y++) {
-                    mask[x][y] = config.bitOrder[bank][x][y] > 0;
-                }
-            }
-
-            char[] xBitsMask = new char[8];
-            char[] xBitsValue = new char[8];
-            {
-                int spBits = Bits.log2nlz(mask.length);
-                for (int i = 0; i < 8; i++) {
-                    if (i < 8 - spBits) {
-                        xBitsMask[i] = '1';
-                        xBitsValue[i] = '0';
-                    } else {
-                        int currentBit = (8 - i) - 1;
-                        boolean existsWhen0 = false;
-                        boolean existsWhen1 = false;
-                        for (int j = 0; j < mask.length; j++) {
-                            if (((j >> currentBit) & 0x1) == 0) {
-                                for (int k = 0; k < mask[j].length; k++) {
-                                    existsWhen0 |= mask[j][k];
-                                }
-                            } else {
-                                for (int k = 0; k < mask[j].length; k++) {
-                                    existsWhen1 |= mask[j][k];
-                                }
-                            }
-                        }
-                        if (existsWhen0 && existsWhen1) {
-                            xBitsMask[i] = '1';
-                            xBitsValue[i] = '0';
-                        } else {
-                            xBitsMask[i] = '0';
-                            if (existsWhen0) {
-                                xBitsValue[i] = '0';
-                            } else if (existsWhen1) {
-                                xBitsValue[i] = '1';
-                            } else {
-                                throw new IllegalArgumentException("Bank " + bank + " does have any PEs assigned to it!");
-                            }
-                        }
-                    }
-                }
-            }
-            char[] yBitsMask = new char[8];
-            char[] yBitsValue = new char[8];
-            {
-                int spBits = Bits.log2nlz(mask[0].length);
-                for (int i = 0; i < 8; i++) {
-                    if (i < 8 - spBits) {
-                        yBitsMask[i] = '1';
-                        yBitsValue[i] = '0';
-                    } else {
-                        int currentBit = (8 - i) - 1;
-                        boolean existsWhen0 = false;
-                        boolean existsWhen1 = false;
-                        for (int j = 0; j < mask[0].length; j++) {
-                            if (((j >> currentBit) & 0x1) == 0) {
-                                for (int k = 0; k < mask.length; k++) {
-                                    existsWhen0 |= mask[k][j];
-                                }
-                            } else {
-                                for (int k = 0; k < mask.length; k++) {
-                                    existsWhen1 |= mask[k][j];
-                                }
-                            }
-                        }
-                        if (existsWhen0 && existsWhen1) {
-                            yBitsMask[i] = '1';
-                            yBitsValue[i] = '0';
-                        } else {
-                            yBitsMask[i] = '0';
-                            if (existsWhen0) {
-                                yBitsValue[i] = '0';
-                            } else if (existsWhen1) {
-                                yBitsValue[i] = '1';
-                            } else {
-                                throw new IllegalArgumentException("Bank " + bank + " does have any PEs assigned to it!");
-                            }
-                        }
-                    }
-                }
-            }
-
-            String xMask = new String(xBitsMask);
-            String xValue = new String(xBitsValue);
-            String yMask = new String(yBitsMask);
-            String yValue = new String(yBitsValue);
-
-
-
-            sb.append(String.format("scamp5_load_pattern(%s, %s, %s, %s, %s); ", reg, xValue, yValue, xMask, yMask));
-        }
-        sb.append("scamp5_kernel_begin(); ");
-    }
-
-    private static class Pattern {
-        public final int xMask;
-        public final int yMask;
-        public final int xVal;
-        public final int yVal;
-
-        Pattern(int xMask, int yMask, int xVal, int yVal) {
-            this.xMask = xMask;
-            this.yMask = yMask;
-            this.xVal = xVal;
-            this.yVal = yVal;
-        }
-    }
-    void setDirLessSignificant(StringBuilder sb, int bank) {
-
-        sb.append(String.format("CLR(%s, %s, %s, %s); ", config.northReg, config.eastReg, config.southReg, config.westReg));
-        int[][] bitOrder = config.bitOrder[bank];
-        char[][] bitDir = new char[config.width][config.height];
-        int bits = config.getBits(bank);
-        int xPos = config.xBankStart[bank];
-        int yPos = config.yBankStart[bank];
-        int place = 0;
-        int countN = 0;
-        int countE = 0;
-        int countS = 0;
-        int countW = 0;
-        bitDir[xPos][yPos] = 'O';// origin (least significant bit)
-        while (0 <= xPos && xPos < config.width && 0 <= yPos && yPos < config.height) {
-            place = bitOrder[xPos][yPos];
-            if(yPos+1 < config.height && bitOrder[xPos][yPos+1] == place+1) {
-                bitDir[xPos][yPos+1] = 'S';
-                countS++;
-                yPos = yPos+1;
-            } else if(xPos+1 < config.width && bitOrder[xPos+1][yPos] == place+1) {
-                bitDir[xPos+1][yPos] = 'W';
-                countW++;
-                xPos = xPos+1;
-            } else if(0 <= yPos-1 && bitOrder[xPos][yPos-1] == place+1) {
-                bitDir[xPos][yPos-1] = 'N';
-                countN++;
-                yPos = yPos-1;
-            } else if(0 <= xPos-1 && bitOrder[xPos-1][yPos] == place+1) {
-                bitDir[xPos-1][yPos] = 'E';
-                countE++;
-                xPos = xPos-1;
-            } else {
-                // Next significant bit not found - exit
-                xPos = -1;
-                yPos = -1;
-            }
-        }
-        if (place != bits) throw new IllegalArgumentException("Cannot find bits!");
-
-        List<Pattern> northPatterns = new ArrayList<>();
-        List<Pattern> eastPatterns = new ArrayList<>();
-        List<Pattern> southPatterns = new ArrayList<>();
-        List<Pattern> westPatterns = new ArrayList<>();
-
-
-        List<Tuple<Integer, Integer>> masks = new ArrayList<>();
-        for (int i = 0; i < config.width; i++) {
-            for (int j = 0; j < config.height; j++) {
-                masks.add(new Tuple<>(i, j));
-            }
-        }
-        boolean[][] set = new boolean[config.width][config.height];
-        masks.sort(Comparator.comparingInt(a -> Bits.countOnes(a.getA()) + Bits.countOnes(a.getB())));
-        Iterator<Tuple<Integer, Integer>> iterator = masks.iterator();
-        while (countN+countE+countS+countW>0 && iterator.hasNext()){
-            Tuple<Integer, Integer> mask = iterator.next();
-            int xMask = mask.getA();
-            int yMask = mask.getB();
-            for (int xVal = 1; xVal < config.width; xVal++) {
-                for (int yVal = 1; yVal < config.height; yVal++) {
-
-                    for (int x = 0; x < config.width; x++) {
-                        boolean xSet = true;
-                        for (int i = 0; i < Bits.log2nlz(config.width); i++) {
-                            if (!Bits.isOne(xMask, i) && Bits.isOne(xVal, i) != Bits.isOne(x, i)) {
-                                xSet = false;
-                                break;
-                            }
-                        }
-                        if (xSet) {
-                            for (int y = 0; y < config.height; y++) {
-                                boolean ySet = true;
-                                for (int i = 0; i < Bits.log2nlz(config.height); i++) {
-                                    if (!Bits.isOne(yMask, i) && Bits.isOne(yVal, i) != Bits.isOne(y, i)) {
-                                        ySet = false;
-                                        break;
-                                    }
-                                }
-                                set[x][y] = ySet;
-                            }
-                        }
-                    }
-
-                    boolean matchN = true;
-                    boolean matchS = true;
-                    boolean matchE = true;
-                    boolean matchW = true;
-                    int setCount = 0;
-                    for (int x = 0; x < config.width; x++) {
-                        for (int y = 0; y < config.height; y++) {
-                            if(set[x][y]){
-                                setCount++;
-                                matchN &= bitDir[x][y] == 'N';
-                                matchE &= bitDir[x][y] == 'E';
-                                matchS &= bitDir[x][y] == 'S';
-                                matchW &= bitDir[x][y] == 'W';
-                            }
-                        }
-                    }
-                    if(matchN){
-                        northPatterns.add(new Pattern(xMask, yMask, xVal, yVal));
-                        countN -= setCount;
-                    } else if (matchE) {
-                        eastPatterns.add(new Pattern(xMask, yMask, xVal, yVal));
-                        countE -= setCount;
-                    } else if (matchS) {
-                        southPatterns.add(new Pattern(xMask, yMask, xVal, yVal));
-                        countS -= setCount;
-                    } else if (matchW) {
-                        westPatterns.add(new Pattern(xMask, yMask, xVal, yVal));
-                        countW -= setCount;
-                    }
-
-                    if(matchN || matchE || matchS || matchW) {
-                        for (int x = 0; x < config.width; x++) {
-                            for (int y = 0; y < config.height; y++) {
-                                if (set[x][y]) {
-                                    bitDir[x][y] = 0;
-                                }
-                            }
-                        }
-                    }
-
-                }
-            }
-        }
-        if (countN+countE+countS+countW!=0) throw new IllegalArgumentException("Cannot find patterns to match bank");
-
-
-    }
-
-    void setDirMoreSignificant(StringBuilder sb, int bank) {
-
-    }
 
 
     public static class Null<G extends BankedKernel3DGoal<G>> extends Scamp5SuperPixelTransformation<G> {
@@ -418,12 +167,18 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
         @Override
         public String code(List<BRegister> uppers, List<BRegister> lowers, List<BRegister> trash) {
 //            assert lowers.size() == inputCount();
-            StringBuilder sb = new StringBuilder(String.format("/*SP res(%s)*/", uppers));
+            StringBuilder sb = new StringBuilder(String.format("/*SP res(%s)*/", lowers));
+            List<String> scratch = new ArrayList<>(config.scratchRegisters);
+            scratch.add(config.northReg);
+            scratch.add(config.eastReg);
+            scratch.add(config.southReg);
+            scratch.add(config.westReg);
             for (int bank = 0; bank < config.banks; bank++) {
                 List<BRegister> regs = new ArrayList<>();
                 for (BRegister reg: uppers)if(reg.bank==bank) regs.add(reg);
                 if (!regs.isEmpty()){
-                    this.selectBank(sb, bank, config.maskReg);
+
+                    config.selectBank(sb, bank, config.maskReg, scratch);
                     for (BRegister reg: regs){
                         String sreg = reg.name;
                         sb.append(String.format("NOT(%s, %s); ", config.scratchRegisters.get(0), sreg));
@@ -502,7 +257,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
             for(int i = 0; i<config.getBits(bank); i++){
                 sb.append(String.format("/* Bit %d */\n", i));
                 // Copy in Carry in from correct PE
-                setDirLessSignificant(sb, bank);
+                config.setDirLessSignificant(sb, bank);
                 // the least significant bit will have zeros for n,e,s,w so this should clear maskReg to 0 for that PE
                 sb.append(String.format("DNEWS0(%s, %s); ", config.maskReg, config.scratchRegisters.get(0)));
                 // maskReg := Carry in bit
@@ -522,7 +277,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
                 // Multiplex to only store sum if we're in the correct bank.
                 sb.append(String.format("SET(%s); ", config.maskReg));
                 sb.append(String.format("MOV(%s, %s); ", config.maskedReg, outputReg));
-                selectBank(sb, uppers.get(0).bank, config.maskReg);
+                config.selectBank(sb, uppers.get(0).bank, config.maskReg, Arrays.asList(config.northReg, config.eastReg));
                 sb.append(String.format("NOR(%s, %s, %s); ", config.maskedReg, config.southReg, config.westReg)); //vm(S) = !(vs(6)+vw(7))
                 sb.append(String.format("MOV(%s, %s); ", outputReg, config.maskedReg));
 
@@ -591,7 +346,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
                 this.a = in;
                 this.sum = null;
             } else {
-                Kernel3DGoal.Kernel3DGoalFactory<G> factory = in.newFactory();
+                BankedKernel3DGoal.BankedKernel3DGoalFactory<G> factory = in.newFactory();
                 Iterator<Tuple<Atom, Integer>> it = in.uniqueCountIterator();
                 while(it.hasNext()){
                     Tuple<Atom, Integer> t = it.next();
@@ -623,15 +378,19 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
             StringBuilder sb = new StringBuilder(String.format("/*SP addSelf(%s, %s)*/\n", uppers.get(0), lowers.get(0)));
             String outputReg = uppers.get(0).name;
             String inputReg = lowers.get(0).name;
-            List<String> scratch = config.scratchRegisters;
+            List<String> scratch = new ArrayList<>(config.scratchRegisters);
+            scratch.add(config.northReg);
+            scratch.add(config.eastReg);
+            scratch.add(config.southReg);
+            scratch.add(config.westReg);
 
-            setDirLessSignificant(sb, bank);
+            config.setDirLessSignificant(sb, bank);
             // the least significant bit will have zeros for n,e,s,w
 
             // Multiplex to only store sum if we're in the correct bank.
             sb.append(String.format("SET(%s); ", config.maskReg));
             sb.append(String.format("MOV(%s, %s); ", config.maskedReg, outputReg));
-            selectBank(sb, uppers.get(0).bank, config.maskReg);
+            config.selectBank(sb, uppers.get(0).bank, config.maskReg, scratch);
             sb.append(String.format("DNEWS0(%s, %s); ", config.maskedReg, inputReg));
             sb.append(String.format("MOV(%s, %s); ", outputReg, config.maskedReg));
 
@@ -722,7 +481,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
             List<String> scratch = config.scratchRegisters;
 
             // Copy in Carry in from correct PE
-            setDirMoreSignificant(sb, bank);
+            config.setDirMoreSignificant(sb, bank);
             // the most significant bit will have zeros for n,e,s,w
 
             // Multiplex to only store sum if we're in the correct bank.
@@ -730,7 +489,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
             sb.append(String.format("SET(%s); ", config.maskReg));
             sb.append(String.format("MOV(%s, %s); ", config.maskedReg, outputReg));
             //      write shifted result if this is in the selected Bank
-            selectBank(sb, uppers.get(0).bank, config.maskReg);
+            config.selectBank(sb, uppers.get(0).bank, config.maskReg, scratch);
             sb.append(String.format("DNEWS0(%s, %s); ", config.maskedReg, inputReg));
             //      write un-shifted result if all dir bits are 0 (if this is Most significant bit)
             sb.append(String.format("OR(%s, %s, %s, %s, %s); ", scratch.get(0), config.northReg, config.eastReg, config.southReg, config.westReg));
@@ -768,7 +527,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
 
         @Override
         public String toString() {
-            return String.format("DDiv(%s)", this.a);
+            return String.format("SP Div(%s)", this.a);
         }
 
         private static final boolean[] inputRegisterOutputInterference = new boolean[]{false};
@@ -878,15 +637,20 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
             if (xPETranslation == 0 && yPETranslation == 0){ // catch case when translation is (0,0)
                 sb.append(String.format("SET(%s); ", config.maskReg));// set maskReg so we can use maskedReg
             }
+            List<String> scratch = new ArrayList<>(config.scratchRegisters);
+            scratch.add(config.northReg);
+            scratch.add(config.eastReg);
+            scratch.add(config.southReg);
+            scratch.add(config.westReg);
             if(currentReg == config.maskedReg){
                 // the moved result is in maskedReg
-                this.selectBank(sb, ubank, config.selectReg); // invert selectBank into maskReg
+                config.selectBank(sb, ubank, config.selectReg, scratch); // invert selectBank into maskReg
                 sb.append(String.format("NOT(%s, %s); ", config.maskReg, config.selectReg));
                 sb.append(String.format("MOV(%s, %s); ", config.maskedReg, output)); // copy original output value if this PE is Not in bank
             } else {
                 // the moved result is in currentReg (and currentReg isn't maskedReg)
                 sb.append(String.format("MOV(%s, %s); ", config.maskedReg, output)); // copy original output value
-                this.selectBank(sb, ubank, config.maskReg); // selectBank into maskReg
+                config.selectBank(sb, ubank, config.maskReg, scratch); // selectBank into maskReg
                 sb.append(String.format("MOV(%s, %s); ", config.maskedReg, currentReg)); // copy moved value if PE is in Bank
             }
 

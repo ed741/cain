@@ -16,7 +16,7 @@ import java.util.List;
 import static uk.co.edstow.cain.nonlinear.NonLinearGoal.idOfGoal;
 import static uk.co.edstow.cain.nonlinear.NonLinearGoal.idOfGoals;
 
-public class NonLinearPairGenFactory<G extends Goal<G>, T extends Transformation<R>, R extends Register> implements PairGenFactory<NonLinearGoal<G,T,R>, T, R>{//TODO generify 'Transformation'
+public class NonLinearPairGenFactory<G extends Goal<G>, T extends Transformation<R>, R extends Register> implements PairGenFactory<NonLinearGoal<G,T,R>, T, R>{
 
     final LinearPairGenFactory<G, T, R> linearPairGenFactory;
 
