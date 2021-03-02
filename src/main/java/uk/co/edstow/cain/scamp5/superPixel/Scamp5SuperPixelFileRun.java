@@ -165,8 +165,8 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
         }
 
         @Override
-        protected Kernel3DGoal.Kernel3DGoalFactory<BankedArrayGoal> getGoalFactory() {
-            return new BankedArrayGoal.Factory(0);
+        protected Kernel3DGoal.Kernel3DGoalFactory<BankedArrayGoal> getGoalFactory(BRegister reg) {
+            return new BankedArrayGoal.Factory(reg.bank);
         }
     }
 }

@@ -23,7 +23,7 @@
   },
 
   "runConfig":{
-    "searchTime":5000,
+    "searchTime":1000,
     "timeOut":true,
     "workers":1,
     "traversalAlgorithm":"SOT",

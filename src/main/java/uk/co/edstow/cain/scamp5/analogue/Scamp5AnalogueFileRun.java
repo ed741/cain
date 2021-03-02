@@ -131,7 +131,7 @@ public abstract class Scamp5AnalogueFileRun<G extends Kernel3DGoal<G>> extends F
         }
 
         @Override
-        protected Kernel3DGoal.Kernel3DGoalFactory<AtomGoal> getGoalFactory() {
+        protected Kernel3DGoal.Kernel3DGoalFactory<AtomGoal> getGoalFactory(Register reg) {
             return new AtomGoal.Factory();
         }
     }
@@ -142,7 +142,7 @@ public abstract class Scamp5AnalogueFileRun<G extends Kernel3DGoal<G>> extends F
         }
 
         @Override
-        protected Kernel3DGoal.Kernel3DGoalFactory<ArrayGoal> getGoalFactory() {
+        protected Kernel3DGoal.Kernel3DGoalFactory<ArrayGoal> getGoalFactory(Register reg) {
             return new ArrayGoal.Factory();
         }
     }

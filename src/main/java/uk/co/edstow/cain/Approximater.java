@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class Approximater<G extends Kernel3DGoal<G>> {
@@ -40,7 +41,7 @@ public class Approximater<G extends Kernel3DGoal<G>> {
         minCoefficient = Math.min(minCoefficient, Math.abs(coefficient));
     }
 
-    public List<G> solve(Supplier<Kernel3DGoal.Kernel3DGoalFactory<G>> factoryfactory){
+    public List<G> solve(Function<Integer, Kernel3DGoal.Kernel3DGoalFactory<G>> factoryfactory){
         depth = maxDepth;
         double totalError = 0;
         for (int i = -10; i <= maxDepth; i++) {
@@ -60,10 +61,11 @@ public class Approximater<G extends Kernel3DGoal<G>> {
         error = totalError;
 
         List<G> out = new ArrayList<>(input.size());
-        for (Map<Vector, Double> vecDoubleMap : input) {
-            Kernel3DGoal.Kernel3DGoalFactory<G> factory = factoryfactory.get();
+        for (int i = 0, inputSize = input.size(); i < inputSize; i++) {
+            Map<Vector, Double> vecDoubleMap = input.get(i);
+            Kernel3DGoal.Kernel3DGoalFactory<G> factory = factoryfactory.apply(i);
             for (Map.Entry<Vector, Double> entry : vecDoubleMap.entrySet()) {
-                if(entry.getValue()>=0){
+                if (entry.getValue() >= 0) {
                     factory.add(entry.getKey().val[0], entry.getKey().val[1], entry.getKey().val[2], getCount(depth, entry.getValue()));
                 } else {
                     factory.add(entry.getKey().val[0], entry.getKey().val[1], entry.getKey().val[2], -getCount(depth, entry.getValue()));

@@ -113,8 +113,10 @@ public class Scamp5SuperPixelPairGenFactory<G extends BankedKernel3DGoal<G>> imp
         if(scamp5SuperPixelConfig.useMovbx) {
             for (Dir dir : Dir.values()) {
                 for (int i = 0; i < scamp5SuperPixelConfig.banks; i++) {
-                    Movxb<G> movx = new Movxb<>(goal, dir.x, dir.y, i, scamp5SuperPixelConfig);
-                    list.add(new Tuple<>(Collections.singletonList(new GoalPair<>(goal, movx.lower, movx)), movx.lower));
+                    if(scamp5SuperPixelConfig.isBankSameShape(goal.getBank(), i)) {
+                        Movxb<G> movx = new Movxb<>(goal, dir.x, dir.y, i, scamp5SuperPixelConfig);
+                        list.add(new Tuple<>(Collections.singletonList(new GoalPair<>(goal, movx.lower, movx)), movx.lower));
+                    }
                 }
             }
         }
@@ -179,19 +181,15 @@ public class Scamp5SuperPixelPairGenFactory<G extends BankedKernel3DGoal<G>> imp
                 }
             }
 
-            //Mov
-            if(scamp5SuperPixelConfig.useMovbx) {
-                Movxb<G> mov = new Movxb<>(upper, upper.copy(), scamp5SuperPixelConfig);
-                pairs.add(new GoalPair<>(upper, mov.lower, mov));
-            }
-
             //Move x
             if(scamp5SuperPixelConfig.useMovbx) {
                 for (int i = 0; i < scamp5SuperPixelConfig.banks; i++) {
-                    for (int x = -3; x < 4; x++) {
-                        for (int y = -3; y < 4; y++) {
-                            Movxb<G> movx = new Movxb<>(upper, x, y, i, scamp5SuperPixelConfig);
-                            pairs.add(new GoalPair<>(upper, movx.lower, movx));
+                    if (scamp5SuperPixelConfig.isBankSameShape(upper.getBank(), i)) {
+                        for (int x = -3; x < 4; x++) {
+                            for (int y = -3; y < 4; y++) {
+                                Movxb<G> movx = new Movxb<>(upper, x, y, i, scamp5SuperPixelConfig);
+                                pairs.add(new GoalPair<>(upper, movx.lower, movx));
+                            }
                         }
                     }
                 }

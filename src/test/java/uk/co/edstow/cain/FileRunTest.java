@@ -77,7 +77,7 @@ class FileRunTest {
             List<FileRun<AtomGoal, Scamp5AnalogueTransformation<AtomGoal>, Register>.Result> results = fileRun.getResults();
             OptionalInt min = results.stream().mapToInt(r -> r.depth).min();
             assertTrue(min.isPresent());
-            assertTrue(min.getAsInt()<=5);
+            assertTrue(min.getAsInt()<=5, "Got value: " +min.getAsInt() + " Expected: <= 5");
         } catch (Exception e){
             e.printStackTrace();
             e.getMessage();
@@ -145,7 +145,7 @@ class FileRunTest {
             List<FileRun<ArrayGoal, Scamp5AnalogueTransformation<ArrayGoal>, Register>.Result> results = fileRun.getResults();
             OptionalInt min = results.stream().mapToInt(r -> r.depth).min();
             assertTrue(min.isPresent());
-            assertTrue(min.getAsInt()<=6);
+            assertTrue(min.getAsInt()<=6, "Got value: " +min.getAsInt() + " Expected: <= 6");
         } catch (Exception e){
             e.printStackTrace();
             e.getMessage();
@@ -227,7 +227,7 @@ class FileRunTest {
 //            System.out.println((fileRun.getBest()));
             OptionalInt min = results.stream().mapToInt(r -> r.cost).min();
             assertTrue(min.isPresent());
-            assertTrue(min.getAsInt()<=140);
+            assertTrue(min.getAsInt()<=140, "Got value: " +min.getAsInt() + " Expected: <= 140");
         } catch (Exception e){
             e.printStackTrace();
             e.getMessage();

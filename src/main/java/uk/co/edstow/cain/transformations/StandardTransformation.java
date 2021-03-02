@@ -26,7 +26,7 @@ public interface StandardTransformation extends Transformation<Register> {
     /**
      * @return the number of extra registers required to use this transformation
      * If we have a goalBag with k registers, n of which are inputs (Lowers) to this transformation, how many more than
-     * n or k registers are needed to apply this function
+     * n registers are needed to apply this function
      */
     default int ExtraRegisterCount(){
         int count = 0;

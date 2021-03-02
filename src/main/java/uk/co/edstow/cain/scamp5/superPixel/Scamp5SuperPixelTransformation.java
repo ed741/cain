@@ -62,7 +62,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
         public String code(List<BRegister> uppers, List<BRegister> lowers, List<BRegister> trash) {
             assert uppers.size() == outputCount;
             assert lowers.size() == inputCount;
-            return String.format("//Null Instruction: %s <- %s", uppers, lowers);
+            return String.format("/* Null Instruction: %s <- %s */", uppers, lowers);
         }
 
         @Override
@@ -167,7 +167,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
         @Override
         public String code(List<BRegister> uppers, List<BRegister> lowers, List<BRegister> trash) {
 //            assert lowers.size() == inputCount();
-            StringBuilder sb = new StringBuilder(String.format("/*SP res(%s)*/", lowers));
+            StringBuilder sb = new StringBuilder(String.format("/*SP Res(%s)*/ ", lowers));
             List<String> scratch = new ArrayList<>(config.scratchRegisters);
             scratch.add(config.northReg);
             scratch.add(config.eastReg);
@@ -248,14 +248,14 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
             assert lowers.size() == 2;
             assert uppers.get(0).bank == lowers.get(0).bank && uppers.get(0).bank == lowers.get(1).bank;
             int bank = uppers.get(0).bank;
-            StringBuilder sb = new StringBuilder(String.format("/*SP add(%s, %s, %s)*/\n", uppers.get(0), lowers.get(0), lowers.get(1)));
+            StringBuilder sb = new StringBuilder(String.format("/*SP add(%s, %s, %s)*/ ", uppers.get(0), lowers.get(0), lowers.get(1)));
             String outputReg = uppers.get(0).name;
             String inputAReg = lowers.get(0).name;
             String inputBReg = lowers.get(1).name;
             List<String> scratch = config.scratchRegisters;
 
             for(int i = 0; i<config.getBits(bank); i++){
-                sb.append(String.format("/* Bit %d */\n", i));
+                sb.append(String.format("\n/* Bit %d */", i));
                 // Copy in Carry in from correct PE
                 config.setDirLessSignificant(sb, bank);
                 // the least significant bit will have zeros for n,e,s,w so this should clear maskReg to 0 for that PE
@@ -315,7 +315,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
 
         @Override
         public int ExtraRegisterCount(int bank) {
-            return 0;
+            return 1;
         }
     }
 
@@ -375,7 +375,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
             assert lowers.size() == 1;
             assert uppers.get(0).bank == lowers.get(0).bank;
             int bank = uppers.get(0).bank;
-            StringBuilder sb = new StringBuilder(String.format("/*SP addSelf(%s, %s)*/\n", uppers.get(0), lowers.get(0)));
+            StringBuilder sb = new StringBuilder(String.format("/*SP addSelf(%s, %s)*/ ", uppers.get(0), lowers.get(0)));
             String outputReg = uppers.get(0).name;
             String inputReg = lowers.get(0).name;
             List<String> scratch = new ArrayList<>(config.scratchRegisters);
@@ -474,8 +474,10 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
             assert uppers.size() == 1;
             assert lowers.size() == 1;
             assert uppers.get(0).bank == lowers.get(0).bank;
+            assert lowers.get(0).bank == this.a.getBank();
+            assert this.div == null || uppers.get(0).bank == this.div.getBank();
             int bank = uppers.get(0).bank;
-            StringBuilder sb = new StringBuilder(String.format("/*SP addSelf(%s, %s)*/\n", uppers.get(0), lowers.get(0)));
+            StringBuilder sb = new StringBuilder(String.format("/*SP Div(%s, %s)*/ ", uppers.get(0), lowers.get(0)));
             String outputReg = uppers.get(0).name;
             String inputReg = lowers.get(0).name;
             List<String> scratch = config.scratchRegisters;
@@ -593,7 +595,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
         public String code(List<BRegister> uppers, List<BRegister> lowers, List<BRegister> trash) {
             assert uppers.size() == 1;
             assert lowers.size() == 1;
-            StringBuilder sb = new StringBuilder(String.format("/*SP movb(%s, %s)*/", uppers.get(0), lowers.get(0)));
+            StringBuilder sb = new StringBuilder(String.format("/*SP movb(%s, %s)*/ ", uppers.get(0), lowers.get(0)));
             String output = uppers.get(0).name;
             String input = lowers.get(0).name;
             int ubank = uppers.get(0).bank;

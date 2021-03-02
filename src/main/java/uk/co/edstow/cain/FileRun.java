@@ -313,16 +313,11 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
         }
 
 
-        protected abstract Kernel3DGoal.Kernel3DGoalFactory<G> getGoalFactory();
+        protected abstract Kernel3DGoal.Kernel3DGoalFactory<G> getGoalFactory(R reg);
 
-        protected List<? extends Register> getOutputRegisters() {
-            if (config.has("filter")) {
-                JSONObject filter = config.getJSONObject("filter");
-                return filter.keySet().stream().map(Register::new).collect(Collectors.toList());
-            } else {
-                return new ArrayList<>();
-            }
-        }
+        abstract protected List<R> getOutputRegisters();
+        protected abstract List<R> getInputRegisters();
+//        protected abstract List<R> getRegisterArray(JSONArray availableRegisters);
 
         @Override
         protected List<G> makeFinalGoals() {
@@ -357,9 +352,10 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
                 }
             }
 
-            List<G> finalGoals = goalAprox.solve(this::getGoalFactory);
+            List<R> outputRegisters = getOutputRegisters();
+            List<G> finalGoals = goalAprox.solve(i -> getGoalFactory(outputRegisters.get(i)));
             this.approximationDepth = goalAprox.getDepth();
-            printLn("Output Registers        : " +getOutputRegisters());
+            printLn("Output Registers        : " + outputRegisters);
             printLn("\tApproximated goals:");
             printLn(GoalBag.toGoalsString(finalGoals, false, false, true, true));
             printLn("");
@@ -371,10 +367,11 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
         @Override
         protected List<G> makeInitialGoals() {
             int[] divisions = getInitDivisions();
+            List<R> inputRegisters = getInputRegisters();
             List<G> initialGoals = new ArrayList<>();
             for (int i = 0; i < divisions.length; i++) {
                 int division = divisions[i];
-                initialGoals.add(getGoalFactory().add(0, 0, i, 1 << division).get());
+                initialGoals.add(getGoalFactory(inputRegisters.get(i)).add(0, 0, i, 1 << division).get());
             }
             return initialGoals;
         }
@@ -384,9 +381,6 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
             Arrays.fill(divisions, this.approximationDepth);
             return divisions;
         }
-
-        protected abstract List<? extends Register> getRegisterArray(JSONArray availableRegisters);
-        protected abstract List<? extends Register> getInputRegisters();
 
 
         protected Verifier<G,T,R> makeVerifier() {
@@ -446,15 +440,27 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
             super(config);
         }
 
-        protected List<? extends Register> getRegisterArray(JSONArray availableRegisters) {
+        private List<Register> getRegisterArray(JSONArray availableRegisters) {
             ArrayList<Register> out = new ArrayList<>(availableRegisters.length());
             for (int i = 0; i < availableRegisters.length(); i++) {
                 out.add(new Register(availableRegisters.getString(i)));
             }
             return out;
         }
-        protected List<? extends Register> getInputRegisters(){
+
+        @Override
+        protected List<Register> getInputRegisters(){
             return getRegisterArray(config.getJSONObject("registerAllocator").getJSONArray("initialRegisters"));
+        }
+
+        @Override
+        protected List<Register> getOutputRegisters() {
+            if (config.has("filter")) {
+                JSONObject filter = config.getJSONObject("filter");
+                return filter.keySet().stream().map(Register::new).collect(Collectors.toList());
+            } else {
+                return new ArrayList<>();
+            }
         }
         protected RegisterAllocator<G,T,Register> makeRegisterAllocator() {
             JSONObject regAllocConf = config.getJSONObject("registerAllocator");
@@ -494,8 +500,7 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
         }
 
 
-        @Override
-        protected List<? extends BRegister> getRegisterArray(JSONArray availableRegisters) {
+        private List<BRegister> getRegisterArray(JSONArray availableRegisters) {
             ArrayList<BRegister> out = new ArrayList<>(availableRegisters.length());
             if(availableRegisters.length() > 0 && availableRegisters.get(0) instanceof JSONArray){
 
@@ -520,7 +525,7 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
         }
 
         @Override
-        protected List<? extends BRegister> getOutputRegisters() {
+        protected List<BRegister> getOutputRegisters() {
             if (config.has("filter")) {
                 JSONObject filter = config.getJSONObject("filter");
                 return filter.keySet().stream().map((String bank) -> {
@@ -536,7 +541,7 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
         }
 
         @Override
-        protected List<? extends BRegister> getInputRegisters(){
+        protected List<BRegister> getInputRegisters(){
             return getRegisterArray(config.getJSONObject("registerAllocator").getJSONArray("initialRegisters"));
         }
 

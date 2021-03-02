@@ -18,7 +18,7 @@ public class Plan<G extends Goal<G>, T extends Transformation<R>, R extends Regi
     private final int[] depths;
 
     public Plan(List<G> finalGoals, List<G> initialGoals, T initialTransformation){
-        GoalPair<G, T, R> p = new GoalPair<>((G) null, finalGoals, initialTransformation);
+        GoalPair<G, T, R> p = new GoalPair<>(new ArrayList<>(), finalGoals, initialTransformation);
 
         this.step = new Step<>(p, new GoalBag<>(finalGoals), finalGoals, -1);
         this.previous = null;

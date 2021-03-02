@@ -160,6 +160,14 @@ public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>
                         return null;
                     }
                     int offset = initialGoals.indexOf(trueGoal);
+                    if(trueGoal.getBank() != initialTrueGoals.get(offset).getBank()) {
+                        assert false;
+                        return null;
+                    }
+                    if(trueGoal.getBank() != init.get(offset).bank){
+                        assert false;
+                        return null;
+                    }
                     requiresInit.get(offset).add(liveUntil);
                     j += offset;
                     k = 0;
@@ -170,6 +178,7 @@ public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>
                     availableRegisters.get(registers.get(lowerIdx).bank).remove(registers.get(lowerIdx));
                     lineMap.put(new Tuple<>(j, k), registers.get(lowerIdx));
                     map.put(trueGoal, registers.get(lowerIdx));
+                    assert registers.get(lowerIdx).bank == trueGoal.getBank();
                 }
             }
         }
@@ -256,6 +265,7 @@ public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>
                         }
                     }
                     r = init.get(initIdx);
+
                 } else {
                     int bank = all_r.get(jk.getA()).getUppers().get(jk.getB()).getBank();
                     registerPicker:
@@ -287,6 +297,7 @@ public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>
                     if (r == null) {
                         return null;
                     }
+                    assert r.bank == all_r.get(jk.getA()).getUppers().get(jk.getB()).getBank();
                     availableRegisters.get(bank).remove(r);
                 }
                 trash.remove(r);
@@ -297,6 +308,7 @@ public class BankedLinearScanRegisterAllocator<G extends BankedGoal<G> & Goal<G>
                     int initIdx = jk.getA() - all_r.size();
                     G trueGoal = initialTrueGoals.get(initIdx);
                     map.put(trueGoal, r);
+                    assert r.bank == trueGoal.getBank();
 
                 }
                 lineMap.put(jk, r);
