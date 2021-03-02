@@ -2,6 +2,8 @@ package uk.co.edstow.cain.scamp5.digital;
 
 import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.scamp5.Scamp5ConfigGetter;
+import uk.co.edstow.cain.scamp5.Scamp5DefaultOutputFormatter;
+import uk.co.edstow.cain.scamp5.Scamp5OutputFormatter;
 import uk.co.edstow.cain.structures.Goal;
 
 import java.util.Collections;
@@ -9,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 public class Scamp5DigitalConfig<G extends Goal<G>> implements Scamp5ConfigGetter.Scamp5Config<G, Scamp5DigitalConfig<G>> {
+
     public Scamp5DigitalConfig(boolean useMov, boolean useMovx, boolean useAdd, boolean useAddSelf, boolean useDiv, boolean useRes, boolean useRes2, Map<? extends Register, List<String>> registerMapping, List<String> scratchRegisters, int bits) {
         this.useMov = useMov;
         this.useMovx = useMovx;
@@ -35,6 +38,7 @@ public class Scamp5DigitalConfig<G extends Goal<G>> implements Scamp5ConfigGette
     final Map<? extends Register, List<String>> registerMapping;
     final List<String> scratchRegisters;
     final int bits;
+    public final Scamp5OutputFormatter outputFormatter = new Scamp5DefaultOutputFormatter(); // TODO(td1518): use json config
 
     public Scamp5DigitalConfig(Scamp5DigitalConfig<G> proto, Map<? extends Register, List<String>> registerMapping, List<String> scratchRegisters, int bits) {
         this.useMov = proto.useMov;

@@ -1,6 +1,8 @@
 package uk.co.edstow.cain.scamp5.analogue;
 
 import uk.co.edstow.cain.scamp5.Scamp5ConfigGetter;
+import uk.co.edstow.cain.scamp5.Scamp5DefaultOutputFormatter;
+import uk.co.edstow.cain.scamp5.Scamp5OutputFormatter;
 import uk.co.edstow.cain.structures.Goal;
 
 public class Scamp5AnalogueConfig<G extends Goal<G>> implements Scamp5ConfigGetter.Scamp5Config<G, Scamp5AnalogueConfig<G>> {
@@ -32,6 +34,8 @@ public class Scamp5AnalogueConfig<G extends Goal<G>> implements Scamp5ConfigGett
     public final boolean subPowerOf2;
 
     private final boolean onlyMov;
+
+    public final Scamp5OutputFormatter outputFormatter = new Scamp5DefaultOutputFormatter(); // TODO(td1518): use json config
 
     public Scamp5AnalogueConfig(boolean useMov, boolean useMovx, boolean useMov2x, boolean useAdd, boolean useAdd3, boolean useAddx, boolean useAdd2x, boolean useSub, boolean useSubx, boolean useSub2x, boolean useDiv3, boolean useDiva, boolean useDiv4, boolean useDivq, boolean useRes, boolean useRes2, boolean useNeg, boolean subPowerOf2) {
         this.useMov = useMov;
