@@ -20,6 +20,12 @@ public interface Scamp5OutputFormatter {
 
   String SET(String r1);
 
+  String SET(String r1, String r2);
+
+  String NOT(String r1, String r2);
+
+  String OR(String r1, String r2, String r3, String r4, String r5);
+
   String DNEWS0(String r1, String r2);
 
 
@@ -56,4 +62,5 @@ public interface Scamp5OutputFormatter {
   String sub2x(Register y, Register x0, String dir1, String dir2, Register x1);
 
   String subx(Register y, Register x0, String dir1, Register x1);
+
 }

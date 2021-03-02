@@ -39,6 +39,21 @@ public class Scamp5DefaultOutputFormatter implements Scamp5OutputFormatter {
   }
 
   @Override
+  public String SET(String r1, String r2) {
+    return String.format("SET(%s, %s); ", r1, r2);
+  }
+
+  @Override
+  public String NOT(String r1, String r2) {
+    return String.format("NOT(%s, %s); ", r1, r2);
+  }
+
+  @Override
+  public String OR(String r1, String r2, String r3, String r4, String r5) {
+    return String.format("OR(%s, %s, %s, %s, %s); ", r1, r2, r3, r4, r5);
+  }
+
+  @Override
   public String DNEWS0(String r1, String r2) {
     return String.format("DNEWS0(%s, %s); ", r1, r2);
   }

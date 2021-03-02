@@ -46,6 +46,21 @@ public class Scamp5JssOutputFormatter implements Scamp5OutputFormatter {
   }
 
   @Override
+  public String SET(String r1, String r2) {
+    return String.format("%1$s.SET(%1$s.%2$s, %1$s.%3$s); ", simulatorName, r1, r2);
+  }
+
+  @Override
+  public String NOT(String r1, String r2) {
+    return String.format("%1$s.NOT(%1$s.%2$s, %1$s.%3$s); ", simulatorName, r1, r2);
+  }
+
+  @Override
+  public String OR(String r1, String r2, String r3, String r4, String r5) {
+    return String.format("%1$s.OR(%1$s.%2$s, %1$s.%3$s, %1$s.%4$s, %1$s.%5$s, %1$s.%6$s);", simulatorName, r1, r2, r3, r4, r5);
+  }
+
+  @Override
   public String DNEWS0(String r1, String r2) {
     return String.format("%1$s.DNEWS0(%1$s.%2$s, %1$s.%3$s); ", simulatorName, r1, r2);
   }

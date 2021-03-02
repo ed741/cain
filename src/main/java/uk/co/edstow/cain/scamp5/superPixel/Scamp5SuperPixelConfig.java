@@ -1,6 +1,8 @@
 package uk.co.edstow.cain.scamp5.superPixel;
 
 import uk.co.edstow.cain.scamp5.Scamp5ConfigGetter;
+import uk.co.edstow.cain.scamp5.Scamp5DefaultOutputFormatter;
+import uk.co.edstow.cain.scamp5.Scamp5OutputFormatter;
 import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.util.Bits;
 import uk.co.edstow.cain.util.Tuple;
@@ -69,6 +71,8 @@ public class Scamp5SuperPixelConfig<G extends Goal<G>> implements Scamp5ConfigGe
     public final int[] xBankStart;
     public final int[] yBankStart;
     public final boolean[][] sameShapeLookup;
+
+    public final Scamp5OutputFormatter outputFormatter = new Scamp5DefaultOutputFormatter(); // TODO(td158) config
 
     public Scamp5SuperPixelConfig(Scamp5SuperPixelConfig<G> proto, List<String> scratchRegisters, String selectReg, String maskReg, String maskedReg, String northReg, String eastReg, String southReg, String westReg, int width, int height, int banks, int[][][] bitOrder) {
         this.useMovbx = proto.useMovbx;

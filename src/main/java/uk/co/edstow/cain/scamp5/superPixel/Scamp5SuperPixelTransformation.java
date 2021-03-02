@@ -181,8 +181,8 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
                     config.selectBank(sb, bank, config.maskReg, scratch);
                     for (BRegister reg: regs){
                         String sreg = reg.name;
-                        sb.append(String.format("NOT(%s, %s); ", config.scratchRegisters.get(0), sreg));
-                        sb.append(String.format("NOR(%s, %s, %s); ", sreg, config.scratchRegisters.get(0), config.maskReg));
+                        sb.append(config.outputFormatter.NOT(config.scratchRegisters.get(0), sreg));
+                        sb.append(config.outputFormatter.NOR(sreg, config.scratchRegisters.get(0), config.maskReg));
                     }
                 }
             }
@@ -259,27 +259,27 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
                 // Copy in Carry in from correct PE
                 config.setDirLessSignificant(sb, bank);
                 // the least significant bit will have zeros for n,e,s,w so this should clear maskReg to 0 for that PE
-                sb.append(String.format("DNEWS0(%s, %s); ", config.maskReg, config.scratchRegisters.get(0)));
+                sb.append(config.outputFormatter.DNEWS0(config.maskReg, config.scratchRegisters.get(0)));
                 // maskReg := Carry in bit
 
                 // Use dir registers as scratch registers - we'll have to use setDirLessSignificant(sb, bank) on every
                 // Iteration but this save 4 scratch registers!
-                sb.append(String.format("NOR(%s, %s, %s); ", config.northReg, inputAReg, inputBReg));           //vn(1) = !(a+b)
-                sb.append(String.format("NOR(%s, %s, %s); ", config.eastReg, inputAReg, config.northReg));      //ve(2) = !(a+vn(1))
-                sb.append(String.format("NOR(%s, %s, %s); ", config.southReg, inputBReg, config.northReg));     //vs(3) = !(b+vn(1))
-                sb.append(String.format("NOR(%s, %s, %s); ", config.westReg, config.eastReg, config.southReg)); //vw(4) = !(ve(2)+vs(3))
-                sb.append(String.format("NOR(%s, %s, %s); ", config.eastReg, config.maskReg, config.westReg)); //ve(5) = !(vm(C)+vw(4))
-                sb.append(String.format("NOR(%s, %s, %s); ", config.southReg, config.westReg, config.eastReg)); //vs(6) = !(vw(4)+ve(5))
-                sb.append(String.format("NOR(%s, %s, %s); ", config.westReg, config.maskReg, config.eastReg)); //vw(7) = !(vm(C)+ve(5))
-                sb.append(String.format("NOR(%s, %s, %s); ", scratch.get(0), config.eastReg, config.northReg)); //v0(C) = !(ve(5)+vn(1))
+                sb.append(config.outputFormatter.NOR(config.northReg, inputAReg, inputBReg));           //vn(1) = !(a+b)
+                sb.append(config.outputFormatter.NOR(config.eastReg, inputAReg, config.northReg));      //ve(2) = !(a+vn(1))
+                sb.append(config.outputFormatter.NOR(config.southReg, inputBReg, config.northReg));     //vs(3) = !(b+vn(1))
+                sb.append(config.outputFormatter.NOR(config.westReg, config.eastReg, config.southReg)); //vw(4) = !(ve(2)+vs(3))
+                sb.append(config.outputFormatter.NOR(config.eastReg, config.maskReg, config.westReg)); //ve(5) = !(vm(C)+vw(4))
+                sb.append(config.outputFormatter.NOR(config.southReg, config.westReg, config.eastReg)); //vs(6) = !(vw(4)+ve(5))
+                sb.append(config.outputFormatter.NOR(config.westReg, config.maskReg, config.eastReg)); //vw(7) = !(vm(C)+ve(5))
+                sb.append(config.outputFormatter.NOR(scratch.get(0), config.eastReg, config.northReg)); //v0(C) = !(ve(5)+vn(1))
                 // scratch[0] := Carry out bit
 
                 // Multiplex to only store sum if we're in the correct bank.
-                sb.append(String.format("SET(%s); ", config.maskReg));
-                sb.append(String.format("MOV(%s, %s); ", config.maskedReg, outputReg));
+                sb.append(config.outputFormatter.SET(config.maskReg));
+                sb.append(config.outputFormatter.MOV(config.maskedReg, outputReg));
                 config.selectBank(sb, uppers.get(0).bank, config.maskReg, Arrays.asList(config.northReg, config.eastReg));
-                sb.append(String.format("NOR(%s, %s, %s); ", config.maskedReg, config.southReg, config.westReg)); //vm(S) = !(vs(6)+vw(7))
-                sb.append(String.format("MOV(%s, %s); ", outputReg, config.maskedReg));
+                sb.append(config.outputFormatter.NOR(config.maskedReg, config.southReg, config.westReg)); //vm(S) = !(vs(6)+vw(7))
+                sb.append(config.outputFormatter.MOV(outputReg, config.maskedReg));
 
             }
             return sb.toString();
@@ -388,11 +388,11 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
             // the least significant bit will have zeros for n,e,s,w
 
             // Multiplex to only store sum if we're in the correct bank.
-            sb.append(String.format("SET(%s); ", config.maskReg));
-            sb.append(String.format("MOV(%s, %s); ", config.maskedReg, outputReg));
+            sb.append(config.outputFormatter.SET(config.maskReg));
+            sb.append(config.outputFormatter.MOV(config.maskedReg, outputReg));
             config.selectBank(sb, uppers.get(0).bank, config.maskReg, scratch);
-            sb.append(String.format("DNEWS0(%s, %s); ", config.maskedReg, inputReg));
-            sb.append(String.format("MOV(%s, %s); ", outputReg, config.maskedReg));
+            sb.append(config.outputFormatter.DNEWS0(config.maskedReg, inputReg));
+            sb.append(config.outputFormatter.MOV(outputReg, config.maskedReg));
 
 
             return sb.toString();
@@ -488,18 +488,18 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
 
             // Multiplex to only store sum if we're in the correct bank.
             //      always write (save) outputReg soo all PEs outside the bank aren't corrupted
-            sb.append(String.format("SET(%s); ", config.maskReg));
-            sb.append(String.format("MOV(%s, %s); ", config.maskedReg, outputReg));
+            sb.append(config.outputFormatter.SET(config.maskReg));
+            sb.append(config.outputFormatter.MOV(config.maskedReg, outputReg));
             //      write shifted result if this is in the selected Bank
             config.selectBank(sb, uppers.get(0).bank, config.maskReg, scratch);
-            sb.append(String.format("DNEWS0(%s, %s); ", config.maskedReg, inputReg));
+            sb.append(config.outputFormatter.DNEWS0(config.maskedReg, inputReg));
             //      write un-shifted result if all dir bits are 0 (if this is Most significant bit)
-            sb.append(String.format("OR(%s, %s, %s, %s, %s); ", scratch.get(0), config.northReg, config.eastReg, config.southReg, config.westReg));
-            sb.append(String.format("NOT(%s, %s); ", config.northReg, config.maskReg));
-            sb.append(String.format("NOR(%s, %s, %s); ", config.maskReg, scratch.get(0), config.northReg));
-            sb.append(String.format("MOV(%s, %s); ", config.maskedReg, inputReg));
+            sb.append(config.outputFormatter.OR(scratch.get(0), config.northReg, config.eastReg, config.southReg, config.westReg));
+            sb.append(config.outputFormatter.NOT(config.northReg, config.maskReg));
+            sb.append(config.outputFormatter.NOR(config.maskReg, scratch.get(0), config.northReg));
+            sb.append(config.outputFormatter.MOV(config.maskedReg, inputReg));
             //      write answer into outputReg
-            sb.append(String.format("MOV(%s, %s); ", outputReg, config.maskedReg));
+            sb.append(config.outputFormatter.MOV(outputReg, config.maskedReg));
 
 
             return sb.toString();
@@ -609,14 +609,14 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
             if(xPETranslation != 0) {
                 String dirReg = xPETranslation<0? config.eastReg : config.westReg;
                 // set move direction
-                sb.append(String.format("CLR(%s, %s, %s, %s); ", config.northReg, config.eastReg, config.southReg, config.westReg));
-                sb.append(String.format("SET(%s, %s); ", dirReg, config.maskReg));//also set maskReg so we can use maskedReg
+                sb.append(config.outputFormatter.CLR(config.northReg, config.eastReg, config.southReg, config.westReg));
+                sb.append(config.outputFormatter.SET(dirReg, config.maskReg));//also set maskReg so we can use maskedReg
                 for (int i = 0; i < Math.abs(xPETranslation); i++) {
                     if(i%2 == 0) { // ensure we never do a Mov where dst and src are the same!
-                        sb.append(String.format("DNEWS0(%s, %s); ", scratchReg, currentReg));
+                        sb.append(config.outputFormatter.DNEWS0(scratchReg, currentReg));
                         currentReg = scratchReg;
                     }else{
-                        sb.append(String.format("DNEWS0(%s, %s); ", config.maskedReg, currentReg));
+                        sb.append(config.outputFormatter.DNEWS0(config.maskedReg, currentReg));
                         currentReg = config.maskedReg;
                     }
                 }
@@ -624,20 +624,20 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
             if(yPETranslation != 0) {
                 String dirReg = yPETranslation<0? config.northReg : config.southReg;
                 // set move direction
-                sb.append(String.format("CLR(%s, %s, %s, %s); ", config.northReg, config.eastReg, config.southReg, config.westReg));
-                sb.append(String.format("SET(%s, %s); ", dirReg, config.maskReg));//also set maskReg so we can use maskedReg
+                sb.append(config.outputFormatter.CLR(config.northReg, config.eastReg, config.southReg, config.westReg));
+                sb.append(config.outputFormatter.SET(dirReg, config.maskReg));//also set maskReg so we can use maskedReg
                 for (int i = 0; i < Math.abs(yPETranslation); i++) {
                     if(i%2 == 0) { // ensure we never do a Mov where dst and src are the same!
-                        sb.append(String.format("DNEWS0(%s, %s); ", scratchReg, currentReg));
+                        sb.append(config.outputFormatter.DNEWS0(scratchReg, currentReg));
                         currentReg = scratchReg;
                     }else{
-                        sb.append(String.format("DNEWS0(%s, %s); ", config.maskedReg, currentReg));
+                        sb.append(config.outputFormatter.DNEWS0(config.maskedReg, currentReg));
                         currentReg = config.maskedReg;
                     }
                 }
             }
             if (xPETranslation == 0 && yPETranslation == 0){ // catch case when translation is (0,0)
-                sb.append(String.format("SET(%s); ", config.maskReg));// set maskReg so we can use maskedReg
+                sb.append(config.outputFormatter.SET(config.maskReg));// set maskReg so we can use maskedReg
             }
             List<String> scratch = new ArrayList<>(config.scratchRegisters);
             scratch.add(config.northReg);
@@ -647,16 +647,16 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
             if(currentReg == config.maskedReg){
                 // the moved result is in maskedReg
                 config.selectBank(sb, ubank, config.selectReg, scratch); // invert selectBank into maskReg
-                sb.append(String.format("NOT(%s, %s); ", config.maskReg, config.selectReg));
-                sb.append(String.format("MOV(%s, %s); ", config.maskedReg, output)); // copy original output value if this PE is Not in bank
+                sb.append(config.outputFormatter.NOT(config.maskReg, config.selectReg));
+                sb.append(config.outputFormatter.MOV(config.maskedReg, output)); // copy original output value if this PE is Not in bank
             } else {
                 // the moved result is in currentReg (and currentReg isn't maskedReg)
-                sb.append(String.format("MOV(%s, %s); ", config.maskedReg, output)); // copy original output value
+                sb.append(config.outputFormatter.MOV(config.maskedReg, output)); // copy original output value
                 config.selectBank(sb, ubank, config.maskReg, scratch); // selectBank into maskReg
-                sb.append(String.format("MOV(%s, %s); ", config.maskedReg, currentReg)); // copy moved value if PE is in Bank
+                sb.append(config.outputFormatter.MOV(config.maskedReg, currentReg)); // copy moved value if PE is in Bank
             }
 
-            sb.append(String.format("MOV(%s, %s); ", output, config.maskedReg)); // copy result into outputReg
+            sb.append(config.outputFormatter.MOV(output, config.maskedReg)); // copy result into outputReg
 
             return sb.toString();
         }
