@@ -66,7 +66,10 @@ class FileRunTest {
                 "      \"heuristic\": \"Pattern\"\n" +
                 "    }," +
                 "    \"ops\":\"all\",\n" +
-                "    \"threshold\":10\n" +
+                "    \"threshold\":10,\n" +
+                "    \"outputFormat\": {\n" +
+                "      \"name\": \"defaultFormat\"\n" +
+                "   }," +
                 "  },\n" +
                 "  \"verifier\":\"Scamp5Emulator\"\n" +
                 "\n" +
@@ -134,6 +137,9 @@ class FileRunTest {
                         "      \"threshold\":10,\n" +
                         "      \"ops\":all,\n" +
                         "      \"heuristic\": \"Pattern\"\n" +
+                        "    }," +
+                        "    \"outputFormat\": {\n" +
+                        "      \"name\": \"defaultFormat\"\n" +
                         "    }," +
                         "  },\n" +
                         "  \"verifier\":\"Scamp5Emulator\"\n" +
@@ -215,7 +221,10 @@ class FileRunTest {
                         "      \"B\":[\"DB1\",\"DB2\"],\n" +
                         "      \"C\":[\"DC1\",\"DC2\"],\n" +
                         "      \"D\":[\"DD1\",\"DD2\"]\n" +
-                        "    }\n" +
+                        "    },\n" +
+                        "    \"outputFormat\": {\n" +
+                        "      \"name\": \"defaultFormat\"\n" +
+                        "   }," +
                         "  },\n" +
                         "  \"verifier\":\"None\"\n" +
                         "\n" +

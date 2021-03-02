@@ -1,7 +1,6 @@
 package uk.co.edstow.cain.scamp5.analogue;
 
 import uk.co.edstow.cain.scamp5.Scamp5ConfigGetter;
-import uk.co.edstow.cain.scamp5.Scamp5DefaultOutputFormatter;
 import uk.co.edstow.cain.scamp5.Scamp5OutputFormatter;
 import uk.co.edstow.cain.structures.Goal;
 
@@ -35,9 +34,9 @@ public class Scamp5AnalogueConfig<G extends Goal<G>> implements Scamp5ConfigGett
 
     private final boolean onlyMov;
 
-    public final Scamp5OutputFormatter outputFormatter = new Scamp5DefaultOutputFormatter(); // TODO(td1518): use json config
+    public final Scamp5OutputFormatter outputFormatter;
 
-    public Scamp5AnalogueConfig(boolean useMov, boolean useMovx, boolean useMov2x, boolean useAdd, boolean useAdd3, boolean useAddx, boolean useAdd2x, boolean useSub, boolean useSubx, boolean useSub2x, boolean useDiv3, boolean useDiva, boolean useDiv4, boolean useDivq, boolean useRes, boolean useRes2, boolean useNeg, boolean subPowerOf2) {
+    public Scamp5AnalogueConfig(boolean useMov, boolean useMovx, boolean useMov2x, boolean useAdd, boolean useAdd3, boolean useAddx, boolean useAdd2x, boolean useSub, boolean useSubx, boolean useSub2x, boolean useDiv3, boolean useDiva, boolean useDiv4, boolean useDivq, boolean useRes, boolean useRes2, boolean useNeg, boolean subPowerOf2, Scamp5OutputFormatter outputFormatter) {
         this.useMov = useMov;
         this.useMovx = useMovx;
         this.useMov2x = useMov2x;
@@ -56,6 +55,7 @@ public class Scamp5AnalogueConfig<G extends Goal<G>> implements Scamp5ConfigGett
         this.useRes2 = useRes2;
         this.useNeg = useNeg;
         this.subPowerOf2 = subPowerOf2;
+        this.outputFormatter = outputFormatter;
         this.onlyMov = !(useAdd || useAdd3 || useAddx || useAdd2x || useSub || useSubx || useSub2x || useDiv3 || useDiv4 || useDiva || useDivq || useRes || useRes2 || useNeg);
     }
 
@@ -79,6 +79,7 @@ public class Scamp5AnalogueConfig<G extends Goal<G>> implements Scamp5ConfigGett
         this.useNeg = proto.useNeg;
         this.subPowerOf2 = proto.subPowerOf2;
         this.onlyMov = proto.onlyMov;
+        this.outputFormatter = proto.outputFormatter;
     }
 
     @Override
@@ -119,7 +120,9 @@ public class Scamp5AnalogueConfig<G extends Goal<G>> implements Scamp5ConfigGett
 
         private boolean subPowerOf2;
 
-        public Builder(boolean useMov, boolean useMovx, boolean useMov2x, boolean useAdd, boolean useAdd3, boolean useAddx, boolean useAdd2x, boolean useSub, boolean useSubx, boolean useSub2x, boolean useDiv3, boolean useDiva, boolean useDiv4, boolean useDivq, boolean useRes, boolean useRes2, boolean useNeg, boolean subPowerOf2) {
+        private Scamp5OutputFormatter outputFormatter;
+
+        public Builder(boolean useMov, boolean useMovx, boolean useMov2x, boolean useAdd, boolean useAdd3, boolean useAddx, boolean useAdd2x, boolean useSub, boolean useSubx, boolean useSub2x, boolean useDiv3, boolean useDiva, boolean useDiv4, boolean useDivq, boolean useRes, boolean useRes2, boolean useNeg, boolean subPowerOf2, Scamp5OutputFormatter outputFormatter) {
             this.useMov = useMov;
             this.useMovx = useMovx;
             this.useMov2x = useMov2x;
@@ -138,6 +141,7 @@ public class Scamp5AnalogueConfig<G extends Goal<G>> implements Scamp5ConfigGett
             this.useRes2 = useRes2;
             this.useNeg = useNeg;
             this.subPowerOf2 = subPowerOf2;
+            this.outputFormatter = outputFormatter;
         }
 
         public Builder() {
@@ -164,7 +168,7 @@ public class Scamp5AnalogueConfig<G extends Goal<G>> implements Scamp5ConfigGett
         }
 
         public Scamp5AnalogueConfig<G> build(){
-            return new Scamp5AnalogueConfig<>(useMov, useMovx, useMov2x, useAdd, useAdd3,  useAddx,  useAdd2x, useSub, useSubx,  useSub2x, useDiv3, useDiva, useDiv4, useDivq, useRes, useRes2, useNeg, subPowerOf2);
+            return new Scamp5AnalogueConfig<>(useMov, useMovx, useMov2x, useAdd, useAdd3, useAddx, useAdd2x, useSub, useSubx, useSub2x, useDiv3, useDiva, useDiv4, useDivq, useRes, useRes2, useNeg, subPowerOf2, outputFormatter);
         }
 
         public Builder<G> useAll(){
@@ -392,6 +396,15 @@ public class Scamp5AnalogueConfig<G extends Goal<G>> implements Scamp5ConfigGett
             this.subPowerOf2 = subPowerOf2;
             return this;
         }
+
+        public Scamp5OutputFormatter getOutputFormatter() {
+            return outputFormatter;
+        }
+
+        public void setOutputFormatter(Scamp5OutputFormatter outputFormatter) {
+            this.outputFormatter = outputFormatter;
+        }
+
     }
 
 }
