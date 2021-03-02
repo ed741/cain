@@ -2,7 +2,6 @@ package uk.co.edstow.cain.scamp5;
 
 import uk.co.edstow.cain.regAlloc.Register;
 
-// TODO(td1518) impl analog methods
 public class Scamp5JssOutputFormatter implements Scamp5OutputFormatter {
   public final String simulatorName;
 
@@ -53,86 +52,86 @@ public class Scamp5JssOutputFormatter implements Scamp5OutputFormatter {
 
   @Override
   public String add2x(Register y, Register x0, Register x1, String dir1, String dir2) {
-    return null;
+    return String.format("%1$s.add2x(%1$s.%2$s, %1$s.%3$s, %1$s.%4$s, %5$s, %6$s);", simulatorName, y, x0, x1, dir1, dir2);
   }
 
   @Override
   public String add(Register y, Register x0, Register x1) {
-    return null;
+    return String.format("%1$s.add(%1$s.%2$s, %1$s.%3$s, %1$s.%4$s);", simulatorName, y, x0, x1);
   }
 
   @Override
   public String add(Register y, Register x0, Register x1, Register x2) {
-    return null;
+    return String.format("%1$s.add(%1$s.%2$s, %1$s.%3$s, %1$s.%4$s, %1$s.%5$s);", simulatorName, y, x0, x1, x2);
   }
 
   @Override
   public String addx(Register y, Register x0, Register x1, String dir) {
-    return null;
+    return String.format("%1$s.addx(%1$s.%2$s, %1$s.%3$s, %1$s.%4$s, %5$s);", simulatorName, y, x0, x1, dir);
   }
 
   @Override
   public String diva(Register y0, Register y1, Register y2) {
-    return null;
+    return String.format("%1$s.diva(%1$s.%2$s, %1$s.%3$s, %1$s.%4$s);", simulatorName, y0, y1, y2);
   }
 
   @Override
   public String div(Register y0, Register y1, Register y2) {
-    return null;
+    return String.format("%1$s.div(%1$s.%2$s, %1$s.%3$s, %1$s.%4$s);", simulatorName, y0, y1, y2);
   }
 
   @Override
   public String div(Register y0, Register y1, Register y2, Register x0) {
-    return null;
+    return String.format("%1$s.div(%1$s.%2$s, %1$s.%3$s, %1$s.%4$s, %1$s.%5$s);", simulatorName, y0, y1, y2, x0);
   }
 
   @Override
   public String divq(Register y0, Register x0) {
-    return null;
+    return String.format("%1$s.divq(%1$s.%2$s, %1$s.%3$s);", simulatorName, y0, x0);
   }
 
   @Override
   public String mov(Register y, Register x0) {
-    return null;
+    return String.format("%1$s.mov(%1$s.%2$s, %1$s.%3$s);", simulatorName, y, x0);
   }
 
   @Override
   public String mov2x(Register y, Register x0, String dir1, String dir2) {
-    return null;
+    return String.format("%1$s.mov2x(%1$s.%2$s, %1$s.%3$s, %4$s, %5$s);", simulatorName, y, x0, dir1, dir2);
   }
 
   @Override
   public String movx(Register y, Register x0, String dir) {
-    return null;
+    return String.format("%1$s.movx(%1$s.%2$s, %1$s.%3$s, %4$s);", simulatorName, y, x0, dir);
   }
 
   @Override
   public String neg(Register y, Register x0) {
-    return null;
+    return String.format("%1$s.neg(%1$s.%2$s, %1$s.%3$s);", simulatorName, y, x0);
   }
 
   @Override
   public String res(Register a) {
-    return null;
+    return String.format("%1$s.res(%1$s.%2$s);", simulatorName, a);
   }
 
   @Override
   public String res(Register a, Register b) {
-    return null;
+    return String.format("%1$s.res(%1$s.%2$s, %1$s.%3$s);", simulatorName, a, b);
   }
 
   @Override
   public String sub(Register y, Register x0, Register x1) {
-    return null;
+    return String.format("%1$s.sub(%1$s.%2$s, %1$s.%3$s, %1$s.%4$s);", simulatorName, y, x0, x1);
   }
 
   @Override
   public String sub2x(Register y, Register x0, String dir1, String dir2, Register x1) {
-    return null;
+    return String.format("%1$s.sub2x(%1$s.%2$s, %1$s.%3$s, %4$s, %5$s, %1$s.%6$s);", simulatorName, y, x0, dir1, dir2, x1);
   }
 
   @Override
   public String subx(Register y, Register x0, String dir1, Register x1) {
-    return null;
+    return String.format("%1$s.subx(%1$s.%2$s, %1$s.%3$s, %4$s, %1$s.%5$s);", simulatorName, y, x0, dir1, x1);
   }
 }
