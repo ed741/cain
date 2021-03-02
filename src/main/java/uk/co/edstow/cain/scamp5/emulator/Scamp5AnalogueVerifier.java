@@ -29,7 +29,7 @@ public class Scamp5AnalogueVerifier<G extends Kernel3DGoal<G>> implements Verifi
     @Override
     public String verify(String code, List<G> initialGoals, List<G> finalGoals, Plan<G,Scamp5AnalogueTransformation<G>,Register> plan, RegisterAllocator<G,Scamp5AnalogueTransformation<G>,Register> registerAllocator) {
 //        List<G> finalGoals = reverseSearch.getFinalGoals();
-        int[] divisions = initialGoals.stream().mapToInt(g -> g.get(0,0, g.bounds().getZMax())).toArray();
+        int[] initAtoms = initialGoals.stream().mapToInt(g -> g.get(0,0, g.bounds().getZMax())).toArray();
 //        int[] divisions = reverseSearch.getInitialDivisions();
         List<Bounds> coverage = new ArrayList<>();
         double noise = 0;
@@ -43,7 +43,7 @@ public class Scamp5AnalogueVerifier<G extends Kernel3DGoal<G>> implements Verifi
         Scamp5Emulator emulator = Scamp5Emulator.newWithRegs((plan.bounds().largestMagnitude() + 1) * 3, regs);
         for (int i = 0; i < initRegistersList.size(); i++) {
             Register r = initRegistersList.get(i);
-            emulator.run(String.format("input(%s,%d)", r, (1 << divisions[i]) * 128));
+            emulator.run(String.format("input(%s,%d)", r, (initAtoms[i]) * 128));
         }
         emulator.pushCode(code);
         emulator.flushInstructionBuffer();
