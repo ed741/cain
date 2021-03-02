@@ -5,13 +5,19 @@ import uk.co.edstow.cain.regAlloc.RegisterAllocator;
 import java.util.List;
 
 public interface Scamp5OutputFormatter {
-  String nor(String r1, String r2, String r3);
+  String NOR(String r1, String r2, String r3);
 
-  String mov(String r1, String r2);
+  String MOV(String r1, String r2);
 
-  String clr(String... regs);
+  String CLR(String r1);
 
-  String set(String r1);
+  String CLR(String r1, String r2);
 
-  String dnews0(String r1, String r2);
+  String CLR(String r1, String r2, String r3);
+
+  String CLR(String r1, String r2, String r3, String r4);
+
+  String SET(String r1);
+
+  String DNEWS0(String r1, String r2);
 }
