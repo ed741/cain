@@ -1,6 +1,6 @@
 {"name":"Box3x3",
   "verbose": -1,
-  "goalSystem":"Kernel3D",
+  "goalSystem":"Kernel3DBanked",
   "maxApproximationDepth":6,
   "maxApproximationError":0,
   "3d": false,
