@@ -1,10 +1,10 @@
 package uk.co.edstow.cain.scamp5;
 
+import uk.co.edstow.cain.pairgen.PairGen;
 import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.transformations.Transformation;
 import uk.co.edstow.cain.pairgen.Context;
 import uk.co.edstow.cain.pairgen.CostHeuristic;
-import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.structures.GoalBag;
 
@@ -30,12 +30,12 @@ public class ThresholdScamp5ConfigGetter<G extends Goal<G>, T extends Transforma
 
 
     @Override
-    public PairGenFactory.PairGen<G,T,R> getScamp5Strategy(GoalBag<G> goals, Context<G,T,R> context, boolean movOnly) {
+    public PairGen<G,T,R> getScamp5Strategy(GoalBag<G> goals, Context<G,T,R> context, boolean movOnly) {
         int max = Integer.MIN_VALUE;
         for (G goal : goals) {
             max = (int) Math.max(max, goal.total());
         }
-        PairGenFactory.PairGen<G,T,R> stratergy;
+        PairGen<G,T,R> stratergy;
         if(max>threshold){
             stratergy = above.get(goals, context, movOnly? scamp5ConfigMovOnly : scamp5Config, heuristic);
         } else {
@@ -51,6 +51,6 @@ public class ThresholdScamp5ConfigGetter<G extends Goal<G>, T extends Transforma
 
     @FunctionalInterface
     public interface GenGetter<G extends Goal<G>, T extends Transformation<R>, R extends Register, C extends Scamp5ConfigGetter.Scamp5Config<G, C>>{
-        PairGenFactory.PairGen<G,T,R> get(GoalBag<G> goals, Context<G,T,R> conf, C scamp5Config, CostHeuristic<G,T,R> heuristic);
+        PairGen<G,T,R> get(GoalBag<G> goals, Context<G,T,R> conf, C scamp5Config, CostHeuristic<G,T,R> heuristic);
     }
 }

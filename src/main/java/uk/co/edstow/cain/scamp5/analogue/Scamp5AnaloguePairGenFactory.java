@@ -3,7 +3,6 @@ package uk.co.edstow.cain.scamp5.analogue;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.goals.atomGoal.pairGen.Distance;
 import uk.co.edstow.cain.goals.atomGoal.pairGen.SimpleTransformation;
-import uk.co.edstow.cain.nonlinear.LinearPairGenFactory;
 import uk.co.edstow.cain.pairgen.*;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.regAlloc.Register;
@@ -19,7 +18,7 @@ import java.util.stream.Stream;
 
 import static uk.co.edstow.cain.scamp5.analogue.Scamp5AnalogueTransformation.*;
 
-public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements LinearPairGenFactory<G, Scamp5AnalogueTransformation<G>, Register> {
+public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements PairGenFactory<G, Scamp5AnalogueTransformation<G>, Register> {
 
     private final Scamp5ConfigGetter<G, Scamp5AnalogueTransformation<G>, Register, Scamp5AnalogueConfig<G>> scamp5ConfGet;
 
@@ -29,7 +28,7 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
 
 
     @Override
-    public List<GoalPair<G, Scamp5AnalogueTransformation<G>, Register>> applyAllUnaryOpForwards(List<G> initialGoals, Context<G, Scamp5AnalogueTransformation<G>, Register> context, GoalBag<G> goals){
+    public List<GoalPair<G, Scamp5AnalogueTransformation<G>, Register>> solveDirectly(Context<G, Scamp5AnalogueTransformation<G>, Register> context, GoalBag<G> goals){
         Scamp5AnalogueConfig<G> scamp5AnalogueConfig = this.scamp5ConfGet.getScamp5ConfigForDirectSolve(goals, context);
         goals = new GoalBag<>(goals);
         List<GoalPair<G, Scamp5AnalogueTransformation<G>, Register>> allPairs = new ArrayList<>();
@@ -49,7 +48,7 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
                 }
             }
         }
-        List<GoalPair<G, Scamp5AnalogueTransformation<G>, Register>> pairList = LinearPairGenFactory.super.applyAllUnaryOpForwards(initialGoals, context, goals);
+        List<GoalPair<G, Scamp5AnalogueTransformation<G>, Register>> pairList = PairGenFactory.super.solveDirectly(context, goals);
         if(pairList==null){
             return null;
         }
@@ -58,11 +57,11 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
     }
 
     @Override
-    public Collection<Tuple<List<GoalPair<G, Scamp5AnalogueTransformation<G>, Register>>, G>> applyAllUnaryOpForwards(List<G> initialGoals, Context<G, Scamp5AnalogueTransformation<G>, Register> context, G goal) {
+    public Collection<Tuple<List<GoalPair<G, Scamp5AnalogueTransformation<G>, Register>>, G>> solveDirectly(Context<G, Scamp5AnalogueTransformation<G>, Register> context, G goal) {
         Scamp5AnalogueConfig<G> scamp5AnalogueConfig = this.scamp5ConfGet.getScamp5ConfigForDirectSolve(new GoalBag<>(goal), context);
         ArrayList<Tuple<List<GoalPair<G, Scamp5AnalogueTransformation<G>, Register>>, G>> list = new ArrayList<>();
 
-        if(initialGoals.contains(goal)){
+        if(context.initialGoals.contains(goal)){
             list.add(new Tuple<>(Collections.emptyList(), goal));
             return list;
         }
@@ -70,14 +69,14 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
         //Res
         if(scamp5AnalogueConfig.useRes && goal.allZero()){
             Res<G> res = new Res<>(goal, scamp5AnalogueConfig);
-            list.add(new Tuple<>(Collections.singletonList((new GoalPair<>(goal, Collections.emptyList(), res))), initialGoals.get(0)));
+            list.add(new Tuple<>(Collections.singletonList((new GoalPair<>(goal, Collections.emptyList(), res))), context.initialGoals.get(0)));
             return list;
         }
 
         //Negate
         if(scamp5AnalogueConfig.useNeg) {
             Neg<G> neg = new Neg<>(goal, true, scamp5AnalogueConfig);
-            if (initialGoals.contains(neg.a)) {
+            if (context.initialGoals.contains(neg.a)) {
                 list.add(new Tuple<>(Collections.singletonList(new GoalPair<>(neg.applyForwards(), neg.a, neg)), neg.a));
             }
         }
@@ -88,7 +87,7 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
                 if (goal.total() == 1d && goal.get(0, 0 ,goal.bounds().getZMax())==1) {
                     int z = goal.bounds().getZMax();
                     G ic = null;
-                    for (G i : initialGoals) {
+                    for (G i : context.initialGoals) {
                         if (i.get(0,0,z)>0) {
                             ic = i;
                         }
@@ -117,7 +116,7 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
                 if (goal.total() == 1d && goal.get(0, 0 ,goal.bounds().getZMax())==1) {
                     int z = goal.bounds().getZMax();
                     G ic = null;
-                    for (G i : initialGoals) {
+                    for (G i : context.initialGoals) {
                         if (i.get(0,0,z)>0) {
                             ic = i;
                         }
@@ -147,7 +146,7 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
         if(scamp5AnalogueConfig.useMovx) {
             for (Dir dir : Dir.values()) {
                 Movx<G> movx = new Movx<>(goal, dir, true, scamp5AnalogueConfig);
-                if (initialGoals.contains(movx.a)) {
+                if (context.initialGoals.contains(movx.a)) {
                     list.add(new Tuple<>(Collections.singletonList(new GoalPair<>(goal, movx.a, movx)), movx.a));
                 }
             }
@@ -157,11 +156,11 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
         if(scamp5AnalogueConfig.useMov2x) {
             for (Dir dir1 : Dir.values()) {
                 Mov2x<G> mov2xa = new Mov2x<>(goal, dir1, dir1, true, scamp5AnalogueConfig);
-                if(initialGoals.contains(mov2xa.a)) {
+                if(context.initialGoals.contains(mov2xa.a)) {
                     list.add(new Tuple<>(Collections.singletonList(new GoalPair<>(goal, mov2xa.a, mov2xa)), mov2xa.a));
                 }
                 Mov2x<G> mov2xb = new Mov2x<>(goal, dir1, dir1.cw(), true, scamp5AnalogueConfig);
-                if(initialGoals.contains(mov2xb.a)) {
+                if(context.initialGoals.contains(mov2xb.a)) {
                     list.add(new Tuple<>(Collections.singletonList(new GoalPair<>(goal, mov2xb.a, mov2xb)), mov2xb.a));
                 }
             }
@@ -182,12 +181,6 @@ public class Scamp5AnaloguePairGenFactory<G extends Kernel3DGoal<G>> implements 
     @Override
     public Scamp5AnalogueTransformation<G> getDummyTransformation(List<G> upperGoals, List<G> lowerGoals, Context<G, Scamp5AnalogueTransformation<G>, Register> context) {
         return new Scamp5AnalogueTransformation.Null<>(lowerGoals.size(), upperGoals.size(), this.scamp5ConfGet.getScamp5ConfigForDirectSolve(new GoalBag<>(lowerGoals), context));
-    }
-
-    public Collection<Tuple<List<G>, Scamp5AnalogueTransformation<G>>> generateValueConstantOps(List<G> goal, Context<G, Scamp5AnalogueTransformation<G>, Register> context) {
-        PairGen<G, Scamp5AnalogueTransformation<G>, Register> gen =  this.scamp5ConfGet.getScamp5Strategy(new GoalBag<>(goal), context, true);
-        return null; //TODO part of non-linear goals
-
     }
 
 

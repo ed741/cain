@@ -9,11 +9,15 @@
       [[1, 1, 1],
         [1, 1, 1],
         [1, 1, 1]
-      ]}
+      ]
+    }
   },
 
-  "availableRegisters":["A","B","C"],
-  "initialRegisters":["A"],
+  "registerAllocator": {
+    "name": "linearScan",
+    "availableRegisters":["A","B","C"],
+    "initialRegisters":["A"]
+  },
 
   "runConfig":{
     "searchTime":60000,

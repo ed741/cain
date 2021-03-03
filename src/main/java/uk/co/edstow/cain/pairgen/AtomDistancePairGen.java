@@ -11,7 +11,7 @@ import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 
-public abstract class AtomDistancePairGen<G extends Kernel3DGoal<G>, T extends Transformation<R>, R extends Register> implements PairGenFactory.PairGen<G, T, R> {
+public abstract class AtomDistancePairGen<G extends Kernel3DGoal<G>, T extends Transformation<R>, R extends Register> implements PairGen<G, T, R> {
     protected final Context<G, T, R> context;
     protected final GoalBag<G> goals;
     protected final Iterator<Tuple<Integer, Integer>> ijGetter;

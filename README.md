@@ -21,16 +21,17 @@ Cain uses a JSON input format to define the filter and search parameters to use.
 
 ### JSON Format
 
-| token id      | valid value   | Default | Description  |
-| ------------- |:-------------:|:-------:| ------------ |
-| id            | Any String    |         | The arbitary name of this search configuration. |
-| verbose       | Integer       | 10      | This value controls the verbosity of the setup and checking of the search, not the search itself (see 'runConfig' for search verbosity rules) less than 0 means no output, 0 means critical only, and so on, more than 10 will print debug information. |
-| goalSystem    | "Kernel3D"    |         | This determines the representation of a Goal in Cain. |
-| filter        | Filter (see below) |    | The mapping from Registers to the kernels to be compiled. |
-| availableRegisters | Array of Strings | | The available Registers to use in computation (registers in the 'filter' mapping are added automaticly if not present' Registers must be Strings containing only the characters 'A' to 'Z', for example `"availableRegisters":["A","B","C","D","E","F"],` |
-| initialRegisters | Array of Strings |   | In the same format as 'availableRegisters' this defines the input registers. For single channel inputs use a singleton array, for 2d-multichannel filters the order of registers order of channels described in the innermost array of the kernel. |
-| runConfig     | RunConfig (see below) | | The run configutation for Cain, including parameters for search time, traversal algorithm, and cost function. |
-| pairGen       | PairGen (see below) |   | The pair generation configuration, including what archatecture to target and any configuration parameters to give the pairGenerator for that archatecture. |
+| token id          | valid value   | Default | Description  |
+| -------------     |:-------------:|:-------:| ------------ |
+| id                | Any String    |         | The arbitary name of this search configuration. |
+| verbose           | Integer       | 10      | This value controls the verbosity of the setup and checking of the search, not the search itself (see 'runConfig' for search verbosity rules) less than 0 means no output, 0 means critical only, and so on, more than 10 will print debug information. |
+| goalSystem        |               |         | This determines the representation of a Goal in Cain. |
+| .                 | "Kernel3D"    |         | Use a 3D kernel as the goal (this can represent a 2D kernel with channels) |
+| .                 | "BankedKernel3D"|       | Use a banked version of a 3D kernel as the goal (this can represent a 2D kernel with channels) |
+| filter            | Filter (see below) |    | The mapping from Registers to the kernels to be compiled. |
+| registerAllocator | RegisterAllocator (see below) | | The registerAllocator to use.
+| runConfig         | RunConfig (see below) | | The run configutation for Cain, including parameters for search time, traversal algorithm, and cost function. |
+| pairGen           | PairGen (see below) |   | The pair generation configuration, including what archatecture to target and any configuration parameters to give the pairGenerator for that archatecture. |
 
 #### Kernel3D Goal Approximation
 When using the Kernel3D Goal-System kernels must be approximated using the following parameters:
@@ -68,7 +69,13 @@ Each kernel object has an "array" of the weights, and an optional Doubles "depth
   ```
   If 3d is false then this Filter will compute an approximated 5x5 Guassian filter into A from channel 0 aswell as a 3x3 guassian filter on channels 0 and 1 added together into Register B.
   
-  
+#### RegisterAllocator
+#####registerAllocator.name:"linearScan"
+| token id          | valid value   | Default | Description  |
+| -------------     |:-------------:|:-------:| ------------ |
+| availableRegisters | Array of Strings | | The available Registers to use in computation (registers in the 'filter' mapping are added automatically if not present' Registers must be Strings containing only the characters 'A' to 'Z', for example `"availableRegisters":["A","B","C","D","E","F"],` |
+| initialRegisters | Array of Strings |   | In the same format as 'availableRegisters' this defines the input registers. For single channel inputs use a singleton array, for 2d-multichannel filters the order of registers order of channels described in the innermost array of the kernel. |
+
 #### RunConfig
 
 The RunConfig defines the behaviour of the Reverse Search Algorithm, but not any of the Pair Generation or Huristics.

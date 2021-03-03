@@ -1,6 +1,7 @@
 package uk.co.edstow.cain;
 
 import uk.co.edstow.cain.pairgen.Context;
+import uk.co.edstow.cain.pairgen.PairGen;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.regAlloc.RegisterAllocator;
@@ -500,7 +501,7 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation<R>, R ext
             int depth = s.depth;
             GoalBag<G> goals = s.goals;
             Plan<G,T,R> currentPlan = s.currentPlan;
-            PairGenFactory.PairGen<G,T,R> goalPairs = s.pairGen;
+            PairGen<G,T,R> goalPairs = s.pairGen;
 
 
 
@@ -692,7 +693,7 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation<R>, R ext
 
 
     private List<GoalPair<G,T, R>> isTransformable(GoalBag<G> goals, int depth) {
-        return this.pairGenFactory.applyAllUnaryOpForwards(initialGoals, new Context<>(depth, registerAllocator, initialGoals), goals);
+        return this.pairGenFactory.solveDirectly(new Context<>(depth, registerAllocator, initialGoals), goals);
     }
 
 

@@ -3,6 +3,7 @@ package uk.co.edstow.cain.goals.atomGoal.pairGen;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
 import uk.co.edstow.cain.pairgen.Context;
+import uk.co.edstow.cain.pairgen.PairGen;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.structures.GoalBag;
@@ -17,8 +18,8 @@ public class V2PairGenFactory implements PairGenFactory<AtomGoal, SimpleTransfor
 
 
     @Override
-    public Collection<Tuple<List<GoalPair<AtomGoal, SimpleTransformation, Register>>, AtomGoal>> applyAllUnaryOpForwards(List<AtomGoal> initialGoals, Context<AtomGoal, SimpleTransformation, Register> context, AtomGoal goal) {
-        return SimplePairGenFactory.applyAllUnaryOps(initialGoals.get(0), goal);
+    public Collection<Tuple<List<GoalPair<AtomGoal, SimpleTransformation, Register>>, AtomGoal>> solveDirectly(Context<AtomGoal, SimpleTransformation, Register> context, AtomGoal goal) {
+        return SimplePairGenFactory.applyAllUnaryOps(context.initialGoals.get(0), goal);
     }
 
     @Override

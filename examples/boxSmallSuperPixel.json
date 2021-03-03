@@ -1,5 +1,4 @@
 {"name":"Box3x3",
-  "verbose": -1,
   "goalSystem":"Kernel3DBanked",
   "maxApproximationDepth":6,
   "maxApproximationError":0,
@@ -65,10 +64,7 @@
                   [ 0,  0,  4,  3],
                   [ 0,  0,  0,  0],
                   [ 0,  0,  0,  0]]
-              ],
-    "outputFormat": {
-      "name": "defaultFormat"
-    }
+              ]
   },
 
   "verifier":"None"

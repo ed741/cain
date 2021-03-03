@@ -3,6 +3,7 @@ package uk.co.edstow.cain.goals.atomGoal.pairGen;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
 import uk.co.edstow.cain.pairgen.Context;
+import uk.co.edstow.cain.pairgen.PairGen;
 import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;

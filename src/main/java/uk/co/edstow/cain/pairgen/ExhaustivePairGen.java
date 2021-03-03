@@ -10,7 +10,7 @@ import uk.co.edstow.cain.util.Tuple;
 import java.util.*;
 import java.util.stream.Stream;
 
-public abstract class ExhaustivePairGen<G extends Goal<G>, T extends Transformation<R>, R extends Register> implements PairGenFactory.PairGen<G,T,R> {
+public abstract class ExhaustivePairGen<G extends Goal<G>, T extends Transformation<R>, R extends Register> implements PairGen<G,T,R> {
     protected final Iterator<GoalPair<G, T, R>> it;
     private int count = 0;
     protected final Context<G,T,R> context;
