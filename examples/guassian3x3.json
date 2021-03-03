@@ -1,31 +1,33 @@
-{"name":"Sobel",
+{"name":"Guassian5x5",
   "goalSystem":"Kernel3D",
-  "maxApproximationDepth":3,
+  "maxApproximationDepth":6,
   "maxApproximationError":0,
   "3d": false,
   "filter":{
-    "A": {"depth":0,
+    "A": {"depth":-4,
       "array":
-      [ [1, 0, -1],
-        [2, 0, -2],
-        [1, 0, -1]
-      ]}
+        [ [ 0, 0, 0, 0, 0],
+          [ 0, 1, 2, 1, 0],
+          [ 0, 2, 4, 2, 0],
+          [ 0, 1, 2, 1, 0],
+          [ 0, 0, 0, 0, 0]
+        ]
+    }
   },
-
   "registerAllocator": {
     "name": "linearScan",
-    "availableRegisters":["A","B","C","D","E","F"],
-    "initialRegisters":["A"]
+    "availableRegisters":["A","C","F"],
+    "initialRegisters":["C"]
   },
 
   "runConfig":{
-    "searchTime":1000,
+    "searchTime":2000,
     "timeOut":true,
-    "workers":4,
-    "traversalAlgorithm":"SOT",
-    "costFunction":"CircuitDepthThenLength",
+    "workers":1,
+    "traversalAlgorithm":"DFS",
+    "costFunction":"PlanLength",
     "liveCounter":true,
-    "livePrintPlans":2,
+    "livePrintPlans":1,
     "quiet": false,
     "initialMaxDepth":200,
     "forcedDepthReduction":1,
@@ -37,12 +39,12 @@
   },
 
   "pairGen":{
-    "name": "Scamp5AnalogueAtomGoal",
+    "name": "Scamp5AnalogueArrayGoal",
     "configGetter": {
       "name":"Threshold",
-      "threshold":10,
+      "threshold":4,
       "heuristic": "Pattern",
-      "ops": "all"
+      "ops": "basic"
     }
   },
 

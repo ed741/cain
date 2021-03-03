@@ -1,4 +1,4 @@
-{"name":"Sobel",
+{"name":"Multiple Sobel",
   "goalSystem":"Kernel3D",
   "maxApproximationDepth":3,
   "maxApproximationError":0,
@@ -18,11 +18,14 @@
       ]}
   },
 
-  "availableRegisters":["A","B","C","D","E","F"],
-  "initialRegisters":["A"],
+  "registerAllocator": {
+    "name": "linearScan",
+    "availableRegisters":["A","B","C","D","E","F"],
+    "initialRegisters":["A"]
+  },
 
   "runConfig":{
-    "searchTime":60000,
+    "searchTime":1000,
     "timeOut":true,
     "workers":4,
     "traversalAlgorithm":"SOT",
@@ -41,9 +44,12 @@
 
   "pairGen":{
     "name": "Scamp5AnalogueArrayGoal",
-    "configGetter": "Threshold",
-    "ops":"all",
-    "threshold":10
+    "configGetter": {
+      "name":"Threshold",
+      "threshold":10,
+      "heuristic": "Pattern",
+      "ops": "all"
+    }
   },
 
   "verifier":"Scamp5Emulator"
