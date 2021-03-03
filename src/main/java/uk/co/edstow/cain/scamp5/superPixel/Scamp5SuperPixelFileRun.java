@@ -3,6 +3,7 @@ package uk.co.edstow.cain.scamp5.superPixel;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import uk.co.edstow.cain.FileRun;
+import uk.co.edstow.cain.fileRun.FileRunImplementation;
 import uk.co.edstow.cain.regAlloc.*;
 import uk.co.edstow.cain.goals.BankedKernel3DGoal;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
@@ -12,10 +13,8 @@ import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.scamp5.BasicScamp5ConfigGetter;
 import uk.co.edstow.cain.scamp5.PatternHeuristic;
 import uk.co.edstow.cain.scamp5.ThresholdScamp5ConfigGetter;
-import uk.co.edstow.cain.transformations.BankedTransformation;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> extends FileRun.Kernel3DBankedFileRun<G, Scamp5SuperPixelTransformation<G>> {
 
@@ -157,9 +156,9 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
         }
     }
 
-
-
     public static class ArrayGoalFileRun extends Scamp5SuperPixelFileRun<BankedArrayGoal> {
+
+        @FileRunImplementation(key="Scamp5SuperPixel")
         public ArrayGoalFileRun(JSONObject config) {
             super(config);
         }

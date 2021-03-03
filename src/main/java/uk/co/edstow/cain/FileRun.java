@@ -4,6 +4,12 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
+import org.reflections.ReflectionUtils;
+import org.reflections.Reflections;
+import org.reflections.scanners.ResourcesScanner;
+import sun.reflect.Reflection;
+import uk.co.edstow.cain.fileRun.FileRunImplementation;
+import uk.co.edstow.cain.fileRun.ImproperFileRunDeclaredException;
 import uk.co.edstow.cain.goals.BankedKernel3DGoal;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
@@ -23,12 +29,43 @@ import uk.co.edstow.cain.traversal.*;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R extends Register> {
-    public static int verbose;
+    public static int verbose = 0;
+    public static Map<String, Function<JSONObject, FileRun<?,?,?>>> register;
+    static {
+        printLn("Init register");
+        register = new HashMap<>();
+        Reflections reflections = new Reflections(new org.reflections.scanners.MethodAnnotationsScanner());
+        Set<Constructor> constructors = reflections.getConstructorsAnnotatedWith(FileRunImplementation.class);
+        for (Constructor constructor : constructors) {
+
+            if (constructor.getParameterCount() > 2) throw new ImproperFileRunDeclaredException(constructor, "Parameter Count Error");
+            if (constructor.getParameterTypes()[0] != JSONObject.class) throw new ImproperFileRunDeclaredException(constructor, "Parameter[0] Arg-Type Error");
+            if (constructor.getParameterCount() == 2 && constructor.getParameterTypes()[1] != String.class) throw new ImproperFileRunDeclaredException(constructor,  "Parameter[1] Arg-Type Error");
+            FileRunImplementation fr = constructor.getDeclaredAnnotation(FileRunImplementation.class);
+            printLn("Registering: " + fr.key());
+            if(register.containsKey(fr.key())) throw new ImproperFileRunDeclaredException(constructor, "Redefinition Error");
+            register.put(fr.key(), jsonObject -> {
+                try {
+                    if (constructor.getParameterCount() == 2) {
+                        return (FileRun<?, ?, ?>) constructor.newInstance(jsonObject, fr.arg());
+                    } else {
+                        return (FileRun<?, ?, ?>) constructor.newInstance(jsonObject);
+                    }
+                } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+                    e.printStackTrace();
+                    throw new ImproperFileRunDeclaredException(constructor, "Call Failed Error");
+                }
+            });
+
+        }
+    }
 
     public static FileRun<?,?,?> loadFromJson(String path) {
 
@@ -37,10 +74,17 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
         printLn("Json config read from   : '" + path + "'");
         printLn("Name                    : " + config.getString("name"));
 
+
+//        String target = config.getString("target");
+//        Function<JSONObject, FileRun<?, ?, ?>> runFunction = register.get(target);
+//        return runFunction.apply(config);
+
         String goalSystem = config.getString("goalSystem");
         switch (goalSystem) {
             case "Kernel3D":
-                return Kernel3DFileRun.getKernel3DFileRun(config);
+                return Kernel3DStdTransFileRun.getKernel3DStdTransFileRun(config);
+            case "Kernel3DBanked":
+                return Kernel3DBankedFileRun.getKernel3DBankedFileRun(config);
             default:
                 throw new IllegalArgumentException("GoalSystem Unknown");
         }
@@ -290,24 +334,6 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
     public static abstract class Kernel3DFileRun<G extends Kernel3DGoal<G>, T extends Transformation<R>, R extends Register> extends FileRun<G,T,R> {
         protected int approximationDepth;
 
-        public static Kernel3DFileRun<?,?,?> getKernel3DFileRun(JSONObject config) {
-            JSONObject json = config.getJSONObject("pairGen");
-            switch (json.getString("name")) {
-                default:
-                    throw new IllegalArgumentException("Unknown PairGen Factory " + json.getString("name"));
-                case "Scamp5AnalogueAtomGoal":
-                    return new Scamp5AnalogueFileRun.AtomGoalFileRun(config);
-                case "Scamp5AnalogueArrayGoal":
-                    return new Scamp5AnalogueFileRun.ArrayGoalFileRun(config);
-                case "Scamp5DigitalAtomGoal":
-                    return new Scamp5DigitalFileRun.AtomGoalFileRun(config);
-                case "Scamp5DigitalArrayGoal":
-                    return new Scamp5DigitalFileRun.ArrayGoalFileRun(config);
-                case "Scamp5SuperPixel":
-                    return new Scamp5SuperPixelFileRun.ArrayGoalFileRun(config);
-            }
-        }
-
         public Kernel3DFileRun(JSONObject config) {
             super(config);
         }
@@ -440,6 +466,22 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
             super(config);
         }
 
+        public static Kernel3DFileRun<?,?,?> getKernel3DStdTransFileRun(JSONObject config) {
+            JSONObject json = config.getJSONObject("pairGen");
+            switch (json.getString("name")) {
+                default:
+                    throw new IllegalArgumentException("Unknown PairGen Factory " + json.getString("name"));
+                case "Scamp5AnalogueAtomGoal":
+                    return new Scamp5AnalogueFileRun.AtomGoalFileRun(config);
+                case "Scamp5AnalogueArrayGoal":
+                    return new Scamp5AnalogueFileRun.ArrayGoalFileRun(config);
+                case "Scamp5DigitalAtomGoal":
+                    return new Scamp5DigitalFileRun.AtomGoalFileRun(config);
+                case "Scamp5DigitalArrayGoal":
+                    return new Scamp5DigitalFileRun.ArrayGoalFileRun(config);
+            }
+        }
+
         private List<Register> getRegisterArray(JSONArray availableRegisters) {
             ArrayList<Register> out = new ArrayList<>(availableRegisters.length());
             for (int i = 0; i < availableRegisters.length(); i++) {
@@ -494,6 +536,16 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
     }
 
     public static abstract class Kernel3DBankedFileRun<G extends BankedKernel3DGoal<G>, T extends BankedTransformation> extends FileRun.Kernel3DFileRun<G, T, BRegister> {
+
+        public static Kernel3DFileRun<?,?,?> getKernel3DBankedFileRun(JSONObject config) {
+            JSONObject json = config.getJSONObject("pairGen");
+            switch (json.getString("name")) {
+                default:
+                    throw new IllegalArgumentException("Unknown PairGen Factory " + json.getString("name"));
+                case "Scamp5SuperPixel":
+                    return new Scamp5SuperPixelFileRun.ArrayGoalFileRun(config);
+            }
+        }
 
         public Kernel3DBankedFileRun(JSONObject config) {
             super(config);
