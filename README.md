@@ -120,6 +120,9 @@ example:
         "name":"Threshold",
         "ops":"all",
         "threshold":10
+        },
+    "outputFormat": {
+        "name": "defaultFormat"
         }
   }
   ```
@@ -224,4 +227,13 @@ This config Getter requires the following options:
 | heuristic     | "Pattern"   | Use the Pattern Heuristic - that considers the sizes, and patterns between kernels to estimate cost |
 
 
+#####outputFormat.name:"defaultFormat"
+This output format requires no extra information so ```outputFormat:{name:"defaultFormat"}``` will work.
 
+
+#####outputFormat.name:"jssFormat"
+This output format requires  the following options:
+
+| token id      | valid value   | Description  |
+| ------------- |:-------------:| ------------ |
+| simulatorName | any string    | The name of the simulator in the output Jss simulator source code |
