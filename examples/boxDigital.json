@@ -51,6 +51,9 @@
       "B":["DB1","DB2"],
       "C":["DC1","DC2"],
       "D":["DD1","DD2"]
+    },
+    "outputFormat": {
+      "name": "defaultFormat"
     }
   },
 

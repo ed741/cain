@@ -46,6 +46,9 @@
       "threshold":10,
       "heuristic": "Pattern",
       "ops": "all"
+    },
+    "outputFormat": {
+      "name": "defaultFormat"
     }
   },
 
