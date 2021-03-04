@@ -10,10 +10,7 @@ import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.goals.arrayGoal.BankedArrayGoal;
 import uk.co.edstow.cain.pairgen.CostHeuristic;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
-import uk.co.edstow.cain.scamp5.BasicScamp5ConfigGetter;
-import uk.co.edstow.cain.scamp5.PatternHeuristic;
-import uk.co.edstow.cain.scamp5.ThresholdScamp5ConfigGetter;
-import uk.co.edstow.cain.transformations.BankedTransformation;
+import uk.co.edstow.cain.scamp5.*;
 
 
 import java.util.*;
