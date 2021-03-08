@@ -151,7 +151,7 @@ class FileRunTest {
             List<FileRun<ArrayGoal, Scamp5AnalogueTransformation<ArrayGoal>, Register>.Result> results = fileRun.getResults();
             OptionalInt min = results.stream().mapToInt(r -> r.depth).min();
             assertTrue(min.isPresent());
-            assertTrue(min.getAsInt()<=6, "Got value: " +min.getAsInt() + " Expected: <= 6");
+            assertTrue(min.getAsInt()<=7, "Got value: " +min.getAsInt() + " Expected: <= 7");
         } catch (Exception e){
             e.printStackTrace();
             e.getMessage();
