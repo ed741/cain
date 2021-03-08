@@ -23,7 +23,7 @@
     "initialRegisters":["A"]
   },
   "runConfig":{
-    "searchTime":1000,
+    "searchTime":3000,
     "timeOut":true,
     "workers":1,
     "traversalAlgorithm":"SOT",
