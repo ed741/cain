@@ -40,7 +40,7 @@ class FileRunTest {
                 "  },\n" +
                 "\n" +
                 "  \"runConfig\":{\n" +
-                "    \"searchTime\":1000,\n" +
+                "    \"searchTime\":3000,\n" +
                 "    \"timeOut\":true,\n" +
                 "    \"workers\":4,\n" +
                 "    \"traversalAlgorithm\":\"SOT\",\n" +
@@ -113,7 +113,7 @@ class FileRunTest {
                         "  },\n" +
                         "\n" +
                         "  \"runConfig\":{\n" +
-                        "    \"searchTime\":1000,\n" +
+                        "    \"searchTime\":3000,\n" +
                         "    \"timeOut\":true,\n" +
                         "    \"workers\":4,\n" +
                         "    \"traversalAlgorithm\":\"SOT\",\n" +
@@ -190,7 +190,7 @@ class FileRunTest {
                         "  },\n" +
                         "\n" +
                         "  \"runConfig\":{\n" +
-                        "    \"searchTime\":1000,\n" +
+                        "    \"searchTime\":3000,\n" +
                         "    \"timeOut\":true,\n" +
                         "    \"workers\":4,\n" +
                         "    \"traversalAlgorithm\":\"SOT\",\n" +
