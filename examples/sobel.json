@@ -1,5 +1,5 @@
 {"name":"Sobel",
-  "goalSystem":"Atom",
+  "goalSystem":"Kernel3D",
   "maxApproximationDepth":3,
   "maxApproximationError":0,
   "3d": false,
@@ -12,8 +12,11 @@
       ]}
   },
 
-  "availableRegisters":["A","B","C","D","E","F"],
-  "initialRegisters":["A"],
+  "registerAllocator": {
+    "name": "linearScan",
+    "availableRegisters":["A","B","C","D","E","F"],
+    "initialRegisters":["A"]
+  },
 
   "runConfig":{
     "searchTime":1000,
@@ -34,10 +37,16 @@
   },
 
   "pairGen":{
-    "name": "Scamp5",
-    "configGetter": "Threshold",
-    "ops":"all",
-    "threshold":10
+    "name": "Scamp5AnalogueAtomGoal",
+    "configGetter": {
+      "name":"Threshold",
+      "threshold":10,
+      "heuristic": "Pattern",
+      "ops": "all"
+    },
+    "outputFormat": {
+      "name": "defaultFormat"
+    }
   },
 
   "verifier":"Scamp5Emulator"

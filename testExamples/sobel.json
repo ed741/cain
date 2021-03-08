@@ -1,0 +1,55 @@
+{"name":"Sobel",
+  "verbose": -1,
+  "goalSystem":"Kernel3D",
+  "maxApproximationDepth":3,
+  "maxApproximationError":0,
+  "3d": false,
+  "filter":{
+    "A": {"depth":0,
+      "array":
+      [ [1, 0, -1],
+        [2, 0, -2],
+        [1, 0, -1]
+      ]}
+  },
+
+  "registerAllocator": {
+    "name": "linearScan",
+    "availableRegisters":["A","B","C","D","E","F"],
+    "initialRegisters":["A"]
+  },
+
+  "runConfig":{
+    "searchTime":3000,
+    "timeOut":true,
+    "workers":4,
+    "traversalAlgorithm":"SOT",
+    "costFunction":"CircuitDepthThenLength",
+    "liveCounter":false,
+    "livePrintPlans":0,
+    "quiet": true,
+    "initialMaxDepth":200,
+    "forcedDepthReduction":1,
+    "initialMaxCost":2147483647,
+    "forcedCostReduction":0,
+    "allowableAtomsCoefficient":2,
+    "goalReductionsPerStep":1,
+    "goalReductionsTolerance":1
+  },
+
+  "pairGen":{
+    "name": "Scamp5AnalogueAtomGoal",
+    "configGetter": {
+      "name":"Threshold",
+      "threshold":10,
+      "heuristic": "Pattern",
+      "ops": "all"
+    },
+    "outputFormat": {
+        "name": "defaultFormat"
+    }
+  },
+
+  "verifier":"Scamp5Emulator"
+
+}

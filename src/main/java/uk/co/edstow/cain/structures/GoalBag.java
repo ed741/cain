@@ -6,8 +6,9 @@ import java.util.stream.Collectors;
 public class GoalBag<G extends Goal<G>> implements Iterable<G>{
     private final ArrayList<G> arrayList;
     private boolean immutable = false;
-    private int atomCount = -1;
-    private static final Comparator<Goal> halfComp = (a, b) -> {
+    private final boolean fullsort;
+    private double sumTotal = Double.NaN;
+    private static final Comparator<Goal<?>> halfComp = (a, b) -> {
         if(a==b){
             return 0;
         }
@@ -16,10 +17,12 @@ public class GoalBag<G extends Goal<G>> implements Iterable<G>{
 
     public GoalBag(GoalBag<G> b) {
         arrayList = new ArrayList<>(b.arrayList);
+        fullsort = b.fullsort;
     }
 
     public GoalBag() {
         arrayList = new ArrayList<>();
+        fullsort = false;
     }
 
     public GoalBag(G goal) {
@@ -28,11 +31,14 @@ public class GoalBag<G extends Goal<G>> implements Iterable<G>{
     }
 
     public GoalBag(GoalBag<G> b, boolean fullSort) {
-        this(b);
+        this.arrayList = new ArrayList<>(b.arrayList);
         if(fullSort) {
             arrayList.sort(G::compareTo);
             immutable = true;
+
         }
+        this.fullsort = fullSort;
+
     }
 
     public GoalBag(Collection<G> goals) {
@@ -49,16 +55,15 @@ public class GoalBag<G extends Goal<G>> implements Iterable<G>{
         return immutable;
     }
 
-    @Deprecated
-    public int atomCount(){
-        if (isImmutable() && atomCount >=0){
-            return atomCount;
+    public double sumTotal(){
+        if (isImmutable() && !Double.isNaN(sumTotal)){
+            return sumTotal;
         }
-        int a = 0;
+        double a = 0;
         for(G g: arrayList){
             a += g.total();
         }
-        atomCount = a;
+        sumTotal = a;
         return a;
     }
 
@@ -83,22 +88,6 @@ public class GoalBag<G extends Goal<G>> implements Iterable<G>{
             c = true;
         }
         return c;
-    }
-
-    @Deprecated
-    public boolean addIfUnique(G goal){
-        assert !immutable;
-        for (int i = 0; i < arrayList.size(); i++) {
-            int c = halfComp.compare(arrayList.get(i),goal);
-            if(c > 0){
-                arrayList.add(i, goal);
-                return true;
-            } else if(c==0){
-                return false;
-            }
-        }
-        arrayList.add(goal);
-        return true;
     }
 
     public boolean remove(G goal){
@@ -132,6 +121,8 @@ public class GoalBag<G extends Goal<G>> implements Iterable<G>{
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         GoalBag<?> goalBag = (GoalBag<?>) o;
+        assert this.fullsort;
+        assert goalBag.fullsort;
         return Objects.equals(arrayList, goalBag.arrayList);
     }
 
@@ -169,11 +160,11 @@ public class GoalBag<G extends Goal<G>> implements Iterable<G>{
         return toGoalsString(arrayList, topBorder, bottomBorder, centreDot, colourNeg);
     }
 
-    public static <E extends Goal>  String toGoalsString(List<E> goals) {
+    public static <E extends Goal<?>>  String toGoalsString(List<E> goals) {
         return toGoalsString(goals, false, false, true, true);
     }
 
-    public static <E extends Goal>  String toGoalsString(List<E> goals, boolean topBorder, boolean bottomBorder, boolean centreDot, boolean colourNeg) {
+    public static <E extends Goal<?>>  String toGoalsString(List<E> goals, boolean topBorder, boolean bottomBorder, boolean centreDot, boolean colourNeg) {
         boolean[] tops = new boolean[goals.size()];
         boolean[] bottoms = new boolean[goals.size()];
         Arrays.fill(tops, topBorder);
@@ -181,15 +172,15 @@ public class GoalBag<G extends Goal<G>> implements Iterable<G>{
         return toGoalsString(goals, tops, bottoms, centreDot, colourNeg);
     }
 
-    public static <E extends Goal>  String toGoalsString(List<E> goals, boolean[] topBorder, boolean[] bottomBorder, boolean centreDot, boolean colourNeg) {
+    public static <E extends Goal<?>>  String toGoalsString(List<E> goals, boolean[] topBorder, boolean[] bottomBorder, boolean centreDot, boolean colourNeg) {
         List<Bounds> b = new ArrayList<>();
-        for (Goal goal : goals) {
+        for (Goal<?> goal : goals) {
             b.add(goal.bounds());
         }
         return GoalBag.toGoalsString(goals, new Bounds.SimpleBounds(b), topBorder, bottomBorder, centreDot, colourNeg);
     }
 
-    public static <E extends Goal> String toGoalsString(List<E> goals, Bounds inputBounds, boolean[] topBorder, boolean[] bottomBorder, boolean centreDot, boolean colourNeg){
+    public static <E extends Goal<?>> String toGoalsString(List<E> goals, Bounds inputBounds, boolean[] topBorder, boolean[] bottomBorder, boolean centreDot, boolean colourNeg){
         Bounds b = inputBounds.includeCentre();
         int height = 1 + b.getYMax() - b.getYMin();
         int width = 1 + b.getXMax() - b.getXMin();
@@ -197,7 +188,7 @@ public class GoalBag<G extends Goal<G>> implements Iterable<G>{
         List<int[]> widthArrays = new ArrayList<>();
 
         for (int i = 0; i < goals.size(); i++) {
-            Goal goal = goals.get(i);
+            Goal<?> goal = goals.get(i);
             String[][] tableArray = goal.getCharTable(b, topBorder[i], bottomBorder[i], centreDot, colourNeg);
             arrays.add(tableArray);
         }

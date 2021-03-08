@@ -1,0 +1,56 @@
+{"name":"Guassian5x5",
+  "goalSystem":"Kernel3D",
+  "maxApproximationDepth":6,
+  "maxApproximationError":0,
+  "3d": false,
+  "filter":{
+    "A": {"depth":-4,
+      "array":
+        [ [ 0, 0, 0, 0, 0],
+          [ 0, 1, 2, 1, 0],
+          [ 0, 2, 4, 2, 0],
+          [ 0, 1, 2, 1, 0],
+          [ 0, 0, 0, 0, 0]
+        ]
+    }
+  },
+  "registerAllocator": {
+    "name": "linearScan",
+    "availableRegisters":["A","C","F"],
+    "initialRegisters":["C"]
+  },
+
+  "runConfig":{
+    "searchTime":2000,
+    "timeOut":true,
+    "workers":1,
+    "traversalAlgorithm":"DFS",
+    "costFunction":"PlanLength",
+    "liveCounter":true,
+    "livePrintPlans":1,
+    "quiet": false,
+    "initialMaxDepth":200,
+    "forcedDepthReduction":1,
+    "initialMaxCost":2147483647,
+    "forcedCostReduction":0,
+    "allowableAtomsCoefficient":2,
+    "goalReductionsPerStep":1,
+    "goalReductionsTolerance":1
+  },
+
+  "pairGen":{
+    "name": "Scamp5AnalogueArrayGoal",
+    "configGetter": {
+      "name":"Threshold",
+      "threshold":4,
+      "heuristic": "Pattern",
+      "ops": "basic"
+    },
+    "outputFormat": {
+      "name": "defaultFormat"
+    }
+  },
+
+  "verifier":"Scamp5Emulator"
+
+}

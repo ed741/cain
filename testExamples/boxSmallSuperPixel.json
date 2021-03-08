@@ -1,0 +1,76 @@
+{"name":"Box3x3",
+  "verbose": -1,
+  "goalSystem":"Kernel3DBanked",
+  "maxApproximationDepth":6,
+  "maxApproximationError":0,
+  "3d": false,
+  "filter":{
+    "0:A": {"depth":-1,
+      "array":
+      [[1, 1, 1],
+        [1, 1, 1],
+        [1, 1, 1]
+      ]
+    }
+  },
+  "registerAllocator": {
+    "name": "linearScan",
+    "availableRegisters":[["A","B","C"],["A", "B", "C"]],
+    "initialRegisters":["1:A"]
+  },
+  "runConfig":{
+    "searchTime":3000,
+    "timeOut":true,
+    "workers":4,
+    "traversalAlgorithm":"SOT",
+    "costFunction":"InstructionCost",
+    "liveCounter":false,
+    "livePrintPlans":0,
+    "quiet": true,
+    "initialMaxDepth":200,
+    "forcedDepthReduction":-1,
+    "initialMaxCost":2147483647,
+    "forcedCostReduction":0,
+    "allowableAtomsCoefficient":2,
+    "goalReductionsPerStep":1,
+    "goalReductionsTolerance":1
+  },
+
+  "pairGen":{
+    "name": "Scamp5SuperPixel",
+    "configGetter": {
+      "name":"Threshold",
+      "threshold":30,
+      "heuristic": "Pattern",
+      "ops": "all"
+    },
+    "scratchRegs": ["R[scratch1]", "R[scratch2]", "R[scratch3]"],
+    "selectReg": "R[select]",
+    "maskReg": "R[mask]",
+    "maskedReg": "R[masked]",
+    "northReg": "R[north]",
+    "eastReg": "R[east]",
+    "southReg": "R[south]",
+    "westReg": "R[west]",
+
+    "width": 4,
+    "height": 4,
+
+    "bitOrder": [[[ 1,  2,  0,  0],
+                  [ 4,  3,  0,  0],
+                  [ 0,  0,  0,  0],
+                  [ 0,  0,  0,  0]],
+
+                 [[ 0,  0,  1,  2],
+                  [ 0,  0,  4,  3],
+                  [ 0,  0,  0,  0],
+                  [ 0,  0,  0,  0]]
+              ],
+    "outputFormat": {
+      "name": "defaultFormat"
+    }
+  },
+
+  "verifier":"None"
+
+}

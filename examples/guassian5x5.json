@@ -1,5 +1,5 @@
 {"name":"Guassian5x5",
-  "goalSystem":"Atom",
+  "goalSystem":"Kernel3D",
   "maxApproximationDepth":6,
   "maxApproximationError":0,
   "3d": false,
@@ -15,17 +15,20 @@
     }
   },
 
-  "availableRegisters":["A","B","C","D","E","F"],
-  "initialRegisters":["A"],
+  "registerAllocator": {
+    "name": "linearScan",
+    "availableRegisters":["A","B","C","D","E","F"],
+    "initialRegisters":["A"]
+  },
 
   "runConfig":{
-    "searchTime":5000,
+    "searchTime":10000,
     "timeOut":true,
     "workers":1,
     "traversalAlgorithm":"DFS",
     "costFunction":"CircuitDepthThenLength",
     "liveCounter":true,
-    "livePrintPlans":0,
+    "livePrintPlans":1,
     "quiet": false,
     "initialMaxDepth":200,
     "forcedDepthReduction":1,
@@ -37,10 +40,16 @@
   },
 
   "pairGen":{
-    "name": "Scamp5",
-    "configGetter": "Threshold",
-    "ops":"all",
-    "threshold":10
+    "name": "Scamp5AnalogueAtomGoal",
+    "configGetter": {
+      "name":"Threshold",
+      "threshold":10,
+      "heuristic": "Pattern",
+      "ops": "all"
+    },
+    "outputFormat": {
+      "name": "defaultFormat"
+    }
   },
 
   "verifier":"Scamp5Emulator"

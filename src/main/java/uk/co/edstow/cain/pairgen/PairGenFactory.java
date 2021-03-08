@@ -1,5 +1,7 @@
 package uk.co.edstow.cain.pairgen;
 
+import uk.co.edstow.cain.regAlloc.Register;
+import uk.co.edstow.cain.transformations.Transformation;
 import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
@@ -9,15 +11,16 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-public interface PairGenFactory<G extends Goal<G>> {
-    default List<GoalPair<G>> applyAllUnaryOpForwards(List<G> initialGoals, Context<G> context, GoalBag<G> goals){
-        List<GoalPair<G>> allPairs = new ArrayList<>();
+public interface PairGenFactory<G extends Goal<G>, T extends Transformation<R>, R extends Register> {
+
+    default List<GoalPair<G, T, R>> solveDirectly(Context<G, T, R> context, GoalBag<G> goals){
+        List<GoalPair<G, T, R>> allPairs = new ArrayList<>();
         int found = 0;
         for(G goal: goals) {
-            for (Tuple<List<GoalPair<G>>, G> tuple : this.applyAllUnaryOpForwards(initialGoals, context, goal)) {
-                List<GoalPair<G>> pairs = tuple.getA();
+            for (Tuple<List<GoalPair<G, T, R>>, G> tuple : this.solveDirectly(context, goal)) {
+                List<GoalPair<G, T, R>> pairs = tuple.getA();
                 G g = tuple.getB();
-                if (initialGoals.contains(g)) {
+                if (context.initialGoals.contains(g)) {
                     allPairs.addAll(pairs);
                     found++;
                     break;
@@ -26,13 +29,10 @@ public interface PairGenFactory<G extends Goal<G>> {
         }
         return found!=goals.size()?null:allPairs;
     }
-    Collection<Tuple<List<GoalPair<G>>, G>> applyAllUnaryOpForwards(List<G> initialGoals, Context<G> context, G goal);
+    Collection<Tuple<List<GoalPair<G, T, R>>, G>> solveDirectly(Context<G,T,R> context, G goal);
 
-    interface PairGen<G extends Goal<G>>{
-        GoalPair<G> next();
-        int getNumber();
-    }
+    PairGen<G,T,R> generatePairs(GoalBag<G> goals, Context<G,T,R> context);
 
-    PairGen<G> generatePairs(GoalBag<G> goals, Context<G> context);
+    T getDummyTransformation(List<G> upperGoals, List<G> lowerGoals, Context<G,T,R> context);
 
 }

@@ -1,7 +1,7 @@
 package uk.co.edstow.cain.scamp5.emulator;
 
-import uk.co.edstow.cain.RegisterAllocator;
-import uk.co.edstow.cain.atom.AtomGoal;
+import uk.co.edstow.cain.regAlloc.Register;
+import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
 import uk.co.edstow.cain.util.Tuple;
 
 import javax.imageio.ImageIO;
@@ -12,7 +12,6 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class Scamp5Emulator {
     @SuppressWarnings("WeakerAccess")
@@ -58,12 +57,12 @@ public class Scamp5Emulator {
     }
 
 
-    static class Reg extends RegisterAllocator.Register {
-        private static Reg News = new Reg(0,0,"News");
-        private static Reg XNorth = new Reg(0,1,"XNorth");
-        private static Reg XEast = new Reg(1,0,"XEast");
-        private static Reg XSouth = new Reg(0,-1,"XSouth");
-        private static Reg XWest = new Reg(-1,0,"XWest");
+    static class Reg extends Register {
+        private static final Reg News = new Reg(0,0,"News");
+        private static final Reg XNorth = new Reg(0,1,"XNorth");
+        private static final Reg XEast = new Reg(1,0,"XEast");
+        private static final Reg XSouth = new Reg(0,-1,"XSouth");
+        private static final Reg XWest = new Reg(-1,0,"XWest");
 //        News(0, 0), A(0, 0),B(0, 0),C(0, 0),D(0, 0),E(0, 0),F(0, 0),
 //
 //        G(0, 0),H(0, 0),I(0, 0),J(0, 0),K(0, 0),L(0, 0),// Extras
@@ -88,18 +87,18 @@ public class Scamp5Emulator {
             return out;
         }
 
-        public static Reg[] getRegisters(RegisterAllocator.Register[] array){
-            Reg[] out = new Reg[array.length];
+        public static Reg[] getRegisters(List<Register> array){
+            Reg[] out = new Reg[array.size()];
             for (int i = 0; i < out.length; i++) {
-                out[i] = new Reg(0,0,array[i].name);
+                out[i] = new Reg(0,0, array.get(i).name);
             }
             return out;
         }
-        public static Reg[] getRealRegisters(RegisterAllocator.Register[] array){
-            Reg[] out = new Reg[array.length+1];
+        public static Reg[] getRealRegisters(List<Register> array){
+            Reg[] out = new Reg[array.size()+1];
             out[0] = Reg.News;
             for (int i = 1; i < out.length; i++) {
-                out[i] = new Reg(0,0,array[i-1].name);
+                out[i] = new Reg(0,0, array.get(i - 1).name);
             }
             return out;
         }
@@ -169,7 +168,7 @@ public class Scamp5Emulator {
     public static Scamp5Emulator newWithRegs(int rad, int regs){
         return new Scamp5Emulator(-rad, rad+1, -rad, rad+1, regs);
     }
-    public static Scamp5Emulator newWithRegs(int rad, RegisterAllocator.Register[] regs){
+    public static Scamp5Emulator newWithRegs(int rad, List<Register> regs){
         return new Scamp5Emulator(-rad, rad+1, -rad, rad+1, regs);
     }
 
@@ -180,7 +179,7 @@ public class Scamp5Emulator {
     public Scamp5Emulator(int xMin, int xMax, int yMin, int yMax, int r) {
         this(xMin, xMax, yMin, yMax, Reg.getRealRegisters(r));
     }
-    public Scamp5Emulator(int xMin, int xMax, int yMin, int yMax, RegisterAllocator.Register[] r) {
+    public Scamp5Emulator(int xMin, int xMax, int yMin, int yMax, List<Register> r) {
         this(xMin, xMax, yMin, yMax, Reg.getRealRegisters(r));
     }
 
@@ -703,7 +702,7 @@ public class Scamp5Emulator {
     }
 
 
-    @SuppressWarnings("UnusedAssignment")
+    @SuppressWarnings({"UnusedAssignment", "CommentedOutCode"})
     public static void main(String[] args) {
         File imgFile = new File("src/main/resources/test.png");
         BufferedImage img = null;
@@ -712,7 +711,7 @@ public class Scamp5Emulator {
 //            Scamp5Emulator e = new Scamp5Emulator(img, Reg.A);
             Scamp5Emulator e = new Scamp5Emulator(3);
 
-            e.run("input(A,"+(1*128)+")");
+            e.run("input(A,"+(128)+")");
 //            e.run("input(A,"+(1*128)+")");
 
 //            BufferedImage out = e.getImage(Reg.F, false);

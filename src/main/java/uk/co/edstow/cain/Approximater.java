@@ -1,13 +1,15 @@
 package uk.co.edstow.cain;
 
-import uk.co.edstow.cain.atom.AtomGoal;
+import uk.co.edstow.cain.goals.Kernel3DGoal;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
-public class Approximater {
+public class Approximater<G extends Kernel3DGoal<G>> {
     private class Vector {
         final int[] val;
         private Vector(int... val) {
@@ -39,7 +41,7 @@ public class Approximater {
         minCoefficient = Math.min(minCoefficient, Math.abs(coefficient));
     }
 
-    public List<AtomGoal> solve(){
+    public List<G> solve(Function<Integer, Kernel3DGoal.Kernel3DGoalFactory<G>> factoryfactory){
         depth = maxDepth;
         double totalError = 0;
         for (int i = -10; i <= maxDepth; i++) {
@@ -58,17 +60,18 @@ public class Approximater {
         }
         error = totalError;
 
-        List<AtomGoal> out = new ArrayList<>(input.size());
-        for (Map<Vector, Double> vecDoubleMap : input) {
-            AtomGoal.Factory factory = new AtomGoal.Factory();
+        List<G> out = new ArrayList<>(input.size());
+        for (int i = 0, inputSize = input.size(); i < inputSize; i++) {
+            Map<Vector, Double> vecDoubleMap = input.get(i);
+            Kernel3DGoal.Kernel3DGoalFactory<G> factory = factoryfactory.apply(i);
             for (Map.Entry<Vector, Double> entry : vecDoubleMap.entrySet()) {
-                if(entry.getValue()>=0){
-                    factory.add(entry.getKey().val, getCount(depth, entry.getValue()));
+                if (entry.getValue() >= 0) {
+                    factory.add(entry.getKey().val[0], entry.getKey().val[1], entry.getKey().val[2], getCount(depth, entry.getValue()));
                 } else {
-                    factory.add(entry.getKey().val, -getCount(depth, entry.getValue()));
+                    factory.add(entry.getKey().val[0], entry.getKey().val[1], entry.getKey().val[2], -getCount(depth, entry.getValue()));
                 }
             }
-            AtomGoal g = factory.get();
+            G g = factory.get();
             out.add(g);
         }
         input.clear();

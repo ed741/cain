@@ -1,6 +1,7 @@
 package uk.co.edstow.cain;
 
 import org.junit.jupiter.api.Test;
+import uk.co.edstow.cain.regAlloc.Register;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -11,9 +12,9 @@ class RegisterAllocatorRegisterTest {
 
     @Test
     void newRegisters(){
-        RegisterAllocator.Register[] array = RegisterAllocator.Register.getRegisters(10000);
-        Set<RegisterAllocator.Register> regs = new HashSet<>();
-        for (RegisterAllocator.Register register : array) {
+        Register[] array = Register.getRegisters(10000);
+        Set<Register> regs = new HashSet<>();
+        for (Register register : array) {
             regs.add(register);
         }
         assertEquals(array.length, regs.size());

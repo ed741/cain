@@ -1,0 +1,57 @@
+{"name":"Box7x7",
+  "goalSystem":"Kernel3D",
+  "maxApproximationDepth":6,
+  "maxApproximationError":0,
+  "3d": false,
+  "filter":{
+    "A": {"depth":-6,
+      "array":
+      [ [ 1, 1, 1, 1, 1, 1, 1],
+        [ 1, 1, 1, 1, 1, 1, 1],
+        [ 1, 1, 1, 1, 1, 1, 1],
+        [ 1, 1, 1, 1, 1, 1, 1],
+        [ 1, 1, 1, 1, 1, 1, 1],
+        [ 1, 1, 1, 1, 1, 1, 1],
+        [ 1, 1, 1, 1, 1, 1, 1]
+      ]
+    }
+  },
+  "registerAllocator": {
+    "name": "linearScan",
+    "availableRegisters":["A","B","C","D","E","F"],
+    "initialRegisters":["A"]
+  },
+  "runConfig":{
+    "searchTime":10000,
+    "timeOut":true,
+    "workers":1,
+    "traversalAlgorithm":"SOT",
+    "costFunction":"InstructionCost",
+    "liveCounter":true,
+    "livePrintPlans":1,
+    "quiet": false,
+    "initialMaxDepth":200,
+    "forcedDepthReduction":1,
+    "initialMaxCost":2147483647,
+    "forcedCostReduction":0,
+    "allowableAtomsCoefficient":2,
+    "goalReductionsPerStep":1,
+    "goalReductionsTolerance":1
+  },
+
+  "pairGen":{
+    "name": "Scamp5AnalogueArrayGoal",
+    "configGetter": {
+      "name":"Threshold",
+      "threshold":10,
+      "heuristic": "Pattern",
+      "ops": "all"
+    },
+    "outputFormat": {
+      "name": "defaultFormat"
+    }
+  },
+
+  "verifier":"Scamp5Emulator"
+
+}

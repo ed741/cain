@@ -1,5 +1,5 @@
 {"name":"boxDigital",
-  "goalSystem":"Atom",
+  "goalSystem":"Kernel3D",
   "maxApproximationDepth":3,
   "maxApproximationError":0,
   "3d": false,
@@ -9,11 +9,15 @@
       [[1, 1, 1],
         [1, 1, 1],
         [1, 1, 1]
-      ]}
+      ]
+    }
   },
 
-  "availableRegisters":["A","B","C"],
-  "initialRegisters":["A"],
+  "registerAllocator": {
+    "name": "linearScan",
+    "availableRegisters":["A","B","C"],
+    "initialRegisters":["A"]
+  },
 
   "runConfig":{
     "searchTime":60000,
@@ -34,9 +38,12 @@
   },
 
   "pairGen":{
-    "name": "Scamp5Digital",
-    "configGetter": "Threshold",
-    "threshold":8,
+    "name": "Scamp5DigitalAtomGoal",
+    "configGetter": {
+      "name":"Threshold",
+      "threshold":8,
+      "heuristic": "Pattern"
+    },
     "bits":2,
     "scratchRegs":["S1", "S2", "S3", "S4", "S5"],
     "regMapping":{
@@ -44,6 +51,9 @@
       "B":["DB1","DB2"],
       "C":["DC1","DC2"],
       "D":["DD1","DD2"]
+    },
+    "outputFormat": {
+      "name": "defaultFormat"
     }
   },
 

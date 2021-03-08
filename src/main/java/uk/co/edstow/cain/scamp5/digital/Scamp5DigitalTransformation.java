@@ -1,33 +1,99 @@
 package uk.co.edstow.cain.scamp5.digital;
 
-import uk.co.edstow.cain.RegisterAllocator;
-import uk.co.edstow.cain.Transformation;
-import uk.co.edstow.cain.atom.Atom;
-import uk.co.edstow.cain.atom.AtomGoal;
-import uk.co.edstow.cain.atom.pairGen.SimpleTransformation;
-import uk.co.edstow.cain.structures.GoalPair;
+import uk.co.edstow.cain.regAlloc.Register;
+import uk.co.edstow.cain.transformations.StandardTransformation;
+import uk.co.edstow.cain.goals.Kernel3DGoal;
+import uk.co.edstow.cain.goals.atomGoal.Atom;
+import uk.co.edstow.cain.goals.atomGoal.pairGen.SimpleTransformation;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 
-public abstract class Scamp5DigitalTransformation extends Transformation {
-    protected final Scamp5DigitalConfig<AtomGoal> config;
+public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> implements StandardTransformation {
+    protected final Scamp5DigitalConfig<G> config;
 
-    protected Scamp5DigitalTransformation(Scamp5DigitalConfig<AtomGoal> scamp5DigitalConfig) {
+    protected Scamp5DigitalTransformation(Scamp5DigitalConfig<G> scamp5DigitalConfig) {
         this.config = scamp5DigitalConfig;
     }
 
-    public abstract List<AtomGoal> applyOpForwards() throws TransformationApplicationException;
+    public abstract List<G> applyOpForwards() throws TransformationApplicationException;
 
 
-    abstract static class SimpleScamp5DigitalTransformation extends Scamp5DigitalTransformation {
 
-        SimpleScamp5DigitalTransformation(Scamp5DigitalConfig<AtomGoal> config) {
+    public static class Null<G extends Kernel3DGoal<G>> extends Scamp5DigitalTransformation<G> {
+        private final int inputCount;
+        private final int outputCount;
+
+        public Null(int inputCount, int outputCount, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
+            super(scamp5DigitalConfig);
+            this.inputCount = inputCount;
+            this.outputCount = outputCount;
+        }
+
+        @Override
+        public boolean[] inputRegisterOutputInterference(int u){
+            return new boolean[inputCount()];
+        }
+
+        @Override
+        public int[] inputRegisterIntraInterference() {
+            int[] out = new int[inputCount()];
+            for (int i = 0; i < out.length; i++) {
+                out[i]=i;
+            }
+            return out;
+        }
+
+        @Override
+        public boolean clobbersInput(int i) {
+            return false;
+        }
+
+
+        @Override
+        public String code(List<Register> uppers, List<Register> lowers, List<Register> trash) {
+            return String.format("//Null Instruction: %s <- %s", uppers, lowers);
+        }
+
+        @Override
+        public int inputCount() {
+            return inputCount;
+        }
+
+        @Override
+        public int outputCount() {
+            return outputCount;
+        }
+
+        @Override
+        public double cost() {
+            return 0;
+        }
+
+        @Override
+        public String toStringN() {
+            return "Null_t";
+        }
+
+        @Override
+        public String toString() {
+            return "Null_t";
+        }
+
+        @Override
+        public List<G> applyOpForwards() {
+            return Collections.emptyList();
+        }
+    }
+
+    abstract static class SimpleScamp5DigitalTransformation<G extends Kernel3DGoal<G>> extends Scamp5DigitalTransformation<G> {
+
+        SimpleScamp5DigitalTransformation(Scamp5DigitalConfig<G> config) {
             super(config);
         }
 
         @Override
-        public String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
+        public String code(List<Register> uppers, List<Register> lowers, List<Register> trash) {
             if (uppers.size() == 1) {
                 return code(uppers.get(0), lowers);
             } else {
@@ -35,10 +101,10 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
             }
         }
 
-        abstract String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers);
+        abstract String code(Register upper, List<Register> lowers);
 
-        public abstract AtomGoal applyForwards() throws TransformationApplicationException;
-        public List<AtomGoal> applyOpForwards() throws TransformationApplicationException{
+        public abstract G applyForwards() throws TransformationApplicationException;
+        public List<G> applyOpForwards() throws TransformationApplicationException{
             return Collections.singletonList(applyForwards());
         }
 
@@ -112,31 +178,31 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
         }
     }
 
-    public static class Res extends SimpleScamp5DigitalTransformation {
+    public static class Res<G extends Kernel3DGoal<G>> extends SimpleScamp5DigitalTransformation<G> {
         // u := {}
-        final AtomGoal result;
+        final G result;
 
-        public Res(AtomGoal result, Scamp5DigitalConfig<AtomGoal> scamp5DigitalConfig) {
+        public Res(G result, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
             super(scamp5DigitalConfig);
             this.result = result;
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+        public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
             List<String> regs = config.registerMapping.get(upper);
             assert regs.size() == config.bits;
             StringBuilder sb = new StringBuilder(String.format("/*Dres(%s)*/", upper));
             int i = config.bits;
             for(; i>=4; i -=4){
-                sb.append(String.format("CLR(%s, %s, %s, %s); ", regs.get(i-1), regs.get(i-2), regs.get(i-3), regs.get(i-4)));
+                sb.append(config.outputFormatter.CLR(regs.get(i - 1), regs.get(i - 2), regs.get(i - 3), regs.get(i - 4)));
             }
             if(i == 3) {
-                sb.append(String.format("CLR(%s, %s, %s); ", regs.get(i-1), regs.get(i-2), regs.get(i-3)));
+                sb.append(config.outputFormatter.CLR(regs.get(i - 1), regs.get(i - 2), regs.get(i - 3)));
             }else if (i == 2) {
-                sb.append(String.format("CLR(%s, %s); ", regs.get(i-1), regs.get(i-2)));
+                sb.append(config.outputFormatter.CLR(regs.get(i - 1), regs.get(i - 2)));
             }else if (i == 1) {
-                sb.append(String.format("CLR(%s); ", regs.get(i-1)));
+                sb.append(config.outputFormatter.CLR(regs.get(i - 1)));
             }
             return sb.toString();
         }
@@ -147,7 +213,7 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
         }
 
         @Override
-        public AtomGoal applyForwards() {
+        public G applyForwards() {
             return result;
         }
 
@@ -181,19 +247,19 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
     }
 
 
-    public static class Res_2 extends Scamp5DigitalTransformation {
+    public static class Res_2 <G extends Kernel3DGoal<G>>extends Scamp5DigitalTransformation<G> {
         // u := {}
-        final AtomGoal result1;
-        final AtomGoal result2;
+        final G result1;
+        final G result2;
 
-        public Res_2(AtomGoal a, AtomGoal b, Scamp5DigitalConfig<AtomGoal> scamp5DigitalConfig) {
+        public Res_2(G a, G b, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
             super(scamp5DigitalConfig);
             this.result1 = a;
             this.result2 = b;
         }
 
         @Override
-        public String code(List<RegisterAllocator.Register> upper, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
+        public String code(List<Register> upper, List<Register> lowers, List<Register> trash) {
             assert lowers.size() == inputCount();
             List<String> regs = new ArrayList<>(config.bits*2);
             regs.addAll(config.registerMapping.get(upper.get(0)));
@@ -202,14 +268,14 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
             StringBuilder sb = new StringBuilder(String.format("/*Dres2(%s, %s)*/", upper.get(0), upper.get(1)));
             int i = config.bits;
             for(; i>=4; i -=4){
-                sb.append(String.format("CLR(%s, %s, %s, %s); ", regs.get(i-1), regs.get(i-2), regs.get(i-3), regs.get(i-4)));
+                sb.append(config.outputFormatter.CLR(regs.get(i - 1), regs.get(i - 2), regs.get(i - 3), regs.get(i - 4)));
             }
             if(i == 3) {
-                sb.append(String.format("CLR(%s, %s, %s); ", regs.get(i-1), regs.get(i-2), regs.get(i-3)));
+                sb.append(config.outputFormatter.CLR(regs.get(i - 1), regs.get(i - 2), regs.get(i - 3)));
             }else if (i == 2) {
-                sb.append(String.format("CLR(%s, %s); ", regs.get(i-1), regs.get(i-2)));
+                sb.append(config.outputFormatter.CLR(regs.get(i - 1), regs.get(i - 2)));
             }else if (i == 1) {
-                sb.append(String.format("CLR(%s); ", regs.get(i-1)));
+                sb.append(config.outputFormatter.CLR(regs.get(i - 1)));
             }
             return sb.toString();
         }
@@ -225,7 +291,7 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
         }
 
         @Override
-        public List<AtomGoal> applyOpForwards() {
+        public List<G> applyOpForwards() {
             return Arrays.asList(result1, result2);
         }
 
@@ -263,23 +329,23 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
     }
 
 
-    public static class Mov extends SimpleScamp5DigitalTransformation {
+    public static class Mov<G extends Kernel3DGoal<G>> extends SimpleScamp5DigitalTransformation<G> {
         //u := a
 
-        final AtomGoal a;
-        AtomGoal moved = null;
+        final G a;
+        G moved = null;
 
         @SuppressWarnings("WeakerAccess")
-        public Mov(AtomGoal a, Scamp5DigitalConfig<AtomGoal> scamp5DigitalConfig) {
+        public Mov(G a, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
             super(scamp5DigitalConfig);
             this.a = a;
         }
 
         @SuppressWarnings("WeakerAccess")
-        public Mov(AtomGoal in, boolean upper, Scamp5DigitalConfig<AtomGoal> scamp5DigitalConfig) {
+        public Mov(G in, boolean upper, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
             super(scamp5DigitalConfig);
             if (upper) {
-                this.a = new AtomGoal(in);
+                this.a = in.copy();
                 this.moved = in;
             } else {
                 this.a = in;
@@ -287,13 +353,13 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+        public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
             StringBuilder sb = new StringBuilder(String.format("/*Dmov(%s, %s)*/", upper, lowers.get(0)));
             List<String> outputs = config.registerMapping.get(upper);
             List<String> inputs = config.registerMapping.get(lowers.get(0));
             for(int i = 0; i<config.bits; i++){
-                sb.append(String.format("MOV(%s, %s); ", outputs.get(i), inputs.get(i)));
+                sb.append(config.outputFormatter.MOV(outputs.get(i), inputs.get(i)));
             }
             return sb.toString();
         }
@@ -304,9 +370,9 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
         }
 
         @Override
-        public AtomGoal applyForwards() {
+        public G applyForwards() {
             if(this.moved == null){
-                this.moved = new AtomGoal(a);
+                this.moved = a.copy();
             }
             return this.moved;
         }
@@ -341,15 +407,15 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
     }
 
 
-    public static class Add_2 extends Scamp5DigitalTransformation {
+    public static class Add_2<G extends Kernel3DGoal<G>> extends Scamp5DigitalTransformation<G> {
         // u := a + b
 
-        final AtomGoal a;
-        final AtomGoal b;
-        AtomGoal sum;
+        final G a;
+        final G b;
+        G sum;
 
 
-        public Add_2(AtomGoal a, AtomGoal b, Scamp5DigitalConfig<AtomGoal> scamp5DigitalConfig) {
+        public Add_2(G a, G b, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
             super(scamp5DigitalConfig);
 
             this.a = a;
@@ -358,7 +424,7 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
         }
 
         @Override
-        public String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
+        public String code(List<Register> uppers, List<Register> lowers, List<Register> trash) {
             assert lowers.size() == inputCount();
             assert lowers.size() == inputCount();
             StringBuilder sb = new StringBuilder(String.format("/*Dadd(%s, %s, %s)*/\n", uppers.get(0), lowers.get(0), lowers.get(1)));
@@ -367,18 +433,19 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
             List<String> inputBs = config.registerMapping.get(lowers.get(1));
             List<String> scratch = config.scratchRegisters;
             // scratch[0] := Carry bit
-            sb.append(String.format("CLR(%s); \n", scratch.get(0)));
-            for(int i = 0; i<config.bits; i++){
+            sb.append(config.outputFormatter.CLR(scratch.get(0)));
+            sb.append("\n");
+            for (int i = 0; i < config.bits; i++) {
                 sb.append(String.format("/* Bit %d */\n", i));
-                sb.append(String.format("NOR(%s, %s, %s); ", outputs.get(i), inputAs.get(i), inputBs.get(i))); //vs(1) = !(a+b)
-                sb.append(String.format("NOR(%s, %s, %s); ", scratch.get(2), inputAs.get(i), outputs.get(i))); //v2(2) = !(a+vs(1))
-                sb.append(String.format("NOR(%s, %s, %s); ", scratch.get(3), inputBs.get(i), outputs.get(i))); //v3(3) = !(b+vs(1))
-                sb.append(String.format("NOR(%s, %s, %s); ", scratch.get(1), outputs.get(i), scratch.get(2))); //v1(4) = !(vs(1)+v2(2))
-                sb.append(String.format("NOR(%s, %s, %s); ", scratch.get(2), scratch.get(0), scratch.get(1))); //v2(5) = !(C+v1(4))
-                sb.append(String.format("NOR(%s, %s, %s); ", scratch.get(3), scratch.get(1), scratch.get(2))); //v3(6) = !(v1(4)+v2(5))
-                sb.append(String.format("NOR(%s, %s, %s); ", scratch.get(1), scratch.get(0), scratch.get(2))); //v1(7) = !(C+v2(5))
-                sb.append(String.format("NOR(%s, %s, %s); ", scratch.get(0), scratch.get(2), outputs.get(i))); //vC(c) = !(v2(5)+vs(1))
-                sb.append(String.format("NOR(%s, %s, %s); ", outputs.get(i), scratch.get(3), scratch.get(1))); //vs(S) = !(v3(6)+v1(7))
+                sb.append(config.outputFormatter.NOR(outputs.get(i), inputAs.get(i), inputBs.get(i))); //vs(1) = !(a+b)
+                sb.append(config.outputFormatter.NOR(scratch.get(2), inputAs.get(i), outputs.get(i))); //v2(2) = !(a+vs(1))
+                sb.append(config.outputFormatter.NOR(scratch.get(3), inputBs.get(i), outputs.get(i))); //v3(3) = !(b+vs(1))
+                sb.append(config.outputFormatter.NOR(scratch.get(1), scratch.get(2), scratch.get(3))); //v1(4) = !(v2(2)+v3(3))
+                sb.append(config.outputFormatter.NOR(scratch.get(2), scratch.get(0), scratch.get(1))); //v2(5) = !(v0(C)+v1(4))
+                sb.append(config.outputFormatter.NOR(scratch.get(3), scratch.get(1), scratch.get(2))); //v3(6) = !(v1(4)+v2(5))
+                sb.append(config.outputFormatter.NOR(scratch.get(1), scratch.get(0), scratch.get(2))); //v1(7) = !(v0(C)+v2(5))
+                sb.append(config.outputFormatter.NOR(scratch.get(0), scratch.get(2), outputs.get(i))); //v0(C) = !(v2(5)+vs(1))
+                sb.append(config.outputFormatter.NOR(outputs.get(i), scratch.get(3), scratch.get(1))); //vs(S) = !(v3(6)+v1(7))
                 sb.append("\n");
             }
             return sb.toString();
@@ -428,53 +495,54 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
         }
 
         @Override
-        public List<AtomGoal> applyOpForwards() throws TransformationApplicationException {
+        public List<G> applyOpForwards() throws TransformationApplicationException {
             if (this.sum == null){
-                this.sum = new AtomGoal.Factory(a).addAll(b).get();
+                this.sum = a.added(a);
             }
             return Collections.singletonList(this.sum);
         }
     }
 
-    public static class AddSelf extends Scamp5DigitalTransformation {
+    public static class AddSelf<G extends Kernel3DGoal<G>> extends Scamp5DigitalTransformation<G> {
         // u := a + a
 
-        final AtomGoal a;
-        AtomGoal sum;
+        final G a;
+        G sum;
 
 
-        public AddSelf(AtomGoal a, Scamp5DigitalConfig<AtomGoal> scamp5DigitalConfig) {
+        public AddSelf(G a, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
             super(scamp5DigitalConfig);
 
             this.a = a;
             this.sum = null;
         }
-        public AddSelf(AtomGoal a, AtomGoal sum, Scamp5DigitalConfig<AtomGoal> scamp5DigitalConfig) {
+        public AddSelf(G a, G sum, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
             super(scamp5DigitalConfig);
 
             this.a = a;
             this.sum = sum;
         }
 
-        public AddSelf(AtomGoal in, boolean upper, Scamp5DigitalConfig<AtomGoal> scamp5DigitalConfig) {
+        public AddSelf(G in, boolean upper, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
             super(scamp5DigitalConfig);
 
             if(!upper){
                 this.a = in;
                 this.sum = null;
             } else {
-                boolean divisable = true;
-                AtomGoal.Factory factory = new AtomGoal.Factory();
-                for (Iterator<Tuple<Atom, Integer>> it = in.uniqueCountIterator(); it.hasNext(); ) {
+                Kernel3DGoal.Kernel3DGoalFactory<G> factory = in.newFactory();
+                Iterator<Tuple<Atom, Integer>> it = in.uniqueCountIterator();
+                while(it.hasNext()){
                     Tuple<Atom, Integer> t = it.next();
-                    divisable &= (t.getB()%2)==0;
-                    factory.add(t.getA(), t.getB()/2);
+                    int count = t.getB();
+                    if(count < 2 || count % 2 != 0){
+                        this.a = null;
+                        this.sum = in;
+                        return;
+                    }
+                    factory.add(t.getA().x, t.getA().y, t.getA().z, t.getA().positive?count/2:(-count/2));
                 }
-                if(divisable) {
-                    a = factory.get();
-                } else {
-                    a = null;
-                }
+                this.a = factory.get();
                 this.sum = in;
             }
 
@@ -486,16 +554,17 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
 
 
         @Override
-        public String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
+        public String code(List<Register> uppers, List<Register> lowers, List<Register> trash) {
             assert lowers.size() == inputCount();
             assert lowers.size() == inputCount();
             StringBuilder sb = new StringBuilder(String.format("/*DaddSelf(%s, %s)*/\n", uppers.get(0), lowers.get(0)));
             List<String> outputs = config.registerMapping.get(uppers.get(0));
             List<String> inputAs = config.registerMapping.get(lowers.get(0));
-            for(int i = config.bits-1; i>0; i--){
-                sb.append(String.format("MOV(%s, %s); ", outputs.get(i), inputAs.get(i-1)));
+            for (int i = config.bits - 1; i > 0; i--) {
+                sb.append(config.outputFormatter.MOV(outputs.get(i), inputAs.get(i - 1)));
             }
-            sb.append(String.format("CLR(%s); \n", outputs.get(0)));
+            sb.append(config.outputFormatter.CLR(outputs.get(0)));
+            sb.append("\n");
             return sb.toString();
         }
 
@@ -543,35 +612,35 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
         }
 
         @Override
-        public List<AtomGoal> applyOpForwards() throws TransformationApplicationException {
+        public List<G> applyOpForwards() throws TransformationApplicationException {
             if (this.sum == null){
-                this.sum = new AtomGoal.Factory(a).addAll(a).get();
+                this.sum = a.added(a);
             }
             return Collections.singletonList(this.sum);
         }
     }
 
-    public static class Div extends SimpleScamp5DigitalTransformation {
+    public static class Div<G extends Kernel3DGoal<G>> extends SimpleScamp5DigitalTransformation<G> {
         // u := a*0.5 + error
 
-        final AtomGoal a;
-        AtomGoal div;
+        final G a;
+        G div;
 
-        public Div(AtomGoal a, Scamp5DigitalConfig<AtomGoal> scamp5DigitalConfig) {
+        public Div(G a, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
             super(scamp5DigitalConfig);
 
             this.a = a;
             this.div = null;
         }
 
-        public Div(AtomGoal in, boolean upper, Scamp5DigitalConfig<AtomGoal> scamp5DigitalConfig) {
+        public Div(G in, boolean upper, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
             super(scamp5DigitalConfig);
 
             if(!upper){
                 this.a = in;
                 this.div = null;
             } else {
-                this.a = new AtomGoal.Factory(in).addAll(in).get();
+                this.a = in.added(in);
                 this.div = in;
             }
         }
@@ -589,16 +658,17 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+        public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
             assert lowers.size() == inputCount();
             StringBuilder sb = new StringBuilder(String.format("/*DDiv(%s, %s)*/\n", upper, lowers.get(0)));
             List<String> outputs = config.registerMapping.get(upper);
             List<String> inputAs = config.registerMapping.get(lowers.get(0));
-            for(int i = 0; i<config.bits-1; i++){
-                sb.append(String.format("MOV(%s, %s); ", outputs.get(i), inputAs.get(i+1)));
+            for (int i = 0; i < config.bits - 1; i++) {
+                sb.append(config.outputFormatter.MOV(outputs.get(i), inputAs.get(i + 1)));
             }
-            sb.append(String.format("CLR(%s); \n", outputs.get(config.bits-1)));
+            sb.append(config.outputFormatter.CLR(outputs.get(config.bits - 1)));
+            sb.append("\n");
             return sb.toString();
         }
 
@@ -608,30 +678,18 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
         }
 
 
-        @SuppressWarnings("ConstantConditions")
         @Override
-        public AtomGoal applyForwards() throws TransformationApplicationException {
+        public G applyForwards() throws TransformationApplicationException {
             if(this.div == null){
-                AtomGoal.Factory factory = new AtomGoal.Factory();
-                if (!this.a.isEmpty()) {
-                    int count = 1;
-                    Atom last = a.get(0);
-                    for (int i = 1; i < a.size()+1; i++) {
-                        Atom c = i < a.size()?a.get(i):null;
-                        if(c == null || !last.equals(c)){
-                            if(count/2 != (count+1)/2){
-                                throw new TransformationApplicationException("Cannot divide uneven number of atoms!");
-                            } else {
-                                for (int j = 0; j < count / 2; j++) {
-                                    factory.add(last);
-                                }
-                            }
-                            last = c;
-                            count = 1;
-                        } else {
-                            count++;
-                        }
+                Kernel3DGoal.Kernel3DGoalFactory<G> factory = a.newFactory();
+                Iterator<Tuple<Atom, Integer>> it = a.uniqueCountIterator();
+                while(it.hasNext()){
+                    Tuple<Atom, Integer> t = it.next();
+                    int count = t.getB();
+                    if(count < 2 || count % 2 != 0){
+                        throw new TransformationApplicationException("Cannot divide uneven number of atoms!");
                     }
+                    factory.add(t.getA().x, t.getA().y, t.getA().z, t.getA().positive?count/2:(-count/2));
                 }
                 this.div = factory.get();
             }
@@ -668,17 +726,17 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
     }
 
 
-    public static class Movx extends Mov {
+    public static class Movx<G extends Kernel3DGoal<G>> extends Mov<G> {
         //u := a_dir
 
         final Dir dir;
 
-        public Movx(AtomGoal a, Dir dir, Scamp5DigitalConfig<AtomGoal> scamp5DigitalConfig) {
+        public Movx(G a, Dir dir, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
             super(a, scamp5DigitalConfig);
             this.dir = dir;
         }
 
-        public Movx(AtomGoal in, Dir dir, boolean upper, Scamp5DigitalConfig<AtomGoal> scamp5DigitalConfig) {
+        public Movx(G in, Dir dir, boolean upper, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
 
             super(upper?in.translated(-dir.x, -dir.y, 0):in, scamp5DigitalConfig);
             this.moved = upper?in:null;
@@ -686,21 +744,21 @@ public abstract class Scamp5DigitalTransformation extends Transformation {
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+        public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
             StringBuilder sb = new StringBuilder(String.format("/*Dmovx(%s, %s, %s)*/", upper, lowers.get(0), dir.toString()));
             List<String> outputs = config.registerMapping.get(upper);
             List<String> inputs = config.registerMapping.get(lowers.get(0));
-            sb.append(String.format("CLR(%s, %s, %s, %s); ", Dir.values()[0].code, Dir.values()[1].code, Dir.values()[2].code, Dir.values()[3].code));
-            sb.append(String.format("SET(%s); ", dir.code));
-            for(int i = 0; i<config.bits; i++){
-                sb.append(String.format("DNEWS0(%s, %s); ", outputs.get(i), inputs.get(i)));
+            sb.append(config.outputFormatter.CLR(Dir.values()[0].code, Dir.values()[1].code, Dir.values()[2].code, Dir.values()[3].code));
+            sb.append(config.outputFormatter.SET(dir.code));
+            for (int i = 0; i < config.bits; i++) {
+                sb.append(config.outputFormatter.DNEWS0(outputs.get(i), inputs.get(i)));
             }
             return sb.toString();
         }
 
         @Override
-        public AtomGoal applyForwards() {
+        public G applyForwards() {
             if(this.moved == null){
                 this.moved = a.translated(dir.x, dir.y, 0);
             }

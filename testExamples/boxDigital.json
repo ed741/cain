@@ -1,0 +1,63 @@
+{"name":"boxDigital",
+  "verbose": -1,
+  "goalSystem":"Kernel3D",
+  "maxApproximationDepth":3,
+  "maxApproximationError":0,
+  "3d": false,
+  "filter":{
+    "A": {"depth":0,
+      "array":
+      [[1, 1, 1],
+        [1, 1, 1],
+        [1, 1, 1]
+      ]
+    }
+  },
+
+  "registerAllocator": {
+    "name": "linearScan",
+    "availableRegisters":["A","B","C"],
+    "initialRegisters":["A"]
+  },
+
+  "runConfig":{
+    "searchTime":3000,
+    "timeOut":true,
+    "workers":4,
+    "traversalAlgorithm":"SOT",
+    "costFunction":"InstructionCost",
+    "liveCounter":false,
+    "livePrintPlans":0,
+    "quiet": true,
+    "initialMaxDepth":200,
+    "forcedDepthReduction":-100,
+    "initialMaxCost":2147483647,
+    "forcedCostReduction":1,
+    "allowableAtomsCoefficient":2,
+    "goalReductionsPerStep":1,
+    "goalReductionsTolerance":1
+  },
+
+  "pairGen":{
+    "name": "Scamp5DigitalAtomGoal",
+    "configGetter": {
+      "name":"Threshold",
+      "threshold":8,
+      "heuristic": "Pattern"
+    },
+    "bits":2,
+    "scratchRegs":["S1", "S2", "S3", "S4", "S5"],
+    "regMapping":{
+      "A":["DA1","DA2"],
+      "B":["DB1","DB2"],
+      "C":["DC1","DC2"],
+      "D":["DD1","DD2"]
+    },
+    "outputFormat": {
+      "name": "defaultFormat"
+    }
+  },
+
+  "verifier":"None"
+
+}

@@ -1,22 +1,98 @@
 package uk.co.edstow.cain.scamp5.analogue;
 
-import uk.co.edstow.cain.atom.Atom;
-import uk.co.edstow.cain.atom.AtomGoal;
-import uk.co.edstow.cain.RegisterAllocator;
-import uk.co.edstow.cain.Transformation;
-import uk.co.edstow.cain.atom.pairGen.SimpleTransformation;
+import uk.co.edstow.cain.regAlloc.Register;
+import uk.co.edstow.cain.transformations.StandardTransformation;
+import uk.co.edstow.cain.goals.Kernel3DGoal;
+import uk.co.edstow.cain.goals.atomGoal.Atom;
+import uk.co.edstow.cain.goals.atomGoal.pairGen.SimpleTransformation;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 
-public abstract class Scamp5AnalogueTransformation extends Transformation {
-    public abstract List<AtomGoal> applyOpForwards() throws TransformationApplicationException;
+public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> implements StandardTransformation {
+    protected final Scamp5AnalogueConfig<G> config;
+
+    protected Scamp5AnalogueTransformation(Scamp5AnalogueConfig<G> config) {
+        this.config = config;
+    }
+
+    public abstract List<G> applyOpForwards() throws TransformationApplicationException;
 
 
-    abstract static class SimpleScamp5AnalogueTransformation extends Scamp5AnalogueTransformation {
+    static class Null<G extends Kernel3DGoal<G>> extends Scamp5AnalogueTransformation<G> {
+        private final int inputCount;
+        private final int outputCount;
+
+        public Null(int inputCount, int outputCount, Scamp5AnalogueConfig<G> config) {
+            super(config);
+            this.inputCount = inputCount;
+            this.outputCount = outputCount;
+        }
 
         @Override
-        public String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
+        public boolean[] inputRegisterOutputInterference(int u){
+            return new boolean[inputCount()];
+        }
+
+        @Override
+        public int[] inputRegisterIntraInterference() {
+            int[] out = new int[inputCount()];
+            for (int i = 0; i < out.length; i++) {
+                out[i]=i;
+            }
+            return out;
+        }
+
+        @Override
+        public boolean clobbersInput(int i) {
+            return false;
+        }
+
+
+        @Override
+        public String code(List<Register> uppers, List<Register> lowers, List<Register> trash) {
+            return String.format("//Null Instruction: %s <- %s", uppers, lowers);
+        }
+
+        @Override
+        public int inputCount() {
+            return inputCount;
+        }
+
+        @Override
+        public int outputCount() {
+            return outputCount;
+        }
+
+        @Override
+        public double cost() {
+            return 0;
+        }
+
+        @Override
+        public String toStringN() {
+            return "Null_t";
+        }
+
+        @Override
+        public String toString() {
+            return "Null_t";
+        }
+
+        @Override
+        public List<G> applyOpForwards() {
+            return Collections.emptyList();
+        }
+    }
+
+    abstract static class SimpleScamp5AnalogueTransformation<G extends Kernel3DGoal<G>> extends Scamp5AnalogueTransformation<G> {
+
+        SimpleScamp5AnalogueTransformation(Scamp5AnalogueConfig<G> config) {
+            super(config);
+        }
+
+        @Override
+        public String code(List<Register> uppers, List<Register> lowers, List<Register> trash) {
             if (uppers.size() == 1) {
                 return code(uppers.get(0), lowers);
             } else {
@@ -24,10 +100,10 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
             }
         }
 
-        abstract String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers);
+        abstract String code(Register upper, List<Register> lowers);
 
-        public abstract AtomGoal applyForwards() throws TransformationApplicationException;
-        public List<AtomGoal> applyOpForwards() throws TransformationApplicationException{
+        public abstract G applyForwards() throws TransformationApplicationException;
+        public List<G> applyOpForwards() throws TransformationApplicationException{
             return Collections.singletonList(applyForwards());
         }
 
@@ -96,23 +172,26 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
                 case E: return East;
                 case S: return South;
                 case W: return West;
-                default: return null;
             }
+            assert false;
+            System.exit(-1);
+            return null;
         }
     }
 
-    public static class Res extends SimpleScamp5AnalogueTransformation {
+    public static class Res<G extends Kernel3DGoal<G>> extends SimpleScamp5AnalogueTransformation<G> {
         // u := {}
-        final AtomGoal result;
+        final G result;
 
-        public Res(AtomGoal result) {
+        public Res(G result, Scamp5AnalogueConfig<G> config) {
+            super(config);
             this.result = result;
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+        public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("res(%s);", upper);
+            return super.config.outputFormatter.res(upper);
         }
 
         @Override
@@ -121,7 +200,7 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
         }
 
         @Override
-        public AtomGoal applyForwards() {
+        public G applyForwards() {
             return result;
         }
 
@@ -155,20 +234,21 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
     }
 
 
-    public static class Res_2 extends Scamp5AnalogueTransformation {
+    public static class Res_2<G extends Kernel3DGoal<G>> extends Scamp5AnalogueTransformation<G> {
         // u := {}
-        final AtomGoal result1;
-        final AtomGoal result2;
+        final G result1;
+        final G result2;
 
-        public Res_2(AtomGoal a, AtomGoal b) {
+        public Res_2(G a, G b, Scamp5AnalogueConfig<G> config) {
+            super(config);
             this.result1 = a;
             this.result2 = b;
         }
 
         @Override
-        public String code(List<RegisterAllocator.Register> upper, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
+        public String code(List<Register> upper, List<Register> lowers, List<Register> trash) {
             assert lowers.size() == inputCount();
-            return String.format("res(%s, %s);", upper.get(0), upper.get(1));
+            return super.config.outputFormatter.res(upper.get(0), upper.get(1));
         }
 
         @Override
@@ -182,7 +262,7 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
         }
 
         @Override
-        public List<AtomGoal> applyOpForwards() {
+        public List<G> applyOpForwards() {
             return Arrays.asList(result1, result2);
         }
 
@@ -220,21 +300,23 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
     }
 
 
-    public static class Mov extends SimpleScamp5AnalogueTransformation {
+    public static class Mov<G extends Kernel3DGoal<G>> extends SimpleScamp5AnalogueTransformation<G> {
         //u := a
 
-        final AtomGoal a;
-        AtomGoal moved = null;
+        final G a;
+        G moved = null;
 
         @SuppressWarnings("WeakerAccess")
-        public Mov(AtomGoal a) {
+        public Mov(G a, Scamp5AnalogueConfig<G> config) {
+            super(config);
             this.a = a;
         }
 
         @SuppressWarnings("WeakerAccess")
-        public Mov(AtomGoal in, boolean upper) {
+        public Mov(G in, boolean upper, Scamp5AnalogueConfig<G> config) {
+            super(config);
             if (upper) {
-                this.a = new AtomGoal(in);
+                this.a = in.copy();
                 this.moved = in;
             } else {
                 this.a = in;
@@ -242,9 +324,9 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+        public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("mov(%s, %s);", upper, lowers.get(0));
+            return super.config.outputFormatter.mov(upper, lowers.get(0));
         }
 
         @Override
@@ -253,9 +335,9 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
         }
 
         @Override
-        public AtomGoal applyForwards() {
+        public G applyForwards() {
             if(this.moved == null){
-                this.moved = new AtomGoal(a);
+                this.moved = a.copy();
             }
             return this.moved;
         }
@@ -290,23 +372,24 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
     }
 
 
-    public static class Add_2 extends SimpleScamp5AnalogueTransformation {
+    public static class Add_2<G extends Kernel3DGoal<G>> extends SimpleScamp5AnalogueTransformation<G> {
         // u := a + b
 
-        final AtomGoal a;
-        final AtomGoal b;
-        AtomGoal sum;
+        final G a;
+        final G b;
+        G sum;
 
 
-        public Add_2(AtomGoal a, AtomGoal b) {
+        public Add_2(G a, G b, Scamp5AnalogueConfig<G> config) {
+            super(config);
             this.a = a;
             this.b = b;
             this.sum = null;
         }
         @Override
-        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+        public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("add(%s, %s, %s);", upper, lowers.get(0), lowers.get(1));
+            return super.config.outputFormatter.add(upper, lowers.get(0), lowers.get(1));
         }
 
         @Override
@@ -315,9 +398,9 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
         }
 
         @Override
-        public AtomGoal applyForwards() {
+        public G applyForwards() {
             if (this.sum == null){
-                this.sum = new AtomGoal.Factory(a).addAll(b).get();
+                this.sum = a.added(b);
             }
             return this.sum;
         }
@@ -352,25 +435,26 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
 
     }
 
-    public static class Add_3 extends SimpleScamp5AnalogueTransformation {
+    public static class Add_3<G extends Kernel3DGoal<G>> extends SimpleScamp5AnalogueTransformation<G> {
         // u := a + b + c
 
-        final AtomGoal a;
-        final AtomGoal b;
-        final AtomGoal c;
-        AtomGoal sum;
+        final G a;
+        final G b;
+        final G c;
+        G sum;
 
 
-        public Add_3(AtomGoal a, AtomGoal b, AtomGoal c) {
+        public Add_3(G a, G b, G c, Scamp5AnalogueConfig<G> config) {
+            super(config);
             this.a = a;
             this.b = b;
             this.c = c;
             this.sum = null;
         }
         @Override
-        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+        public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("add(%s, %s, %s, %s);", upper, lowers.get(0), lowers.get(1), lowers.get(2));
+            return super.config.outputFormatter.add(upper, lowers.get(0), lowers.get(1), lowers.get(2));
         }
 
         @Override
@@ -379,9 +463,9 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
         }
 
         @Override
-        public AtomGoal applyForwards() {
+        public G applyForwards() {
             if (this.sum == null){
-                this.sum = new AtomGoal.Factory(a).addAll(b).addAll(c).get();
+                this.sum = a.newFactory().add(a).add(b).add(c).get();
             }
             return this.sum;
         }
@@ -415,23 +499,24 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
         }
     }
 
-    public static class Sub extends SimpleScamp5AnalogueTransformation {
+    public static class Sub<G extends Kernel3DGoal<G>> extends SimpleScamp5AnalogueTransformation<G> {
         // u := a - b
 
-         final AtomGoal a;
-         final AtomGoal b;
-         AtomGoal difference;
+         final G a;
+         final G b;
+         G difference;
 
 
-         public Sub(AtomGoal a, AtomGoal b) {
+         public Sub(G a, G b, Scamp5AnalogueConfig<G> config) {
+             super(config);
              this.a = a;
              this.b = b;
              this.difference = null;
          }
          @Override
-         public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+         public String code(Register upper, List<Register> lowers) {
              assert lowers.size() == inputCount();
-             return String.format("sub(%s, %s, %s);", upper, lowers.get(0), lowers.get(1));
+             return super.config.outputFormatter.sub(upper, lowers.get(0), lowers.get(1));
          }
 
          @Override
@@ -440,9 +525,9 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
          }
 
          @Override
-         public AtomGoal applyForwards() {
+         public G applyForwards() {
              if (this.difference == null){
-                 this.difference = new AtomGoal.Factory(a).subAll(b).get();
+                 this.difference = a.subtracted(b);
              }
              return this.difference;
          }
@@ -476,21 +561,23 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
         }
     }
 
-    public static class Neg extends SimpleScamp5AnalogueTransformation {
+    public static class Neg<G extends Kernel3DGoal<G>> extends SimpleScamp5AnalogueTransformation<G> {
         // u := -a
 
-        final AtomGoal a;
-        AtomGoal neg;
+        final G a;
+        G neg;
 
-        public Neg(AtomGoal a) {
+        public Neg(G a, Scamp5AnalogueConfig<G> config) {
+            super(config);
             this.a = a;
             this.neg = null;
 
         }
 
-        public Neg(AtomGoal in, boolean upper){
+        public Neg(G in, boolean upper, Scamp5AnalogueConfig<G> config){
+            super(config);
             if (upper) {
-                this.a = in.negative();
+                this.a = in.negated();
                 this.neg = in;
             } else {
                this.a = in;
@@ -499,9 +586,9 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+        public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("neg(%s, %s);", upper, lowers.get(0));
+            return super.config.outputFormatter.neg(upper, lowers.get(0));
         }
 
         @Override
@@ -510,9 +597,9 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
         }
 
         @Override
-        public AtomGoal applyForwards(){
+        public G applyForwards(){
             if(this.neg == null){
-                this.neg = a.negative();
+                this.neg = a.negated();
             }
             return this.neg;
         }
@@ -546,23 +633,25 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
         }
     }
 
-    public static class Divq extends SimpleScamp5AnalogueTransformation {
+    public static class Divq<G extends Kernel3DGoal<G>> extends SimpleScamp5AnalogueTransformation<G> {
         // u := a*0.5 + error
 
-        final AtomGoal a;
-        AtomGoal div;
+        final G a;
+        G div;
 
-        public Divq(AtomGoal a) {
+        public Divq(G a, Scamp5AnalogueConfig<G> config) {
+            super(config);
             this.a = a;
             this.div = null;
         }
 
-        public Divq(AtomGoal in, boolean upper){
+        public Divq(G in, boolean upper, Scamp5AnalogueConfig<G> config){
+            super(config);
             if(!upper){
                 this.a = in;
                 this.div = null;
             } else {
-                this.a = new AtomGoal.Factory(in).addAll(in).get();
+                this.a = in.added(in);
                 this.div = in;
             }
         }
@@ -580,9 +669,9 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+        public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("divq(%s, %s);", upper, lowers.get(0));
+            return super.config.outputFormatter.divq(upper, lowers.get(0));
         }
 
         @Override
@@ -591,30 +680,18 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
         }
 
 
-        @SuppressWarnings("ConstantConditions")
         @Override
-        public AtomGoal applyForwards() throws TransformationApplicationException {
+        public G applyForwards() throws TransformationApplicationException {
             if(this.div == null){
-                AtomGoal.Factory factory = new AtomGoal.Factory();
-                if (!this.a.isEmpty()) {
-                    int count = 1;
-                    Atom last = a.get(0);
-                    for (int i = 1; i < a.size()+1; i++) {
-                        Atom c = i < a.size()?a.get(i):null;
-                        if(c == null || !last.equals(c)){
-                            if(count/2 != (count+1)/2){
-                                throw new TransformationApplicationException("Cannot divide uneven number of atoms!");
-                            } else {
-                                for (int j = 0; j < count / 2; j++) {
-                                    factory.add(last);
-                                }
-                            }
-                            last = c;
-                            count = 1;
-                        } else {
-                            count++;
-                        }
+                Kernel3DGoal.Kernel3DGoalFactory<G> factory = a.newFactory();
+                Iterator<Tuple<Atom, Integer>> it = a.uniqueCountIterator();
+                while(it.hasNext()){
+                    Tuple<Atom, Integer> t = it.next();
+                    int count = t.getB();
+                    if(count < 2 || count % 2 != 0){
+                        throw new TransformationApplicationException("Cannot divide uneven number of atoms!");
                     }
+                    factory.add(t.getA().x, t.getA().y, t.getA().z, t.getA().positive?count/2:(-count/2));
                 }
                 this.div = factory.get();
             }
@@ -651,30 +728,30 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
     }
 
 
-    public static class Movx extends Mov {
+    public static class Movx<G extends Kernel3DGoal<G>> extends Mov<G> {
         //u := a_dir
 
         final Dir dir;
 
-        public Movx(AtomGoal a, Dir dir) {
-            super(a);
+        public Movx(G a, Dir dir, Scamp5AnalogueConfig<G> config) {
+            super(a, config);
             this.dir = dir;
         }
 
-        public Movx(AtomGoal in, Dir dir, boolean upper) {
-            super(upper?in.translated(-dir.x, -dir.y, 0):in);
+        public Movx(G in, Dir dir, boolean upper, Scamp5AnalogueConfig<G> config) {
+            super(upper?in.translated(-dir.x, -dir.y, 0):in, config);
             this.moved = upper?in:null;
             this.dir = dir;
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+        public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("movx(%s, %s, %s);", upper, lowers.get(0), dir.toCode());
+            return super.config.outputFormatter.movx(upper, lowers.get(0), dir.toCode());
         }
 
         @Override
-        public AtomGoal applyForwards() {
+        public G applyForwards() {
             if(this.moved == null){
                 this.moved = a.translated(dir.x, dir.y, 0);
             }
@@ -688,33 +765,33 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
     }
 
 
-    public static class Mov2x extends Mov{
+    public static class Mov2x<G extends Kernel3DGoal<G>> extends Mov<G>{
         // u := a_dir1_dir2
 
         final Dir dir1;
         final Dir dir2;
 
-        public Mov2x(AtomGoal a, Dir dir1, Dir dir2) {
-            super(a);
+        public Mov2x(G a, Dir dir1, Dir dir2, Scamp5AnalogueConfig<G> config) {
+            super(a, config);
             this.dir1 = dir1;
             this.dir2 = dir2;
         }
 
-        public Mov2x(AtomGoal in, Dir dir1, Dir dir2, boolean upper) {
-            super(upper?in.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0):in);
+        public Mov2x(G in, Dir dir1, Dir dir2, boolean upper, Scamp5AnalogueConfig<G> config) {
+            super(upper?in.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0):in, config);
             this.moved = upper?in:null;
             this.dir1 = dir1;
             this.dir2 = dir2;
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+        public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("mov2x(%s, %s, %s, %s);", upper, lowers.get(0), dir1.toCode(), dir2.toCode());
+            return super.config.outputFormatter.mov2x(upper, lowers.get(0), dir1.toCode(), dir2.toCode());
         }
 
         @Override
-        public AtomGoal applyForwards() {
+        public G applyForwards() {
             if(this.moved == null){
                 this.moved = a.translated(dir1.x +dir2.x, dir1.y +dir2.y, 0);
             }
@@ -729,29 +806,26 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
     }
 
 
-    public static class Addx extends Add_2 {
+    public static class Addx<G extends Kernel3DGoal<G>> extends Add_2<G> {
         // u := a_dir + b_dir
 
         final Dir dir;
 
-        public Addx(AtomGoal a, AtomGoal b, Dir dir) {
-            super(a, b);
+        public Addx(G a, G b, Dir dir, Scamp5AnalogueConfig<G> config) {
+            super(a, b, config);
             this.dir = dir;
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+        public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("addx(%s, %s, %s, %s);", upper, lowers.get(0), lowers.get(1), dir.toCode());
+            return super.config.outputFormatter.addx(upper, lowers.get(0), lowers.get(1), dir.toCode());
         }
 
         @Override
-        public AtomGoal applyForwards() {
+        public G applyForwards() {
             if(this.sum == null){
-                AtomGoal.Factory factory = new AtomGoal.Factory();
-                this.a.forEach(atom -> factory.add(atom.moved(dir.x, +dir.y, 0)));
-                this.b.forEach(atom -> factory.add(atom.moved(dir.x, +dir.y, 0)));
-                this.sum = factory.get();
+                this.sum = this.a.added(this.b).translated(dir.x, dir.y, 0);
             }
             return this.sum;
         }
@@ -765,30 +839,27 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
     }
 
 
-    public static class Add2x extends Add_2 {
+    public static class Add2x<G extends Kernel3DGoal<G>> extends Add_2<G> {
         // u := a_dir1_dir2 + b_dir1_dir2
         final Dir dir1;
         final Dir dir2;
 
-        public Add2x(AtomGoal a, AtomGoal b, Dir dir1, Dir dir2) {
-            super(a, b);
+        public Add2x(G a, G b, Dir dir1, Dir dir2, Scamp5AnalogueConfig<G> config) {
+            super(a, b, config);
             this.dir1 = dir1;
             this.dir2 = dir2;
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+        public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("add2x(%s, %s, %s, %s, %s);", upper, lowers.get(0), lowers.get(1), dir1.toCode(), dir2.toCode());
+            return super.config.outputFormatter.add2x(upper, lowers.get(0), lowers.get(1), dir1.toCode(), dir2.toCode());
         }
 
         @Override
-        public AtomGoal applyForwards() {
+        public G applyForwards() {
             if(this.sum == null){
-                AtomGoal.Factory factory = new AtomGoal.Factory();
-                this.a.forEach(atom -> factory.add(atom.moved(dir1.x+dir2.x, dir1.y+dir2.y, 0)));
-                this.b.forEach(atom -> factory.add(atom.moved(dir1.x+dir2.x, dir1.y+dir2.y, 0)));
-                this.sum = factory.get();
+                this.sum = this.a.added(b).translated(dir1.x+dir2.x, dir1.y+dir2.y, 0);
             }
             return this.sum;
         }
@@ -800,29 +871,26 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
     }
 
 
-    public static class Subx extends Sub {
+    public static class Subx<G extends Kernel3DGoal<G>> extends Sub<G> {
         // u := a_dir - b
 
         final Dir dir;
 
-        public Subx(AtomGoal a, AtomGoal b, Dir dir) {
-            super(a, b);
+        public Subx(G a, G b, Dir dir, Scamp5AnalogueConfig<G> config) {
+            super(a, b, config);
             this.dir = dir;
         }
 
         @Override
-        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+        public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("subx(%s, %s, %s, %s);", upper, lowers.get(0), dir.toCode(), lowers.get(1));
+            return super.config.outputFormatter.subx(upper, lowers.get(0), dir.toCode(), lowers.get(1));
         }
 
         @Override
-        public AtomGoal applyForwards() {
+        public G applyForwards() {
             if (this.difference == null){
-                AtomGoal.Factory factory = new AtomGoal.Factory();
-                this.a.forEach(atom -> factory.add(atom.moved(dir.x, dir.y, 0)));
-                factory.subAll(b);
-                this.difference = factory.get();
+                this.difference = a.translated(dir.x, dir.y, 0).subtracted(b);
             }
             return this.difference;
         }
@@ -834,31 +902,28 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
     }
 
 
-    public static class Sub2x extends Sub {
+    public static class Sub2x<G extends Kernel3DGoal<G>> extends Sub<G> {
         // u := a_dir1_dir2 - b
 
         final Dir dir1;
         final Dir dir2;
 
-        public Sub2x(AtomGoal a, AtomGoal b, Dir dir1, Dir dir2) {
-            super(a, b);
+        public Sub2x(G a, G b, Dir dir1, Dir dir2, Scamp5AnalogueConfig<G> config) {
+            super(a, b, config);
             this.dir1 = dir1;
             this.dir2 = dir2;
             this.difference = null;
         }
         @Override
-        public String code(RegisterAllocator.Register upper, List<RegisterAllocator.Register> lowers) {
+        public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("sub2x(%s, %s, %s, %s, %s);", upper, lowers.get(0), dir1.toCode(), dir2.toCode(), lowers.get(1));
+            return super.config.outputFormatter.sub2x(upper, lowers.get(0), dir1.toCode(), dir2.toCode(), lowers.get(1));
         }
 
         @Override
-        public AtomGoal applyForwards() {
+        public G applyForwards() {
             if (this.difference == null){
-                AtomGoal.Factory factory = new AtomGoal.Factory();
-                this.a.forEach(atom -> factory.add(atom.moved(dir1.x+dir2.x, dir1.y+dir2.y, 0)));
-                factory.subAll(b);
-                this.difference = factory.get();
+                this.difference = a.translated(dir1.x+dir2.x, dir1.y+dir2.y, 0).subtracted(b);
             }
             return this.difference;
         }
@@ -870,27 +935,29 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
     }
 
 
-    public static class Div extends Scamp5AnalogueTransformation {
+    public static class Div<G extends Kernel3DGoal<G>> extends Scamp5AnalogueTransformation<G> {
         // u := a*0.5 + error
 
-        final AtomGoal a;
+        final G a;
         final boolean clobber;
-        AtomGoal div;
+        G div;
 
 
-        public Div(AtomGoal a, boolean clobber) {
+        public Div(G a, boolean clobber, Scamp5AnalogueConfig<G> config) {
+            super(config);
             this.a = a;
             this.div = null;
             this.clobber = clobber;
         }
 
-        public Div(AtomGoal in, boolean upper, boolean clobber){
+        public Div(G in, boolean upper, boolean clobber, Scamp5AnalogueConfig<G> config){
+            super(config);
             this.clobber = clobber;
             if(!upper){
                 this.a = in;
                 this.div = null;
             } else {
-                this.a = new AtomGoal.Factory(in).addAll(in).get();
+                this.a = in.added(in);
                 this.div = in;
             }
         }
@@ -908,19 +975,19 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
         }
 
         @Override
-        public String code(List<RegisterAllocator.Register> uppers, List<RegisterAllocator.Register> lowers, List<RegisterAllocator.Register> trash) {
+        public String code(List<Register> uppers, List<Register> lowers, List<Register> trash) {
             assert lowers.size() == inputCount();
             assert uppers.size() == outputCount();
             if(uppers.get(0).equals(lowers.get(0))){
                 assert trash.size()>=2;
-                return String.format("diva(%s, %s, %s);", uppers.get(0), trash.get(0), trash.get(1));
+                return super.config.outputFormatter.diva(uppers.get(0), trash.get(0), trash.get(1));
             }
             if(this.clobber) {
                 assert trash.size() >= 1;
-                return String.format("div(%s, %s, %s);", uppers.get(0), trash.get(0), lowers.get(0));
+                return super.config.outputFormatter.div(uppers.get(0), trash.get(0), lowers.get(0));
             }else{
                 assert trash.size() >= 2;
-                return String.format("div(%s, %s, %s, %s);", uppers.get(0), trash.get(0), trash.get(1), lowers.get(0));
+                return super.config.outputFormatter.div(uppers.get(0), trash.get(0), trash.get(1), lowers.get(0));
             }
 
         }
@@ -959,36 +1026,24 @@ public abstract class Scamp5AnalogueTransformation extends Transformation {
             return new int[]{0};
         }
 
-        @SuppressWarnings("ConstantConditions")
         @Override
-        public List<AtomGoal> applyOpForwards() throws TransformationApplicationException {
+        public List<G> applyOpForwards() throws TransformationApplicationException {
             if(this.div==null) {
                 this.div = applyDiv(this.a);
             }
             return Collections.singletonList(this.div);
         }
 
-        private AtomGoal applyDiv(AtomGoal in) throws TransformationApplicationException {
-            AtomGoal.Factory factory = new AtomGoal.Factory();
-            if (!in.isEmpty()) {
-                int count = 1;
-                Atom last = in.get(0);
-                for (int i = 1; i < in.size()+1; i++) {
-                    Atom c = i < in.size()?in.get(i):null;
-                    if(c == null || !last.equals(c)){
-                        if(count/2 != (count+1)/2){
-                            throw new TransformationApplicationException("Cannot divide uneven number of atoms!");
-                        } else {
-                            for (int j = 0; j < count / 2; j++) {
-                                factory.add(last);
-                            }
-                        }
-                        last = c;
-                        count = 1;
-                    } else {
-                        count++;
-                    }
+        private G applyDiv(G in) throws TransformationApplicationException {
+            Kernel3DGoal.Kernel3DGoalFactory<G> factory = a.newFactory();
+            Iterator<Tuple<Atom, Integer>> it = a.uniqueCountIterator();
+            while(it.hasNext()){
+                Tuple<Atom, Integer> t = it.next();
+                int count = t.getB();
+                if(count < 2 || count % 2 != 0){
+                    throw new TransformationApplicationException("Cannot divide uneven number of atoms!");
                 }
+                factory.add(t.getA().x, t.getA().y, t.getA().z, t.getA().positive?count/2:(-count/2));
             }
             return factory.get();
         }
