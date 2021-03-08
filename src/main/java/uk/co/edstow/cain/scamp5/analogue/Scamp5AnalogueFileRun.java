@@ -9,9 +9,7 @@ import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
 import uk.co.edstow.cain.pairgen.CostHeuristic;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.regAlloc.Register;
-import uk.co.edstow.cain.scamp5.BasicScamp5ConfigGetter;
-import uk.co.edstow.cain.scamp5.PatternHeuristic;
-import uk.co.edstow.cain.scamp5.ThresholdScamp5ConfigGetter;
+import uk.co.edstow.cain.scamp5.*;
 import uk.co.edstow.cain.scamp5.emulator.Scamp5AnalogueVerifier;
 
 public abstract class Scamp5AnalogueFileRun<G extends Kernel3DGoal<G>> extends FileRun.Kernel3DStdTransFileRun<G, Scamp5AnalogueTransformation<G>> {
@@ -28,6 +26,25 @@ public abstract class Scamp5AnalogueFileRun<G extends Kernel3DGoal<G>> extends F
         printLn("Name                        : " + json.getString("name"));
 
         Scamp5AnalogueConfig.Builder<G> configBuilder = new Scamp5AnalogueConfig.Builder<>();
+
+        Scamp5OutputFormatter outputFormatter;
+        if (!json.has("outputFormat")) {
+            throw new IllegalArgumentException("you need to define outputFormat inside pairGen");
+        }
+        JSONObject outputFormatConfig = json.getJSONObject("outputFormat");
+        switch (outputFormatConfig.getString("name")) {
+            default:
+                throw new IllegalArgumentException("Unknown Scamp5 outputFormat : " + outputFormatConfig.getString("name"));
+            case "defaultFormat":
+                outputFormatter = new Scamp5DefaultOutputFormatter();
+                break;
+            case "jssFormat":
+                String jssSimulatorName = outputFormatConfig.getString("simulatorName");
+                outputFormatter = new Scamp5JssOutputFormatter(jssSimulatorName);
+                break;
+        }
+        configBuilder.setOutputFormatter(outputFormatter);
+
         String factory = "configGetter";
         if(!json.has(factory)) {throw new IllegalArgumentException("you need to define " + factory + " inside pairGen");}
         String configGetterName = json.getJSONObject(factory).getString("name");

@@ -9,9 +9,7 @@ import uk.co.edstow.cain.goals.arrayGoal.ArrayGoal;
 import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
 import uk.co.edstow.cain.pairgen.CostHeuristic;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
-import uk.co.edstow.cain.scamp5.BasicScamp5ConfigGetter;
-import uk.co.edstow.cain.scamp5.PatternHeuristic;
-import uk.co.edstow.cain.scamp5.ThresholdScamp5ConfigGetter;
+import uk.co.edstow.cain.scamp5.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -53,8 +51,25 @@ public abstract class Scamp5DigitalFileRun<G extends Kernel3DGoal<G>> extends Fi
             }
             regMapping.put(reg, digitalRegs);
         }
-        Scamp5DigitalConfig.Builder<G> configBuilder = new Scamp5DigitalConfig.Builder<>(new Scamp5DigitalConfig<G>(true, true, true, true, true, true, true, regMapping, scratchRegs, bits));
 
+        Scamp5OutputFormatter outputFormatter;
+        if (!json.has("outputFormat")) {
+            throw new IllegalArgumentException("you need to define outputFormat inside pairGen");
+        }
+        JSONObject outputFormatConfig = json.getJSONObject("outputFormat");
+        switch (outputFormatConfig.getString("name")) {
+            default:
+                throw new IllegalArgumentException("Unknown Scamp5 outputFormat : " + outputFormatConfig.getString("name"));
+            case "defaultFormat":
+                outputFormatter = new Scamp5DefaultOutputFormatter();
+                break;
+            case "jssFormat":
+                String jssSimulatorName = outputFormatConfig.getString("simulatorName");
+                outputFormatter = new Scamp5JssOutputFormatter(jssSimulatorName);
+                break;
+        }
+
+        Scamp5DigitalConfig.Builder<G> configBuilder = new Scamp5DigitalConfig.Builder<>(new Scamp5DigitalConfig<G>(true, true, true, true, true, true, true, regMapping, scratchRegs, bits, outputFormatter));
 
         if(!json.has("configGetter")) {throw new IllegalArgumentException("you need to define " + "configGetter" + " inside pairGen");}
         String configGetterName = json.getJSONObject("configGetter").getString("name");

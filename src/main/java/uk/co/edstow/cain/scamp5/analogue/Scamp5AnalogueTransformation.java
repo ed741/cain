@@ -10,7 +10,7 @@ import uk.co.edstow.cain.util.Tuple;
 import java.util.*;
 
 public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> implements StandardTransformation {
-    private final Scamp5AnalogueConfig<G> config;
+    protected final Scamp5AnalogueConfig<G> config;
 
     protected Scamp5AnalogueTransformation(Scamp5AnalogueConfig<G> config) {
         this.config = config;
@@ -191,7 +191,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         @Override
         public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("res(%s);", upper);
+            return super.config.outputFormatter.res(upper);
         }
 
         @Override
@@ -248,7 +248,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         @Override
         public String code(List<Register> upper, List<Register> lowers, List<Register> trash) {
             assert lowers.size() == inputCount();
-            return String.format("res(%s, %s);", upper.get(0), upper.get(1));
+            return super.config.outputFormatter.res(upper.get(0), upper.get(1));
         }
 
         @Override
@@ -326,7 +326,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         @Override
         public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("mov(%s, %s);", upper, lowers.get(0));
+            return super.config.outputFormatter.mov(upper, lowers.get(0));
         }
 
         @Override
@@ -389,7 +389,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         @Override
         public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("add(%s, %s, %s);", upper, lowers.get(0), lowers.get(1));
+            return super.config.outputFormatter.add(upper, lowers.get(0), lowers.get(1));
         }
 
         @Override
@@ -454,7 +454,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         @Override
         public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("add(%s, %s, %s, %s);", upper, lowers.get(0), lowers.get(1), lowers.get(2));
+            return super.config.outputFormatter.add(upper, lowers.get(0), lowers.get(1), lowers.get(2));
         }
 
         @Override
@@ -516,7 +516,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
          @Override
          public String code(Register upper, List<Register> lowers) {
              assert lowers.size() == inputCount();
-             return String.format("sub(%s, %s, %s);", upper, lowers.get(0), lowers.get(1));
+             return super.config.outputFormatter.sub(upper, lowers.get(0), lowers.get(1));
          }
 
          @Override
@@ -588,7 +588,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         @Override
         public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("neg(%s, %s);", upper, lowers.get(0));
+            return super.config.outputFormatter.neg(upper, lowers.get(0));
         }
 
         @Override
@@ -671,7 +671,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         @Override
         public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("divq(%s, %s);", upper, lowers.get(0));
+            return super.config.outputFormatter.divq(upper, lowers.get(0));
         }
 
         @Override
@@ -747,7 +747,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         @Override
         public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("movx(%s, %s, %s);", upper, lowers.get(0), dir.toCode());
+            return super.config.outputFormatter.movx(upper, lowers.get(0), dir.toCode());
         }
 
         @Override
@@ -787,7 +787,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         @Override
         public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("mov2x(%s, %s, %s, %s);", upper, lowers.get(0), dir1.toCode(), dir2.toCode());
+            return super.config.outputFormatter.mov2x(upper, lowers.get(0), dir1.toCode(), dir2.toCode());
         }
 
         @Override
@@ -819,7 +819,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         @Override
         public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("addx(%s, %s, %s, %s);", upper, lowers.get(0), lowers.get(1), dir.toCode());
+            return super.config.outputFormatter.addx(upper, lowers.get(0), lowers.get(1), dir.toCode());
         }
 
         @Override
@@ -853,7 +853,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         @Override
         public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("add2x(%s, %s, %s, %s, %s);", upper, lowers.get(0), lowers.get(1), dir1.toCode(), dir2.toCode());
+            return super.config.outputFormatter.add2x(upper, lowers.get(0), lowers.get(1), dir1.toCode(), dir2.toCode());
         }
 
         @Override
@@ -884,7 +884,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         @Override
         public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("subx(%s, %s, %s, %s);", upper, lowers.get(0), dir.toCode(), lowers.get(1));
+            return super.config.outputFormatter.subx(upper, lowers.get(0), dir.toCode(), lowers.get(1));
         }
 
         @Override
@@ -917,7 +917,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         @Override
         public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("sub2x(%s, %s, %s, %s, %s);", upper, lowers.get(0), dir1.toCode(), dir2.toCode(), lowers.get(1));
+            return super.config.outputFormatter.sub2x(upper, lowers.get(0), dir1.toCode(), dir2.toCode(), lowers.get(1));
         }
 
         @Override
@@ -980,14 +980,14 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
             assert uppers.size() == outputCount();
             if(uppers.get(0).equals(lowers.get(0))){
                 assert trash.size()>=2;
-                return String.format("diva(%s, %s, %s);", uppers.get(0), trash.get(0), trash.get(1));
+                return super.config.outputFormatter.diva(uppers.get(0), trash.get(0), trash.get(1));
             }
             if(this.clobber) {
                 assert trash.size() >= 1;
-                return String.format("div(%s, %s, %s);", uppers.get(0), trash.get(0), lowers.get(0));
+                return super.config.outputFormatter.div(uppers.get(0), trash.get(0), lowers.get(0));
             }else{
                 assert trash.size() >= 2;
-                return String.format("div(%s, %s, %s, %s);", uppers.get(0), trash.get(0), trash.get(1), lowers.get(0));
+                return super.config.outputFormatter.div(uppers.get(0), trash.get(0), trash.get(1), lowers.get(0));
             }
 
         }

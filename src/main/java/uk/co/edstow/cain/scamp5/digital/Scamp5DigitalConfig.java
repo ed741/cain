@@ -2,6 +2,7 @@ package uk.co.edstow.cain.scamp5.digital;
 
 import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.scamp5.Scamp5ConfigGetter;
+import uk.co.edstow.cain.scamp5.Scamp5OutputFormatter;
 import uk.co.edstow.cain.structures.Goal;
 
 import java.util.Collections;
@@ -9,7 +10,8 @@ import java.util.List;
 import java.util.Map;
 
 public class Scamp5DigitalConfig<G extends Goal<G>> implements Scamp5ConfigGetter.Scamp5Config<G, Scamp5DigitalConfig<G>> {
-    public Scamp5DigitalConfig(boolean useMov, boolean useMovx, boolean useAdd, boolean useAddSelf, boolean useDiv, boolean useRes, boolean useRes2, Map<? extends Register, List<String>> registerMapping, List<String> scratchRegisters, int bits) {
+
+    public Scamp5DigitalConfig(boolean useMov, boolean useMovx, boolean useAdd, boolean useAddSelf, boolean useDiv, boolean useRes, boolean useRes2, Map<? extends Register, List<String>> registerMapping, List<String> scratchRegisters, int bits, Scamp5OutputFormatter outputFormatter) {
         this.useMov = useMov;
         this.useMovx = useMovx;
         this.useAdd = useAdd;
@@ -21,6 +23,7 @@ public class Scamp5DigitalConfig<G extends Goal<G>> implements Scamp5ConfigGette
         this.registerMapping = registerMapping;
         this.scratchRegisters = scratchRegisters;
         this.bits = bits;
+        this.outputFormatter = outputFormatter;
     }
 
 
@@ -35,6 +38,7 @@ public class Scamp5DigitalConfig<G extends Goal<G>> implements Scamp5ConfigGette
     final Map<? extends Register, List<String>> registerMapping;
     final List<String> scratchRegisters;
     final int bits;
+    public final Scamp5OutputFormatter outputFormatter;
 
     public Scamp5DigitalConfig(Scamp5DigitalConfig<G> proto, Map<? extends Register, List<String>> registerMapping, List<String> scratchRegisters, int bits) {
         this.useMov = proto.useMov;
@@ -44,6 +48,7 @@ public class Scamp5DigitalConfig<G extends Goal<G>> implements Scamp5ConfigGette
         this.useDiv = proto.useDiv;
         this.useRes = proto.useRes;
         this.useRes2 = proto.useRes2;
+        this.outputFormatter = proto.outputFormatter;
         this.onlyMov = !(this.useAdd || this.useDiv || this.useRes || this.useRes2);
         this.registerMapping = registerMapping;
         this.scratchRegisters = scratchRegisters;
@@ -62,6 +67,7 @@ public class Scamp5DigitalConfig<G extends Goal<G>> implements Scamp5ConfigGette
         this.registerMapping = proto.registerMapping;
         this.scratchRegisters = proto.scratchRegisters;
         this.bits = proto.bits;
+        this.outputFormatter = proto.outputFormatter;
     }
 
     private Scamp5DigitalConfig(Builder<G> builder) {
@@ -76,6 +82,7 @@ public class Scamp5DigitalConfig<G extends Goal<G>> implements Scamp5ConfigGette
         registerMapping = builder.registerMapping;
         scratchRegisters = builder.scratchRegisters;
         bits = builder.bits;
+        outputFormatter = builder.outputFormatter;
     }
 
     @Override
@@ -101,6 +108,7 @@ public class Scamp5DigitalConfig<G extends Goal<G>> implements Scamp5ConfigGette
         private Map<? extends Register, List<String>> registerMapping;
         private List<String> scratchRegisters = Collections.emptyList();
         private int bits;
+        public Scamp5OutputFormatter outputFormatter;
 
         public Builder() {
         }
@@ -117,6 +125,7 @@ public class Scamp5DigitalConfig<G extends Goal<G>> implements Scamp5ConfigGette
             this.registerMapping = src.registerMapping;
             this.scratchRegisters = src.scratchRegisters;
             this.bits = src.bits;
+            this.outputFormatter = src.outputFormatter;
         }
 
 
@@ -173,6 +182,14 @@ public class Scamp5DigitalConfig<G extends Goal<G>> implements Scamp5ConfigGette
         public Builder<G> bits(int bits) {
             this.bits = bits;
             return this;
+        }
+
+        public Scamp5OutputFormatter getOutputFormatter() {
+            return outputFormatter;
+        }
+
+        public void setOutputFormatter(Scamp5OutputFormatter outputFormatter) {
+            this.outputFormatter = outputFormatter;
         }
 
         public Scamp5DigitalConfig<G> build() {

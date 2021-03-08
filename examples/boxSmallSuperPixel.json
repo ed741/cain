@@ -64,7 +64,10 @@
                   [ 0,  0,  4,  3],
                   [ 0,  0,  0,  0],
                   [ 0,  0,  0,  0]]
-              ]
+              ],
+    "outputFormat": {
+      "name": "defaultFormat"
+    }
   },
 
   "verifier":"None"
