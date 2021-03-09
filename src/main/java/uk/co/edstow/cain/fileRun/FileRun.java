@@ -26,7 +26,8 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
     public static int verbose = 0;
     public static Map<String, TargetResolver> register;
     static {
-        System.out.println("Init register");
+//        System.out.println("Init register");
+        int count = 0;
         register = new HashMap<>();
         Reflections reflections = new Reflections(new org.reflections.scanners.MethodAnnotationsScanner());
         @SuppressWarnings("rawtypes") Set<Constructor> constructors = reflections.getConstructorsAnnotatedWith(FileRunImplementation.class);
@@ -40,30 +41,31 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
                 if (constructor.getParameterTypes()[0] != JSONObject.class) throw new ImproperFileRunDeclaredException(constructor, "Constructor Parameter[0] Arg-Type Error, must accept JSON object");
                 if (constructor.getParameterCount() == 2 && constructor.getParameterTypes()[1] != String.class) throw new ImproperFileRunDeclaredException(constructor,  "Constructor Parameter[1] Arg-Type Error, must accept String");
                 if (fr.fields().length != fr.values().length) throw new ImproperFileRunDeclaredException(constructor,  "Fields to Check and expected values are different lengths");
-                StringBuilder sb = new StringBuilder();
-                sb.append("Registering: ");
-                sb.append(fr.key());
-                sb.append(" :: ");
-                sb.append(fr.arg());
-                sb.append(" :: {");
-                for (int i = 0; i < fr.fields().length; i++) {
-                    if(i > 0) {sb.append(",");}
-                    sb.append('"');
-                    sb.append(fr.fields()[i]);
-                    sb.append("\":\"");
-                    sb.append(fr.values()[i]);
-                    sb.append('"');
-                }
-                sb.append("}");
-                System.out.println(sb.toString());
+//                StringBuilder sb = new StringBuilder();
+//                sb.append("Registering: ");
+//                sb.append(fr.key());
+//                sb.append(" :: ");
+//                sb.append(fr.arg());
+//                sb.append(" :: {");
+//                for (int i = 0; i < fr.fields().length; i++) {
+//                    if(i > 0) {sb.append(",");}
+//                    sb.append('"');
+//                    sb.append(fr.fields()[i]);
+//                    sb.append("\":\"");
+//                    sb.append(fr.values()[i]);
+//                    sb.append('"');
+//                }
+//                sb.append("}");
+//                System.out.println(sb.toString());
                 register.compute(fr.key(), (s, targetResolver) -> {
                     if (targetResolver==null) {targetResolver = new TargetResolver(s);}
                     targetResolver.add(fr, constructor);
                     return targetResolver;
                 });
+                count++;
             }
-
         }
+//        System.out.println("Registered " + count + " Implementations");
     }
 
     private static class TargetResolver {
