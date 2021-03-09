@@ -2,7 +2,7 @@ package uk.co.edstow.cain.scamp5.emulator;
 
 import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.regAlloc.RegisterAllocator;
-import uk.co.edstow.cain.Verifier;
+import uk.co.edstow.cain.fileRun.Verifier;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.scamp5.analogue.Scamp5AnalogueTransformation;
@@ -27,7 +27,8 @@ public class Scamp5AnalogueVerifier<G extends Kernel3DGoal<G>> implements Verifi
     }
 
     @Override
-    public String verify(String code, List<G> initialGoals, List<G> finalGoals, Plan<G,Scamp5AnalogueTransformation<G>,Register> plan, RegisterAllocator<G,Scamp5AnalogueTransformation<G>,Register> registerAllocator) {
+    public VerificationResult verify(String code, List<G> initialGoals, List<G> finalGoals, Plan<G,Scamp5AnalogueTransformation<G>,Register> plan, RegisterAllocator<G,Scamp5AnalogueTransformation<G>,Register> registerAllocator) {
+        boolean passed = true;
 //        List<G> finalGoals = reverseSearch.getFinalGoals();
         int[] initAtoms = initialGoals.stream().mapToInt(g -> g.get(0,0, g.bounds().getZMax())).toArray();
 //        int[] divisions = reverseSearch.getInitialDivisions();
@@ -67,7 +68,7 @@ public class Scamp5AnalogueVerifier<G extends Kernel3DGoal<G>> implements Verifi
                     printLnCritial(code);
                     printLnCritial(GoalBag.toGoalsString(finalGoals));
                     printLnCritial(plan.toGoalsString());
-                    return null;
+                    passed = false;
                 }
                 testMap.remove(coordinate);
             }
@@ -79,7 +80,7 @@ public class Scamp5AnalogueVerifier<G extends Kernel3DGoal<G>> implements Verifi
             coverage.add(emulator.getRegCoverge(0, 0, reg));
 
         }
-        return new Tuple<>(new Bounds.SimpleBounds(coverage), noise).toString();
+        return new Scamp5Result(passed, coverage, noise);
     }
 
 
@@ -91,4 +92,28 @@ public class Scamp5AnalogueVerifier<G extends Kernel3DGoal<G>> implements Verifi
     private void printLnCritial(String s) {
         if(verbose>=0) System.out.println(s);
     }
+
+    static class Scamp5Result implements VerificationResult {
+        private final boolean passed;
+        public final List<Bounds> coverage;
+        public final double noise;
+
+        Scamp5Result(boolean passed, List<Bounds> coverage, double noise) {
+            this.passed = passed;
+            this.coverage = coverage;
+            this.noise = noise;
+        }
+
+        @Override
+        public boolean passed() {
+            return passed;
+        }
+
+        @Override
+        public String getInfo() {
+            return new Tuple <>(new Bounds.SimpleBounds(coverage), noise).toString();
+        }
+    }
+
+
 }

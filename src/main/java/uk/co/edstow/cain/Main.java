@@ -1,5 +1,8 @@
 package uk.co.edstow.cain;
 
+import uk.co.edstow.cain.fileRun.FileRun;
+import uk.co.edstow.cain.fileRun.Result;
+
 import java.util.*;
 
 class Main {
@@ -10,7 +13,7 @@ class Main {
             fileRun.run();
 
             String code = fileRun.getBest();
-            List<? extends FileRun<?, ?, ?>.Result> results = fileRun.getResults();
+            List<? extends Result> results = fileRun.getResults();
             results.sort(Comparator.comparingInt(result -> result.cost));
             System.out.println(results.get(0).plan.toGoalsString());
 

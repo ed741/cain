@@ -1,8 +1,10 @@
 package uk.co.edstow.cain.scamp5.analogue;
 
 import org.json.JSONObject;
-import uk.co.edstow.cain.FileRun;
-import uk.co.edstow.cain.Verifier;
+import uk.co.edstow.cain.fileRun.FileRun;
+import uk.co.edstow.cain.fileRun.FileRunImplementation;
+import uk.co.edstow.cain.fileRun.Kernel3DStdTransFileRun;
+import uk.co.edstow.cain.fileRun.Verifier;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.goals.arrayGoal.ArrayGoal;
 import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
@@ -11,8 +13,11 @@ import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.scamp5.*;
 import uk.co.edstow.cain.scamp5.emulator.Scamp5AnalogueVerifier;
+import uk.co.edstow.cain.scamp5.output.Scamp5DefaultOutputFormatter;
+import uk.co.edstow.cain.scamp5.output.Scamp5JssOutputFormatter;
+import uk.co.edstow.cain.scamp5.output.Scamp5OutputFormatter;
 
-public abstract class Scamp5AnalogueFileRun<G extends Kernel3DGoal<G>> extends FileRun.Kernel3DStdTransFileRun<G, Scamp5AnalogueTransformation<G>> {
+public abstract class Scamp5AnalogueFileRun<G extends Kernel3DGoal<G>> extends Kernel3DStdTransFileRun<G, Scamp5AnalogueTransformation<G>> {
 
 
     public Scamp5AnalogueFileRun(JSONObject config) {
@@ -23,7 +28,6 @@ public abstract class Scamp5AnalogueFileRun<G extends Kernel3DGoal<G>> extends F
     protected PairGenFactory<G, Scamp5AnalogueTransformation<G>, Register> makePairGenFactory() {
         JSONObject json = config.getJSONObject("pairGen");
         printLn("\t Making Pair Generation Factory:");
-        printLn("Name                        : " + json.getString("name"));
 
         Scamp5AnalogueConfig.Builder<G> configBuilder = new Scamp5AnalogueConfig.Builder<>();
 
@@ -143,6 +147,7 @@ public abstract class Scamp5AnalogueFileRun<G extends Kernel3DGoal<G>> extends F
 
 
     public static class AtomGoalFileRun extends Scamp5AnalogueFileRun<AtomGoal> {
+        @FileRunImplementation(key="scamp5", fields = {"mode", "goalSystem"}, values = {"analogue", "atom"})
         public AtomGoalFileRun(JSONObject config) {
             super(config);
         }
@@ -154,6 +159,7 @@ public abstract class Scamp5AnalogueFileRun<G extends Kernel3DGoal<G>> extends F
     }
 
     public static class ArrayGoalFileRun extends Scamp5AnalogueFileRun<ArrayGoal> {
+        @FileRunImplementation(key="scamp5", fields = {"mode", "goalSystem"}, values = {"analogue", "array"})
         public ArrayGoalFileRun(JSONObject config) {
             super(config);
         }

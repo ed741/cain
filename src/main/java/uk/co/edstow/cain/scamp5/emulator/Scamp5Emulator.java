@@ -2,6 +2,7 @@ package uk.co.edstow.cain.scamp5.emulator;
 
 import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
+import uk.co.edstow.cain.structures.Bounds;
 import uk.co.edstow.cain.util.Tuple;
 
 import javax.imageio.ImageIO;
@@ -526,7 +527,7 @@ public class Scamp5Emulator {
         return pe.getRegToString(r);
     }
 
-    public AtomGoal.AtomBounds getRegCoverge(int x, int y, String reg){
+    public Bounds getRegCoverge(int x, int y, String reg){
         ProcessingElement pe = this.tiles.get(new Pos(x, y));
         if (pe == null) {
             return null;

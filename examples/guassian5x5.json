@@ -1,5 +1,8 @@
 {"name":"Guassian5x5",
-  "goalSystem":"Kernel3D",
+  "target": "scamp5",
+  "mode": "analogue",
+  "goalSystem":"atom",
+
   "maxApproximationDepth":6,
   "maxApproximationError":0,
   "3d": false,
@@ -40,7 +43,6 @@
   },
 
   "pairGen":{
-    "name": "Scamp5AnalogueAtomGoal",
     "configGetter": {
       "name":"Threshold",
       "threshold":10,

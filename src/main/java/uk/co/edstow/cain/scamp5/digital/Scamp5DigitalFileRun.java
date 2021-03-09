@@ -2,7 +2,8 @@ package uk.co.edstow.cain.scamp5.digital;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-import uk.co.edstow.cain.FileRun;
+import uk.co.edstow.cain.fileRun.FileRunImplementation;
+import uk.co.edstow.cain.fileRun.Kernel3DStdTransFileRun;
 import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.goals.arrayGoal.ArrayGoal;
@@ -10,13 +11,16 @@ import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
 import uk.co.edstow.cain.pairgen.CostHeuristic;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.scamp5.*;
+import uk.co.edstow.cain.scamp5.output.Scamp5DefaultOutputFormatter;
+import uk.co.edstow.cain.scamp5.output.Scamp5JssOutputFormatter;
+import uk.co.edstow.cain.scamp5.output.Scamp5OutputFormatter;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public abstract class Scamp5DigitalFileRun<G extends Kernel3DGoal<G>> extends FileRun.Kernel3DStdTransFileRun<G, Scamp5DigitalTransformation<G>> {
+public abstract class Scamp5DigitalFileRun<G extends Kernel3DGoal<G>> extends Kernel3DStdTransFileRun<G, Scamp5DigitalTransformation<G>> {
 
     public Scamp5DigitalFileRun(JSONObject config) {
         super(config);
@@ -26,7 +30,6 @@ public abstract class Scamp5DigitalFileRun<G extends Kernel3DGoal<G>> extends Fi
     protected PairGenFactory<G, Scamp5DigitalTransformation<G>, Register> makePairGenFactory() {
         JSONObject json = config.getJSONObject("pairGen");
         printLn("\t Making Pair Generation Factory:");
-        printLn("Name                        : " + json.getString("name"));
 
         if(!json.has("bits")) {throw new IllegalArgumentException("you need to define " + "bits" + " inside pairGen");}
         int bits = json.getInt("bits");
@@ -141,6 +144,7 @@ public abstract class Scamp5DigitalFileRun<G extends Kernel3DGoal<G>> extends Fi
 
 
     public static class AtomGoalFileRun extends Scamp5DigitalFileRun<AtomGoal> {
+        @FileRunImplementation(key="scamp5", fields = {"mode", "goalSystem"}, values = {"digital", "atom"})
         public AtomGoalFileRun(JSONObject config) {
             super(config);
         }
@@ -152,6 +156,7 @@ public abstract class Scamp5DigitalFileRun<G extends Kernel3DGoal<G>> extends Fi
     }
 
     public static class ArrayGoalFileRun extends Scamp5DigitalFileRun<ArrayGoal> {
+        @FileRunImplementation(key="scamp5", fields = {"mode", "goalSystem"}, values = {"digital", "array"})
         public ArrayGoalFileRun(JSONObject config) {
             super(config);
         }

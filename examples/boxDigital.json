@@ -1,5 +1,8 @@
 {"name":"boxDigital",
-  "goalSystem":"Kernel3D",
+  "target": "scamp5",
+  "mode": "digital",
+  "goalSystem":"atom",
+
   "maxApproximationDepth":3,
   "maxApproximationError":0,
   "3d": false,
@@ -38,7 +41,6 @@
   },
 
   "pairGen":{
-    "name": "Scamp5DigitalAtomGoal",
     "configGetter": {
       "name":"Threshold",
       "threshold":8,

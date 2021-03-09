@@ -1,7 +1,7 @@
 package uk.co.edstow.cain.scamp5.superPixel;
 
 import uk.co.edstow.cain.scamp5.Scamp5ConfigGetter;
-import uk.co.edstow.cain.scamp5.Scamp5OutputFormatter;
+import uk.co.edstow.cain.scamp5.output.Scamp5OutputFormatter;
 import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.util.Bits;
 import uk.co.edstow.cain.util.Tuple;

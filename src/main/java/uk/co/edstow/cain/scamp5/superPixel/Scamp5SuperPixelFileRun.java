@@ -2,8 +2,8 @@ package uk.co.edstow.cain.scamp5.superPixel;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-import uk.co.edstow.cain.FileRun;
 import uk.co.edstow.cain.fileRun.FileRunImplementation;
+import uk.co.edstow.cain.fileRun.Kernel3DBankedFileRun;
 import uk.co.edstow.cain.regAlloc.*;
 import uk.co.edstow.cain.goals.BankedKernel3DGoal;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
@@ -11,11 +11,14 @@ import uk.co.edstow.cain.goals.arrayGoal.BankedArrayGoal;
 import uk.co.edstow.cain.pairgen.CostHeuristic;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.scamp5.*;
+import uk.co.edstow.cain.scamp5.output.Scamp5DefaultOutputFormatter;
+import uk.co.edstow.cain.scamp5.output.Scamp5JssOutputFormatter;
+import uk.co.edstow.cain.scamp5.output.Scamp5OutputFormatter;
 
 
 import java.util.*;
 
-public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> extends FileRun.Kernel3DBankedFileRun<G, Scamp5SuperPixelTransformation<G>> {
+public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> extends Kernel3DBankedFileRun<G, Scamp5SuperPixelTransformation<G>> {
 
     public Scamp5SuperPixelFileRun(JSONObject config) {
         super(config);
@@ -25,7 +28,6 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
     protected PairGenFactory<G,Scamp5SuperPixelTransformation<G>, BRegister> makePairGenFactory() {
         JSONObject json = config.getJSONObject("pairGen");
         printLn("\t Making Pair Generation Factory:");
-        printLn("Name                        : " + json.getString("name"));
 
         Scamp5SuperPixelConfig.Builder<G> configBuilder = new Scamp5SuperPixelConfig.Builder<>();
 
@@ -175,7 +177,7 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
 
     public static class ArrayGoalFileRun extends Scamp5SuperPixelFileRun<BankedArrayGoal> {
 
-        @FileRunImplementation(key="Scamp5SuperPixel")
+        @FileRunImplementation(key="scamp5", fields = {"mode"}, values = {"superpixel"})
         public ArrayGoalFileRun(JSONObject config) {
             super(config);
         }

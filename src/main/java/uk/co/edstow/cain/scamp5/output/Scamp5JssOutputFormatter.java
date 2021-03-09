@@ -1,4 +1,4 @@
-package uk.co.edstow.cain.scamp5;
+package uk.co.edstow.cain.scamp5.output;
 
 import uk.co.edstow.cain.regAlloc.Register;
 

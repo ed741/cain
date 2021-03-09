@@ -2,7 +2,7 @@ package uk.co.edstow.cain.scamp5.digital;
 
 import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.scamp5.Scamp5ConfigGetter;
-import uk.co.edstow.cain.scamp5.Scamp5OutputFormatter;
+import uk.co.edstow.cain.scamp5.output.Scamp5OutputFormatter;
 import uk.co.edstow.cain.structures.Goal;
 
 import java.util.Collections;
