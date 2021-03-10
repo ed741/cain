@@ -13,9 +13,9 @@ import uk.co.edstow.cain.util.Tuple;
 import java.util.*;
 
 public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoal<G>> implements BankedTransformation {
-    protected final Scamp5SuperPixelConfig<G> config;
+    protected final Scamp5SuperPixelConfig config;
 
-    protected Scamp5SuperPixelTransformation(Scamp5SuperPixelConfig<G> scamp5SuperPixelConfig) {
+    protected Scamp5SuperPixelTransformation(Scamp5SuperPixelConfig scamp5SuperPixelConfig) {
         this.config = scamp5SuperPixelConfig;
     }
 
@@ -26,7 +26,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
         private final int inputCount;
         private final int outputCount;
 
-        public Null(int inputCount, int outputCount, Scamp5SuperPixelConfig<G> scamp5SuperPixelConfig) {
+        public Null(int inputCount, int outputCount, Scamp5SuperPixelConfig scamp5SuperPixelConfig) {
             super(scamp5SuperPixelConfig);
             this.inputCount = inputCount;
             this.outputCount = outputCount;
@@ -78,7 +78,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
 
     abstract static class SimpleScamp5SuperPixelTransformation<G extends BankedKernel3DGoal<G>> extends Scamp5SuperPixelTransformation<G> {
 
-        SimpleScamp5SuperPixelTransformation(Scamp5SuperPixelConfig<G> config) {
+        SimpleScamp5SuperPixelTransformation(Scamp5SuperPixelConfig config) {
             super(config);
         }
 
@@ -144,7 +144,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
             }
         }
 
-        public <G extends BankedKernel3DGoal<G>> String code(Scamp5SuperPixelConfig<G> config) {
+        public <G extends BankedKernel3DGoal<G>> String code(Scamp5SuperPixelConfig config) {
             switch (this){
                 case North: return config.northReg;
                 case East: return config.eastReg;
@@ -159,7 +159,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
         // u := {}
         final List<G> results;
 
-        public Res(List<G> results, Scamp5SuperPixelConfig<G> scamp5SuperPixelConfig) {
+        public Res(List<G> results, Scamp5SuperPixelConfig scamp5SuperPixelConfig) {
             super(scamp5SuperPixelConfig);
             this.results = results;
         }
@@ -234,7 +234,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
         G sum;
 
 
-        public Add_2(G a, G b, Scamp5SuperPixelConfig<G> scamp5SuperPixelConfig) {
+        public Add_2(G a, G b, Scamp5SuperPixelConfig scamp5SuperPixelConfig) {
             super(scamp5SuperPixelConfig);
             assert a.getBank() == b.getBank();
             this.a = a;
@@ -326,20 +326,20 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
         G sum;
 
 
-        public AddSelf(G a, Scamp5SuperPixelConfig<G> scamp5SuperPixelConfig) {
+        public AddSelf(G a, Scamp5SuperPixelConfig scamp5SuperPixelConfig) {
             super(scamp5SuperPixelConfig);
 
             this.a = a;
             this.sum = null;
         }
-        public AddSelf(G a, G sum, Scamp5SuperPixelConfig<G> scamp5SuperPixelConfig) {
+        public AddSelf(G a, G sum, Scamp5SuperPixelConfig scamp5SuperPixelConfig) {
             super(scamp5SuperPixelConfig);
 
             this.a = a;
             this.sum = sum;
         }
 
-        public AddSelf(G in, boolean upper, Scamp5SuperPixelConfig<G> scamp5SuperPixelConfig) {
+        public AddSelf(G in, boolean upper, Scamp5SuperPixelConfig scamp5SuperPixelConfig) {
             super(scamp5SuperPixelConfig);
 
             if(!upper){
@@ -438,14 +438,14 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
         final G a;
         G div;
 
-        public Div(G a, Scamp5SuperPixelConfig<G> scamp5SuperPixelConfig) {
+        public Div(G a, Scamp5SuperPixelConfig scamp5SuperPixelConfig) {
             super(scamp5SuperPixelConfig);
 
             this.a = a;
             this.div = null;
         }
 
-        public Div(G in, boolean upper, Scamp5SuperPixelConfig<G> scamp5SuperPixelConfig) {
+        public Div(G in, boolean upper, Scamp5SuperPixelConfig scamp5SuperPixelConfig) {
             super(scamp5SuperPixelConfig);
 
             if(!upper){
@@ -567,7 +567,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
         final int yPETranslation;
         final double cost;
 
-        public Movxb(G upper, G lower, Scamp5SuperPixelConfig<G> scamp5SuperPixelConfig) {
+        public Movxb(G upper, G lower, Scamp5SuperPixelConfig scamp5SuperPixelConfig) {
             super(scamp5SuperPixelConfig);
             this.upper = upper;
             this.lower = lower;
@@ -587,7 +587,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
                     4;
 
         }
-        public Movxb(G upper, int x, int y, int bank, Scamp5SuperPixelConfig<G> scamp5SuperPixelConfig) {
+        public Movxb(G upper, int x, int y, int bank, Scamp5SuperPixelConfig scamp5SuperPixelConfig) {
             this(upper ,upper.translated(x, y, 0).inBank(bank), scamp5SuperPixelConfig);
         }
 

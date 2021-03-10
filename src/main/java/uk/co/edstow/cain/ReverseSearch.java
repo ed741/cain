@@ -1,6 +1,7 @@
 package uk.co.edstow.cain;
 
 import uk.co.edstow.cain.pairgen.Context;
+import uk.co.edstow.cain.pairgen.Generator;
 import uk.co.edstow.cain.pairgen.PairGen;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.regAlloc.Register;
@@ -200,7 +201,7 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation<R>, R ext
     private final ReentrantLock planLock;
     private final GoalsCache<G> cache;
 
-    private final PairGenFactory<G,T,R> pairGenFactory;
+    private final Generator<G,T,R> generator;
 
     private final int workers;
     private final AtomicBoolean end;
@@ -228,7 +229,7 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation<R>, R ext
     private final int goalReductionsTolerance;
 
 
-    public ReverseSearch(List<G> initialGoals, List<G> finalGoals, PairGenFactory<G,T,R> pairGenFactory, RunConfig<G,T,R> runConfig, RegisterAllocator<G,T,R> registerAllocator) {
+    public ReverseSearch(List<G> initialGoals, List<G> finalGoals, Generator<G,T,R> generator, RunConfig<G,T,R> runConfig, RegisterAllocator<G,T,R> registerAllocator) {
         this.liveCounter = runConfig.liveCounter;
         this.livePrintPlans = runConfig.livePrintPlans;
         this.quiet = runConfig.quiet;
@@ -278,7 +279,7 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation<R>, R ext
 
 
         // Init PairGen with complete Object
-        this.pairGenFactory = pairGenFactory;
+        this.generator = generator;
 //        this.pairGenFactory.init(initialGoals, finalGoals);
 
     }
@@ -364,7 +365,7 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation<R>, R ext
                 worker.next = workersThreads.get(i-1);
             }
         }
-        workersThreads.get(0).localTraversalSystem.add(new WorkState<>(0, goals, new Plan<>(finalGoals, initialGoals, pairGenFactory.getDummyTransformation(Collections.emptyList(), finalGoals, new Context<>(-1, registerAllocator, initialGoals)))));
+        workersThreads.get(0).localTraversalSystem.add(new WorkState<>(0, goals, new Plan<>(finalGoals, initialGoals, generator.getDirectSolver().getDummyTransformation(Collections.emptyList(), finalGoals, new Context<>(-1, registerAllocator, initialGoals)))));
         workersThreads.get(0).next = workersThreads.get(workersThreads.size()-1);
         workersThreads.forEach(Thread::start);
         Thread mainThread = Thread.currentThread();
@@ -535,7 +536,7 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation<R>, R ext
 
                 if (tryDirectSolve(depth, goals, currentPlan)) return;
 
-                goalPairs = pairGenFactory.generatePairs(goals, new Context<>(depth, registerAllocator, initialGoals));
+                goalPairs = generator.getPairGenFactory().generatePairs(goals, new Context<>(depth, registerAllocator, initialGoals));
                 nodesExpanded++;
             }
             int childNumber = goalPairs.getNumber();
@@ -693,7 +694,7 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation<R>, R ext
 
 
     private List<GoalPair<G,T, R>> isTransformable(GoalBag<G> goals, int depth) {
-        return this.pairGenFactory.solveDirectly(new Context<>(depth, registerAllocator, initialGoals), goals);
+        return this.generator.getDirectSolver().solveDirectly(new Context<>(depth, registerAllocator, initialGoals), goals);
     }
 
 

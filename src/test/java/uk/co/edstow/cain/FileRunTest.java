@@ -61,7 +61,7 @@ class FileRunTest {
                 "\n" +
                 "  \"pairGen\":{\n" +
                 "    \"name\": \"Scamp5AnalogueAtomGoal\",\n" +
-                "    \"configGetter\": {\n" +
+                "    \"strategy\": {\n" +
                 "      \"name\":\"Threshold\",\n" +
                 "      \"threshold\":10,\n" +
                 "      \"ops\":all,\n" +
@@ -134,7 +134,7 @@ class FileRunTest {
                         "\n" +
                         "  \"pairGen\":{\n" +
                         "    \"name\": \"Scamp5AnalogueArrayGoal\",\n" +
-                        "    \"configGetter\": {\n" +
+                        "    \"strategy\": {\n" +
                         "      \"name\":\"Threshold\",\n" +
                         "      \"threshold\":10,\n" +
                         "      \"ops\":all,\n" +
@@ -211,7 +211,7 @@ class FileRunTest {
                         "\n" +
                         "  \"pairGen\":{\n" +
                         "    \"name\": \"Scamp5DigitalAtomGoal\",\n" +
-                        "    \"configGetter\": {\n" +
+                        "    \"strategy\": {\n" +
                         "      \"name\":\"Threshold\",\n" +
                         "      \"threshold\":10,\n" +
                         "      \"heuristic\": \"Pattern\"\n" +

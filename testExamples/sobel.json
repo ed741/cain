@@ -41,11 +41,14 @@
   },
 
   "pairGen":{
-    "configGetter": {
+    "strategy": {
       "name":"Threshold",
       "threshold":10,
       "heuristic": "Pattern",
-      "ops": "all"
+      "ops": "all",
+      "above": {
+        "name":"AtomDistance"
+      }
     },
     "outputFormat": {
         "name": "defaultFormat"

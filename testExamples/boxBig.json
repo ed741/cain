@@ -45,7 +45,7 @@
 
   "pairGen":{
     "name": "Scamp5AnalogueArrayGoal",
-    "configGetter": {
+    "strategy": {
       "name":"Threshold",
       "threshold":10,
       "heuristic": "Pattern",

@@ -1,10 +1,10 @@
 package uk.co.edstow.cain.scamp5.analogue;
 
-import uk.co.edstow.cain.scamp5.Scamp5ConfigGetter;
+import uk.co.edstow.cain.scamp5.Scamp5Config;
 import uk.co.edstow.cain.scamp5.output.Scamp5OutputFormatter;
 import uk.co.edstow.cain.structures.Goal;
 
-public class Scamp5AnalogueConfig<G extends Goal<G>> implements Scamp5ConfigGetter.Scamp5Config<G, Scamp5AnalogueConfig<G>> {
+public class Scamp5AnalogueConfig extends Scamp5Config<Scamp5AnalogueConfig> {
 
     public final boolean useMov;
     public final boolean useMovx;
@@ -32,11 +32,10 @@ public class Scamp5AnalogueConfig<G extends Goal<G>> implements Scamp5ConfigGett
 
     public final boolean subPowerOf2;
 
-    private final boolean onlyMov;
-
-    public final Scamp5OutputFormatter outputFormatter;
+    public final boolean onlyMov;
 
     public Scamp5AnalogueConfig(boolean useMov, boolean useMovx, boolean useMov2x, boolean useAdd, boolean useAdd3, boolean useAddx, boolean useAdd2x, boolean useSub, boolean useSubx, boolean useSub2x, boolean useDiv3, boolean useDiva, boolean useDiv4, boolean useDivq, boolean useRes, boolean useRes2, boolean useNeg, boolean subPowerOf2, Scamp5OutputFormatter outputFormatter) {
+        super(outputFormatter);
         this.useMov = useMov;
         this.useMovx = useMovx;
         this.useMov2x = useMov2x;
@@ -55,11 +54,11 @@ public class Scamp5AnalogueConfig<G extends Goal<G>> implements Scamp5ConfigGett
         this.useRes2 = useRes2;
         this.useNeg = useNeg;
         this.subPowerOf2 = subPowerOf2;
-        this.outputFormatter = outputFormatter;
         this.onlyMov = !(useAdd || useAdd3 || useAddx || useAdd2x || useSub || useSubx || useSub2x || useDiv3 || useDiv4 || useDiva || useDivq || useRes || useRes2 || useNeg);
     }
 
-    public Scamp5AnalogueConfig(Scamp5AnalogueConfig<G> proto) {
+    public Scamp5AnalogueConfig(Scamp5AnalogueConfig proto) {
+        super(proto.outputFormatter);
         this.useMov = proto.useMov;
         this.useMovx = proto.useMovx;
         this.useMov2x = proto.useMov2x;
@@ -79,20 +78,14 @@ public class Scamp5AnalogueConfig<G extends Goal<G>> implements Scamp5ConfigGett
         this.useNeg = proto.useNeg;
         this.subPowerOf2 = proto.subPowerOf2;
         this.onlyMov = proto.onlyMov;
-        this.outputFormatter = proto.outputFormatter;
     }
 
     @Override
-    public boolean onlyMov() {
-        return onlyMov;
+    public Builder builder() {
+        return new Builder(this);
     }
 
-    @Override
-    public Scamp5AnalogueConfig<G> getMovOnlyVersion() {
-        return new Builder<>(this).setOnlyMov().build();
-    }
-
-    public static class Builder<G extends Goal<G>> {
+    public static class Builder extends Scamp5ConfigBuilder<Scamp5AnalogueConfig> {
 
         private boolean useMov;
         private boolean useMovx;
@@ -120,9 +113,8 @@ public class Scamp5AnalogueConfig<G extends Goal<G>> implements Scamp5ConfigGett
 
         private boolean subPowerOf2;
 
-        private Scamp5OutputFormatter outputFormatter;
-
         public Builder(boolean useMov, boolean useMovx, boolean useMov2x, boolean useAdd, boolean useAdd3, boolean useAddx, boolean useAdd2x, boolean useSub, boolean useSubx, boolean useSub2x, boolean useDiv3, boolean useDiva, boolean useDiv4, boolean useDivq, boolean useRes, boolean useRes2, boolean useNeg, boolean subPowerOf2, Scamp5OutputFormatter outputFormatter) {
+            this.setOutputFormatter(outputFormatter);
             this.useMov = useMov;
             this.useMovx = useMovx;
             this.useMov2x = useMov2x;
@@ -141,12 +133,12 @@ public class Scamp5AnalogueConfig<G extends Goal<G>> implements Scamp5ConfigGett
             this.useRes2 = useRes2;
             this.useNeg = useNeg;
             this.subPowerOf2 = subPowerOf2;
-            this.outputFormatter = outputFormatter;
         }
 
         public Builder() {
         }
-        public Builder(Scamp5AnalogueConfig<G> config) {
+        public Builder(Scamp5AnalogueConfig config) {
+            this.setOutputFormatter(config.outputFormatter);
             this.useMov = config.useMov;
             this.useMovx = config.useMovx;
             this.useMov2x = config.useMov2x;
@@ -167,11 +159,11 @@ public class Scamp5AnalogueConfig<G extends Goal<G>> implements Scamp5ConfigGett
             this.subPowerOf2 = config.subPowerOf2;
         }
 
-        public Scamp5AnalogueConfig<G> build(){
-            return new Scamp5AnalogueConfig<>(useMov, useMovx, useMov2x, useAdd, useAdd3, useAddx, useAdd2x, useSub, useSubx, useSub2x, useDiv3, useDiva, useDiv4, useDivq, useRes, useRes2, useNeg, subPowerOf2, outputFormatter);
+        public Scamp5AnalogueConfig build(){
+            return new Scamp5AnalogueConfig(useMov, useMovx, useMov2x, useAdd, useAdd3, useAddx, useAdd2x, useSub, useSubx, useSub2x, useDiv3, useDiva, useDiv4, useDivq, useRes, useRes2, useNeg, subPowerOf2, outputFormatter);
         }
 
-        public Builder<G> useAll(){
+        public Builder useAll(){
             this.useMov = true;
             this.useMovx = true;
             this.useMov2x = true;
@@ -192,7 +184,7 @@ public class Scamp5AnalogueConfig<G extends Goal<G>> implements Scamp5ConfigGett
             return this;
         }
 
-        public Builder<G> useBasic(){
+        public Builder useBasic(){
             this.useMov = true;
             this.useMovx = true;
             this.useMov2x = false;
@@ -217,7 +209,7 @@ public class Scamp5AnalogueConfig<G extends Goal<G>> implements Scamp5ConfigGett
             return !(useAdd || useAdd3 || useAddx || useAdd2x || useSub || useSubx || useSub2x || useDiv3 || useDiv4 || useDiva || useDivq || useRes || useRes2 || useNeg);
         }
 
-        public Builder<G> setOnlyMov() {
+        public Builder setOnlyMov() {
             this.useAdd = false;
             this.useAdd3 = false;
             this.useAddx = false;
@@ -235,174 +227,94 @@ public class Scamp5AnalogueConfig<G extends Goal<G>> implements Scamp5ConfigGett
             return this;
         }
 
-        public boolean isUseMov() {
-            return useMov;
-        }
-
-        public Builder<G> setUseMov(boolean useMov) {
+        public Builder setUseMov(boolean useMov) {
             this.useMov = useMov;
             return this;
         }
 
-        public boolean isUseMovx() {
-            return useMovx;
-        }
-
-        public Builder<G> setUseMovx(boolean useMovx) {
+        public Builder setUseMovx(boolean useMovx) {
             this.useMovx = useMovx;
             return this;
         }
 
-        public boolean isUseMov2x() {
-            return useMov2x;
-        }
-
-        public Builder<G> setUseMov2x(boolean useMov2x) {
+        public Builder setUseMov2x(boolean useMov2x) {
             this.useMov2x = useMov2x;
             return this;
         }
 
-        public boolean isUseAdd() {
-            return useAdd;
-        }
-
-        public Builder<G> setUseAdd(boolean useAdd) {
+        public Builder setUseAdd(boolean useAdd) {
             this.useAdd = useAdd;
             return this;
         }
 
-        public boolean isUseAddx() {
-            return useAddx;
-        }
-
-        public Builder<G> setUseAddx(boolean useAddx) {
+        public Builder setUseAddx(boolean useAddx) {
             this.useAddx = useAddx;
             return this;
         }
 
-        public boolean isUseAdd2x() {
-            return useAdd2x;
-        }
-
-        public Builder<G> setUseAdd2x(boolean useAdd2x) {
+        public Builder setUseAdd2x(boolean useAdd2x) {
             this.useAdd2x = useAdd2x;
             return this;
         }
 
-        public boolean isUseAdd3() {
-            return useAdd3;
-        }
-
-        public Builder<G> setUseAdd3(boolean useAdd3) {
+        public Builder setUseAdd3(boolean useAdd3) {
             this.useAdd3 = useAdd3;
             return this;
         }
 
-        public boolean isUseSub() {
-            return useSub;
-        }
-
-        public Builder<G> setUseSub(boolean useSub) {
+        public Builder setUseSub(boolean useSub) {
             this.useSub = useSub;
             return this;
         }
 
-        public boolean isUseSubx() {
-            return useSubx;
-        }
-
-        public Builder<G> setUseSubx(boolean useSubx) {
+        public Builder setUseSubx(boolean useSubx) {
             this.useSubx = useSubx;
             return this;
         }
 
-        public boolean isUseSub2x() {
-            return useSub2x;
-        }
-
-        public Builder<G> setUseSub2x(boolean useSub2x) {
+        public Builder setUseSub2x(boolean useSub2x) {
             this.useSub2x = useSub2x;
             return this;
         }
 
-        public boolean isUseDiv3() {
-            return useDiv3;
-        }
-
-        public Builder<G> setUseDiv3(boolean useDiv3) {
+        public Builder setUseDiv3(boolean useDiv3) {
             this.useDiv3 = useDiv3;
             return this;
         }
 
-        public boolean isUseDiva() {
-            return useDiva;
-        }
-
-        public Builder<G> setUseDiva(boolean useDiva) {
+        public Builder setUseDiva(boolean useDiva) {
             this.useDiva = useDiva;
             return this;
         }
 
-        public boolean isUseDiv4() {
-            return useDiv4;
-        }
-
-        public Builder<G> setUseDiv4(boolean useDiv4) {
+        public Builder setUseDiv4(boolean useDiv4) {
             this.useDiv4 = useDiv4;
             return this;
         }
 
-        public boolean isUseDivq() {
-            return useDivq;
-        }
-
-        public Builder<G> setUseDivq(boolean useDivq) {
+        public Builder setUseDivq(boolean useDivq) {
             this.useDivq = useDivq;
             return this;
         }
 
-        public boolean isUseRes() {
-            return useRes;
-        }
-
-        public Builder<G> setUseRes(boolean useRes) {
+        public Builder setUseRes(boolean useRes) {
             this.useRes = useRes;
             return this;
         }
 
-        public boolean isUseRes2() {
-            return useRes2;
-        }
-
-        public Builder<G> setUseRes2(boolean useRes2) {
+        public Builder setUseRes2(boolean useRes2) {
             this.useRes2 = useRes2;
             return this;
         }
 
-        public boolean isUseNeg() {
-            return useNeg;
-        }
-
-        public Builder<G> setUseNeg(boolean useNeg) {
+        public Builder setUseNeg(boolean useNeg) {
             this.useNeg = useNeg;
             return this;
         }
 
-        public boolean isSubPowerOf2() {
-            return subPowerOf2;
-        }
-
-        public Builder<G> setSubPowerOf2(boolean subPowerOf2) {
+        public Builder setSubPowerOf2(boolean subPowerOf2) {
             this.subPowerOf2 = subPowerOf2;
             return this;
-        }
-
-        public Scamp5OutputFormatter getOutputFormatter() {
-            return outputFormatter;
-        }
-
-        public void setOutputFormatter(Scamp5OutputFormatter outputFormatter) {
-            this.outputFormatter = outputFormatter;
         }
 
     }

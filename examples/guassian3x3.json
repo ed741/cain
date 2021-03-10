@@ -42,7 +42,7 @@
   },
 
   "pairGen":{
-    "configGetter": {
+    "strategy": {
       "name":"Threshold",
       "threshold":4,
       "heuristic": "Pattern",

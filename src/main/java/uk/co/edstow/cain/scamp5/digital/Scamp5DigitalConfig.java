@@ -1,7 +1,7 @@
 package uk.co.edstow.cain.scamp5.digital;
 
 import uk.co.edstow.cain.regAlloc.Register;
-import uk.co.edstow.cain.scamp5.Scamp5ConfigGetter;
+import uk.co.edstow.cain.scamp5.Scamp5Config;
 import uk.co.edstow.cain.scamp5.output.Scamp5OutputFormatter;
 import uk.co.edstow.cain.structures.Goal;
 
@@ -9,9 +9,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-public class Scamp5DigitalConfig<G extends Goal<G>> implements Scamp5ConfigGetter.Scamp5Config<G, Scamp5DigitalConfig<G>> {
+public class Scamp5DigitalConfig extends Scamp5Config<Scamp5DigitalConfig> {
 
     public Scamp5DigitalConfig(boolean useMov, boolean useMovx, boolean useAdd, boolean useAddSelf, boolean useDiv, boolean useRes, boolean useRes2, Map<? extends Register, List<String>> registerMapping, List<String> scratchRegisters, int bits, Scamp5OutputFormatter outputFormatter) {
+        super(outputFormatter);
         this.useMov = useMov;
         this.useMovx = useMovx;
         this.useAdd = useAdd;
@@ -23,7 +24,6 @@ public class Scamp5DigitalConfig<G extends Goal<G>> implements Scamp5ConfigGette
         this.registerMapping = registerMapping;
         this.scratchRegisters = scratchRegisters;
         this.bits = bits;
-        this.outputFormatter = outputFormatter;
     }
 
 
@@ -38,9 +38,9 @@ public class Scamp5DigitalConfig<G extends Goal<G>> implements Scamp5ConfigGette
     final Map<? extends Register, List<String>> registerMapping;
     final List<String> scratchRegisters;
     final int bits;
-    public final Scamp5OutputFormatter outputFormatter;
 
-    public Scamp5DigitalConfig(Scamp5DigitalConfig<G> proto, Map<? extends Register, List<String>> registerMapping, List<String> scratchRegisters, int bits) {
+    public Scamp5DigitalConfig(Scamp5DigitalConfig proto, Map<? extends Register, List<String>> registerMapping, List<String> scratchRegisters, int bits) {
+        super(proto.outputFormatter);
         this.useMov = proto.useMov;
         this.useMovx = proto.useMovx;
         this.useAdd = proto.useAdd;
@@ -48,14 +48,14 @@ public class Scamp5DigitalConfig<G extends Goal<G>> implements Scamp5ConfigGette
         this.useDiv = proto.useDiv;
         this.useRes = proto.useRes;
         this.useRes2 = proto.useRes2;
-        this.outputFormatter = proto.outputFormatter;
         this.onlyMov = !(this.useAdd || this.useDiv || this.useRes || this.useRes2);
         this.registerMapping = registerMapping;
         this.scratchRegisters = scratchRegisters;
         this.bits = bits;
     }
 
-    public Scamp5DigitalConfig(Scamp5DigitalConfig<G> proto, boolean onlyMov) {
+    public Scamp5DigitalConfig(Scamp5DigitalConfig proto, boolean onlyMov) {
+        super(proto.outputFormatter);
         this.useMov = proto.useMov;
         this.useMovx = proto.useMovx;
         this.useAdd = proto.useAdd && (!onlyMov);
@@ -67,36 +67,21 @@ public class Scamp5DigitalConfig<G extends Goal<G>> implements Scamp5ConfigGette
         this.registerMapping = proto.registerMapping;
         this.scratchRegisters = proto.scratchRegisters;
         this.bits = proto.bits;
-        this.outputFormatter = proto.outputFormatter;
     }
 
-    private Scamp5DigitalConfig(Builder<G> builder) {
-        useMov = builder.useMov;
-        useMovx = builder.useMovx;
-        useAdd = builder.useAdd;
-        useAddSelf = builder.useAddSelf;
-        useDiv = builder.useDiv;
-        useRes = builder.useRes;
-        useRes2 = builder.useRes2;
-        onlyMov = builder.onlyMov;
-        registerMapping = builder.registerMapping;
-        scratchRegisters = builder.scratchRegisters;
-        bits = builder.bits;
-        outputFormatter = builder.outputFormatter;
-    }
 
-    @Override
+
     public boolean onlyMov() {
         return onlyMov;
     }
 
     @Override
-    public Scamp5DigitalConfig<G> getMovOnlyVersion() {
-        return new Scamp5DigitalConfig<>(this, true);
+    public Builder builder() {
+        return new Builder(this);
     }
 
 
-    public static class Builder<G extends Goal<G>> {
+    public static class Builder extends Scamp5ConfigBuilder<Scamp5DigitalConfig> {
         private boolean useMov;
         private boolean useMovx;
         private boolean useAdd;
@@ -108,12 +93,11 @@ public class Scamp5DigitalConfig<G extends Goal<G>> implements Scamp5ConfigGette
         private Map<? extends Register, List<String>> registerMapping;
         private List<String> scratchRegisters = Collections.emptyList();
         private int bits;
-        public Scamp5OutputFormatter outputFormatter;
 
         public Builder() {
         }
 
-        public Builder(Scamp5DigitalConfig<G> src) {
+        public Builder(Scamp5DigitalConfig src) {
             this.useMov = src.useMov;
             this.useMovx = src.useMovx;
             this.useAdd = src.useAdd;
@@ -128,72 +112,63 @@ public class Scamp5DigitalConfig<G extends Goal<G>> implements Scamp5ConfigGette
             this.outputFormatter = src.outputFormatter;
         }
 
+        public Scamp5DigitalConfig build() {
+            return new Scamp5DigitalConfig(useMov, useMovx, useAdd, useAddSelf, useDiv, useRes, useRes2, registerMapping, scratchRegisters, bits, outputFormatter);
+        }
 
-        public Builder<G> useMov(boolean useMov) {
+        public Builder useMov(boolean useMov) {
             this.useMov = useMov;
             return this;
         }
 
-        public Builder<G> useMovx(boolean useMovx) {
+        public Builder useMovx(boolean useMovx) {
             this.useMovx = useMovx;
             return this;
         }
 
-        public Builder<G> useAdd(boolean useAdd) {
+        public Builder useAdd(boolean useAdd) {
             this.useAdd = useAdd;
             return this;
         }
 
-        public Builder<G> useAddSelf(boolean useAddSelf) {
+        public Builder useAddSelf(boolean useAddSelf) {
             this.useAddSelf = useAddSelf;
             return this;
         }
 
-        public Builder<G> useDiv(boolean useDiv) {
+        public Builder useDiv(boolean useDiv) {
             this.useDiv = useDiv;
             return this;
         }
 
-        public Builder<G> useRes(boolean useRes) {
+        public Builder useRes(boolean useRes) {
             this.useRes = useRes;
             return this;
         }
 
-        public Builder<G> useRes2(boolean useRes2) {
+        public Builder useRes2(boolean useRes2) {
             this.useRes2 = useRes2;
             return this;
         }
 
-        public Builder<G> onlyMov(boolean onlyMov) {
+        public Builder onlyMov(boolean onlyMov) {
             this.onlyMov = onlyMov;
             return this;
         }
 
-        public Builder<G> registerMapping(Map<? extends Register, List<String>> registerMapping) {
+        public Builder registerMapping(Map<? extends Register, List<String>> registerMapping) {
             this.registerMapping = registerMapping;
             return this;
         }
 
-        public Builder<G> scratchRegisters(List<String> scratchRegisters) {
+        public Builder scratchRegisters(List<String> scratchRegisters) {
             this.scratchRegisters = scratchRegisters;
             return this;
         }
 
-        public Builder<G> bits(int bits) {
+        public Builder bits(int bits) {
             this.bits = bits;
             return this;
-        }
-
-        public Scamp5OutputFormatter getOutputFormatter() {
-            return outputFormatter;
-        }
-
-        public void setOutputFormatter(Scamp5OutputFormatter outputFormatter) {
-            this.outputFormatter = outputFormatter;
-        }
-
-        public Scamp5DigitalConfig<G> build() {
-            return new Scamp5DigitalConfig<>(this);
         }
     }
 }

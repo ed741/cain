@@ -11,28 +11,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+@FunctionalInterface
 public interface PairGenFactory<G extends Goal<G>, T extends Transformation<R>, R extends Register> {
 
-    default List<GoalPair<G, T, R>> solveDirectly(Context<G, T, R> context, GoalBag<G> goals){
-        List<GoalPair<G, T, R>> allPairs = new ArrayList<>();
-        int found = 0;
-        for(G goal: goals) {
-            for (Tuple<List<GoalPair<G, T, R>>, G> tuple : this.solveDirectly(context, goal)) {
-                List<GoalPair<G, T, R>> pairs = tuple.getA();
-                G g = tuple.getB();
-                if (context.initialGoals.contains(g)) {
-                    allPairs.addAll(pairs);
-                    found++;
-                    break;
-                }
-            }
-        }
-        return found!=goals.size()?null:allPairs;
-    }
-    Collection<Tuple<List<GoalPair<G, T, R>>, G>> solveDirectly(Context<G,T,R> context, G goal);
-
     PairGen<G,T,R> generatePairs(GoalBag<G> goals, Context<G,T,R> context);
-
-    T getDummyTransformation(List<G> upperGoals, List<G> lowerGoals, Context<G,T,R> context);
 
 }

@@ -5,6 +5,7 @@ import org.json.JSONObject;
 import org.json.JSONTokener;
 import org.reflections.Reflections;
 import uk.co.edstow.cain.ReverseSearch;
+import uk.co.edstow.cain.pairgen.Generator;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.regAlloc.*;
 import uk.co.edstow.cain.structures.Goal;
@@ -140,7 +141,7 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
     protected final List<G> finalGoals;
     protected final List<G> initialGoals;
     protected final RegisterAllocator<G, T, R> registerAllocator;
-    protected final PairGenFactory<G,T,R> pairGenFactory;
+    protected final Generator<G,T,R> pairGenFactory;
     protected final ReverseSearch<G,T,R> reverseSearch;
     protected final Verifier<G,T,R> verifier;
 
@@ -157,7 +158,7 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
         printLn("making RunConfig");
         ReverseSearch.RunConfig<G,T,R> runConfig = makeRunConfig(config.getJSONObject("runConfig"));
         printLn("making PairGenFactory");
-        pairGenFactory = makePairGenFactory();
+        pairGenFactory = makeGenerator();
 
 
         printLn("Initialising Reverse Search:");
@@ -172,7 +173,7 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
 
     protected abstract RegisterAllocator<G,T,R> makeRegisterAllocator();
 
-    protected abstract PairGenFactory<G,T,R> makePairGenFactory();
+    protected abstract Generator<G,T,R> makeGenerator();
 
     protected abstract Verifier<G,T,R> makeVerifier();
 
