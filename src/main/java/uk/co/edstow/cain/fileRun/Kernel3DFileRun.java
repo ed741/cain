@@ -26,8 +26,12 @@ public abstract class Kernel3DFileRun<G extends Kernel3DGoal<G>, T extends Trans
     abstract protected List<R> getOutputRegisters();
 
     protected abstract List<R> getInputRegisters();
-//        protected abstract List<R> getRegisterArray(JSONArray availableRegisters);
 
+    protected boolean isThreeDimensional() {
+        boolean threeDimensional = config.getBoolean("3d");
+        printLn("Three Dimensional       : " + threeDimensional);
+        return threeDimensional;
+    }
     @Override
     protected List<G> makeFinalGoals() {
 
@@ -39,8 +43,7 @@ public abstract class Kernel3DFileRun<G extends Kernel3DGoal<G>, T extends Trans
         Approximater<G> goalAprox = new Approximater<G>(maxApproximationDepth, maxApproximationError);
 
 
-        boolean threeDimentional = config.getBoolean("3d");
-        printLn("Three Dimensional       : " + threeDimentional);
+        boolean threeDimensional = isThreeDimensional();
         JSONObject filter = config.getJSONObject("filter");
         printLn("Kernels                 : " + filter.length());
         Iterator<String> filters = filter.keySet().stream().sorted().iterator();
@@ -48,7 +51,7 @@ public abstract class Kernel3DFileRun<G extends Kernel3DGoal<G>, T extends Trans
             String reg = filters.next();
             Object o = filter.get(reg);
             if (o instanceof JSONArray) {
-                addGoal(goalAprox, (JSONArray) o, threeDimentional, 1);
+                addGoal(goalAprox, (JSONArray) o, threeDimensional, 1);
             } else {
                 double scale = 1;
                 if (filter.getJSONObject(reg).has("scale")) {
@@ -57,7 +60,7 @@ public abstract class Kernel3DFileRun<G extends Kernel3DGoal<G>, T extends Trans
                 if (filter.getJSONObject(reg).has("depth")) {
                     scale *= Math.pow(2, filter.getJSONObject(reg).getDouble("depth"));
                 }
-                addGoal(goalAprox, filter.getJSONObject(reg).getJSONArray("array"), threeDimentional, scale);
+                addGoal(goalAprox, filter.getJSONObject(reg).getJSONArray("array"), threeDimensional, scale);
             }
         }
 

@@ -41,7 +41,7 @@
     "strategy": {
       "name":"Threshold",
       "threshold":30,
-      "heuristic": "Pattern",
+      "heuristic": {"name":"Pattern"},
       "ops": "all"
     },
     "scratchRegs": ["R[scratch1]", "R[scratch2]", "R[scratch3]"],

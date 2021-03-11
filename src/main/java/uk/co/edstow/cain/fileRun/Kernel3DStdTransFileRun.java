@@ -40,6 +40,7 @@ public abstract class Kernel3DStdTransFileRun<G extends Kernel3DGoal<G>, T exten
         }
     }
 
+    @Override
     protected RegisterAllocator<G, T, Register> makeRegisterAllocator() {
         JSONObject regAllocConf = config.getJSONObject("registerAllocator");
         switch (regAllocConf.getString("name")) {

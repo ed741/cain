@@ -27,6 +27,11 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
     }
 
     @Override
+    protected boolean isThreeDimensional() {
+        return false;
+    }
+
+    @Override
     protected Generator<G,Scamp5SuperPixelTransformation<G>, BRegister> makeGenerator() {
         JSONObject json = config.getJSONObject("pairGen");
         printLn("\t Making Pair Generation Factory:");
@@ -155,14 +160,14 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
             if (json.has("above")) {
                 above = buildPairGenFactory(json.getJSONObject("above"), scampConfig.builder());
             } else {
-                heuristic = getCostHeuristic(json, "heuristic");
+                heuristic = getCostHeuristic(json.getJSONObject("heuristic"));
                 final CostHeuristic<G, Scamp5SuperPixelTransformation<G>, BRegister> heuristicA = heuristic;
                 above = (goals, context) -> new Scamp5SuperPixelPairGens.SuperPixelAtomDistanceSortedPairGen<>(goals, context, scampConfig, heuristicA);
             }
             if (json.has("below")) {
                 below = buildPairGenFactory(json.getJSONObject("below"), scampConfig.builder());
             } else {
-                if (heuristic == null) {heuristic = getCostHeuristic(json, "heuristic");}
+                if (heuristic == null) {heuristic = getCostHeuristic(json.getJSONObject("heuristic"));}
                 final CostHeuristic<G, Scamp5SuperPixelTransformation<G>, BRegister> heuristicB = heuristic;
                 below = (goals, context) -> new Scamp5SuperPixelPairGens.ExhaustivePairGen<>(goals, context, scampConfig, heuristicB);
             }
@@ -173,12 +178,12 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
 
     private PairGenFactory<G,Scamp5SuperPixelTransformation<G>, BRegister> getExhaustivePairGenFactory(JSONObject json, Scamp5SuperPixelConfig.Builder configBuilder) {
         Scamp5SuperPixelConfig scampConfig = updateConfigBuilder(json, configBuilder).build();
-        CostHeuristic<G, Scamp5SuperPixelTransformation<G>, BRegister> heuristic = getCostHeuristic(json, "heuristic");
+        CostHeuristic<G, Scamp5SuperPixelTransformation<G>, BRegister> heuristic = getCostHeuristic(json.getJSONObject("heuristic"));
         return (goals, context) -> new Scamp5SuperPixelPairGens.ExhaustivePairGen<>(goals, context, scampConfig, heuristic);
     }
     private PairGenFactory<G,Scamp5SuperPixelTransformation<G>, BRegister> getAtomDistanceSortedPairGenFactory(JSONObject json, Scamp5SuperPixelConfig.Builder configBuilder) {
         Scamp5SuperPixelConfig scampConfig = updateConfigBuilder(json, configBuilder).build();
-        CostHeuristic<G, Scamp5SuperPixelTransformation<G>, BRegister> heuristic = getCostHeuristic(json, "heuristic");
+        CostHeuristic<G, Scamp5SuperPixelTransformation<G>, BRegister> heuristic = getCostHeuristic(json.getJSONObject("heuristic"));
         return (goals, context) -> new Scamp5SuperPixelPairGens.SuperPixelAtomDistanceSortedPairGen<>(goals, context, scampConfig, heuristic);
     }
     private PairGenFactory<G,Scamp5SuperPixelTransformation<G>, BRegister> getAtomDistancePairGenFactory(JSONObject json, Scamp5SuperPixelConfig.Builder configBuilder) {
@@ -192,16 +197,17 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
     }
 
 
-    private CostHeuristic<G, Scamp5SuperPixelTransformation<G>, BRegister> getCostHeuristic(JSONObject json, String name) {
-        if(!json.has(name)) {throw new IllegalArgumentException("you need to define " + name + " inside configGetter");}
-        printLn("CostHeuristic to use          : " + json.getString(name));
-        switch (json.getString(name)) {
+    private CostHeuristic<G, Scamp5SuperPixelTransformation<G>, BRegister> getCostHeuristic(JSONObject json) {
+        if(!json.has("name")) {throw new IllegalArgumentException("you need to define " + "name" + " inside configGetter");}
+        printLn("CostHeuristic to use          : " + json.getString("name"));
+        switch (json.getString("name")) {
             default:
-                throw new IllegalArgumentException("Unknown Heuristic option " + json.getString(name));
+                throw new IllegalArgumentException("Unknown Heuristic option " + json.getString("name"));
             case "Pattern":
                 return new PatternHeuristic<>(initialGoals);
         }
     }
+
 
     public static class ArrayGoalFileRun extends Scamp5SuperPixelFileRun<BankedArrayGoal> {
 

@@ -3,24 +3,6 @@
   "mode": "analogue",
   "goalSystem":"atom",
 
-  "maxApproximationDepth":3,
-  "maxApproximationError":0,
-  "3d": false,
-  "filter":{
-    "A": {"depth":0,
-      "array":
-      [ [1, 0, -1],
-        [2, 0, -2],
-        [1, 0, -1]
-      ]}
-  },
-
-  "registerAllocator": {
-    "name": "linearScan",
-    "availableRegisters":["A","B","C","D","E","F"],
-    "initialRegisters":["A"]
-  },
-
   "runConfig":{
     "searchTime":1000,
     "timeOut":true,
@@ -39,12 +21,33 @@
     "goalReductionsTolerance":1
   },
 
+  "maxApproximationDepth":3,
+  "maxApproximationError":0,
+  "filter":{
+    "A": {"depth":0,
+      "array":
+      [ [1, 0, -1],
+        [2, 0, -2],
+        [1, 0, -1]
+      ]}
+  },
+
+  "registerAllocator": {
+    "name": "linearScan",
+    "availableRegisters":["A","B","C","D","E","F"],
+    "initialRegisters":["A"]
+  },
+
+
   "pairGen":{
     "strategy": {
       "name":"Threshold",
       "threshold":10,
-      "heuristic": "Pattern",
-      "ops": "all"
+      "heuristic": {"name":"Pattern"},
+      "ops": "all",
+      "above": {
+        "name":"AtomDistance"
+      }
     },
     "outputFormat": {
       "name": "defaultFormat"

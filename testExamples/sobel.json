@@ -44,7 +44,7 @@
     "strategy": {
       "name":"Threshold",
       "threshold":10,
-      "heuristic": "Pattern",
+      "heuristic": {"name":"Pattern"},
       "ops": "all",
       "above": {
         "name":"AtomDistance"

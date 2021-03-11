@@ -6,7 +6,6 @@ import org.json.JSONTokener;
 import org.reflections.Reflections;
 import uk.co.edstow.cain.ReverseSearch;
 import uk.co.edstow.cain.pairgen.Generator;
-import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.regAlloc.*;
 import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.structures.Plan;

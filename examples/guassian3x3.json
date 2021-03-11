@@ -45,7 +45,7 @@
     "strategy": {
       "name":"Threshold",
       "threshold":4,
-      "heuristic": "Pattern",
+      "heuristic": {"name":"Pattern"},
       "ops": "basic"
     },
     "outputFormat": {

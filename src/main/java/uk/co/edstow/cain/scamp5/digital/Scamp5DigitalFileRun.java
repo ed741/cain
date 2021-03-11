@@ -13,6 +13,7 @@ import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
 import uk.co.edstow.cain.pairgen.CostHeuristic;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.scamp5.*;
+import uk.co.edstow.cain.scamp5.analogue.Scamp5AnalogueTransformation;
 import uk.co.edstow.cain.scamp5.output.Scamp5DefaultOutputFormatter;
 import uk.co.edstow.cain.scamp5.output.Scamp5JssOutputFormatter;
 import uk.co.edstow.cain.scamp5.output.Scamp5OutputFormatter;
@@ -26,6 +27,11 @@ public abstract class Scamp5DigitalFileRun<G extends Kernel3DGoal<G>> extends Ke
 
     public Scamp5DigitalFileRun(JSONObject config) {
         super(config);
+    }
+
+    @Override
+    protected boolean isThreeDimensional() {
+        return false;
     }
 
     @Override
@@ -122,14 +128,14 @@ public abstract class Scamp5DigitalFileRun<G extends Kernel3DGoal<G>> extends Ke
             if (json.has("above")) {
                 above = buildPairGenFactory(json.getJSONObject("above"), scampConfig.builder());
             } else {
-                heuristic = getCostHeuristic(json, "heuristic");
+                heuristic = getCostHeuristic(json.getJSONObject("heuristic"));
                 final CostHeuristic<G, Scamp5DigitalTransformation<G>, Register> heuristicA = heuristic;
                 above = (goals, context) -> new Scamp5DigitalPairGens.DigitalAtomDistanceSortedPairGen<>(goals, context, scampConfig, heuristicA);
             }
             if (json.has("below")) {
                 below = buildPairGenFactory(json.getJSONObject("below"), scampConfig.builder());
             } else {
-                if (heuristic == null) {heuristic = getCostHeuristic(json, "heuristic");}
+                if (heuristic == null) {heuristic = getCostHeuristic(json.getJSONObject("heuristic"));}
                 final CostHeuristic<G, Scamp5DigitalTransformation<G>, Register> heuristicB = heuristic;
                 below = (goals, context) -> new Scamp5DigitalPairGens.ExhaustivePairGen<>(goals, context, scampConfig, heuristicB);
             }
@@ -139,12 +145,12 @@ public abstract class Scamp5DigitalFileRun<G extends Kernel3DGoal<G>> extends Ke
     }
 
     private PairGenFactory<G, Scamp5DigitalTransformation<G>, Register> getExhaustivePairGenFactory(JSONObject json, Scamp5DigitalConfig.Builder configBuilder) {
-        CostHeuristic<G, Scamp5DigitalTransformation<G>, Register> heuristic = getCostHeuristic(json, "heuristic");
+        CostHeuristic<G, Scamp5DigitalTransformation<G>, Register> heuristic = getCostHeuristic(json.getJSONObject("heuristic"));
         Scamp5DigitalConfig scampConfig = configBuilder.build();
         return (goals, context) -> new Scamp5DigitalPairGens.ExhaustivePairGen<>(goals, context, scampConfig, heuristic);
     }
     private PairGenFactory<G, Scamp5DigitalTransformation<G>, Register> getAtomDistanceSortedPairGenFactory(JSONObject json, Scamp5DigitalConfig.Builder configBuilder) {
-        CostHeuristic<G, Scamp5DigitalTransformation<G>, Register> heuristic = getCostHeuristic(json, "heuristic");
+        CostHeuristic<G, Scamp5DigitalTransformation<G>, Register> heuristic = getCostHeuristic(json.getJSONObject("heuristic"));
         Scamp5DigitalConfig scampConfig = configBuilder.build();
         return (goals, context) -> new Scamp5DigitalPairGens.DigitalAtomDistanceSortedPairGen<>(goals, context, scampConfig, heuristic);
     }
@@ -158,12 +164,12 @@ public abstract class Scamp5DigitalFileRun<G extends Kernel3DGoal<G>> extends Ke
         return configBuilder.useMov(true).useMovx(true).useAdd(true).useAddSelf(true).useDiv(true).useRes(true).useRes2(true);
     }
 
-    private CostHeuristic<G, Scamp5DigitalTransformation<G>, Register> getCostHeuristic(JSONObject json, String name) {
-        if(!json.has(name)) {throw new IllegalArgumentException("you need to define " + name + " inside configGetter");}
-        printLn("CostHeuristic to use          : " + json.getString(name));
-        switch (json.getString(name)) {
+    private CostHeuristic<G, Scamp5DigitalTransformation<G>, Register> getCostHeuristic(JSONObject json) {
+        if(!json.has("name")) {throw new IllegalArgumentException("you need to define " + "name" + " inside configGetter");}
+        printLn("CostHeuristic to use          : " + json.getString("name"));
+        switch (json.getString("name")) {
             default:
-                throw new IllegalArgumentException("Unknown Heuristic option " + json.getString(name));
+                throw new IllegalArgumentException("Unknown Heuristic option " + json.getString("name"));
             case "Pattern":
                 return new PatternHeuristic<>(initialGoals);
         }
