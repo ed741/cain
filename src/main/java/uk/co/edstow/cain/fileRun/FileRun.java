@@ -4,6 +4,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 import org.reflections.Reflections;
+import org.reflections.util.ClasspathHelper;
 import uk.co.edstow.cain.ReverseSearch;
 import uk.co.edstow.cain.pairgen.Generator;
 import uk.co.edstow.cain.regAlloc.*;
@@ -29,7 +30,7 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
 //        System.out.println("Init register");
         int count = 0;
         register = new HashMap<>();
-        Reflections reflections = new Reflections(new org.reflections.scanners.MethodAnnotationsScanner());
+        Reflections reflections = new Reflections(ClasspathHelper.forJavaClassPath(), new org.reflections.scanners.MethodAnnotationsScanner());
         @SuppressWarnings("rawtypes") Set<Constructor> constructors = reflections.getConstructorsAnnotatedWith(FileRunImplementation.class);
         for (Constructor<?> constructor : constructors) {
             FileRunImplementation[] fris = constructor.getDeclaredAnnotationsByType(FileRunImplementation.class);
