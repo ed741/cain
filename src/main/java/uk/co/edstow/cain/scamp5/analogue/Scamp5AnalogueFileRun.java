@@ -1,18 +1,25 @@
 package uk.co.edstow.cain.scamp5.analogue;
 
 import org.json.JSONObject;
-import uk.co.edstow.cain.FileRun;
-import uk.co.edstow.cain.Verifier;
+import uk.co.edstow.cain.fileRun.FileRun;
+import uk.co.edstow.cain.fileRun.FileRunImplementation;
+import uk.co.edstow.cain.fileRun.Kernel3DStdTransFileRun;
+import uk.co.edstow.cain.fileRun.Verifier;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.goals.arrayGoal.ArrayGoal;
 import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
 import uk.co.edstow.cain.pairgen.CostHeuristic;
+import uk.co.edstow.cain.pairgen.Generator;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
+import uk.co.edstow.cain.pairgen.ThresholdPairGen;
 import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.scamp5.*;
 import uk.co.edstow.cain.scamp5.emulator.Scamp5AnalogueVerifier;
+import uk.co.edstow.cain.scamp5.output.Scamp5DefaultOutputFormatter;
+import uk.co.edstow.cain.scamp5.output.Scamp5JssOutputFormatter;
+import uk.co.edstow.cain.scamp5.output.Scamp5OutputFormatter;
 
-public abstract class Scamp5AnalogueFileRun<G extends Kernel3DGoal<G>> extends FileRun.Kernel3DStdTransFileRun<G, Scamp5AnalogueTransformation<G>> {
+public abstract class Scamp5AnalogueFileRun<G extends Kernel3DGoal<G>> extends Kernel3DStdTransFileRun<G, Scamp5AnalogueTransformation<G>> {
 
 
     public Scamp5AnalogueFileRun(JSONObject config) {
@@ -20,12 +27,16 @@ public abstract class Scamp5AnalogueFileRun<G extends Kernel3DGoal<G>> extends F
     }
 
     @Override
-    protected PairGenFactory<G, Scamp5AnalogueTransformation<G>, Register> makePairGenFactory() {
+    protected boolean isThreeDimensional() {
+        return false;
+    }
+
+    @Override
+    protected Generator<G, Scamp5AnalogueTransformation<G>, Register> makeGenerator() {
         JSONObject json = config.getJSONObject("pairGen");
         printLn("\t Making Pair Generation Factory:");
-        printLn("Name                        : " + json.getString("name"));
 
-        Scamp5AnalogueConfig.Builder<G> configBuilder = new Scamp5AnalogueConfig.Builder<>();
+        Scamp5AnalogueConfig.Builder configBuilder = new Scamp5AnalogueConfig.Builder();
 
         Scamp5OutputFormatter outputFormatter;
         if (!json.has("outputFormat")) {
@@ -45,82 +56,102 @@ public abstract class Scamp5AnalogueFileRun<G extends Kernel3DGoal<G>> extends F
         }
         configBuilder.setOutputFormatter(outputFormatter);
 
-        String factory = "configGetter";
+        String factory = "strategy";
         if(!json.has(factory)) {throw new IllegalArgumentException("you need to define " + factory + " inside pairGen");}
-        String configGetterName = json.getJSONObject(factory).getString("name");
-        printLn(factory+"               : " + configGetterName);
-        switch (configGetterName) {
-            default:
-                throw new IllegalArgumentException("Unknown Scamp5 " + factory + " : " + json.getString("configGetter"));
-            case "Threshold":
-                return getThresholdPairGenFactory(json.getJSONObject("configGetter"), configBuilder);
-            case "Exhaustive":
-                return getExhaustivePairGenFactory(json.getJSONObject("configGetter"), configBuilder);
-            case "AtomDistanceSorted":
-                return getAtomDistanceSortedPairGenFactory(json.getJSONObject("configGetter"), configBuilder);
-            case "AtomDistance":
-                return getAtomDistancePairGenFactory(json.getJSONObject("configGetter"), configBuilder);
-        }
+        JSONObject strategy = json.getJSONObject(factory);
+        PairGenFactory<G, Scamp5AnalogueTransformation<G>, Register> pairGenFactory = buildPairGenFactory(strategy, configBuilder);
+
+        return new Generator<>(new Scamp5AnalogueDirectSolver<>(configBuilder.build()),pairGenFactory);
 
     }
 
-    private Scamp5AnaloguePairGenFactory<G> getThresholdPairGenFactory(JSONObject json, Scamp5AnalogueConfig.Builder<G> configBuilder) {
+    private PairGenFactory<G, Scamp5AnalogueTransformation<G>, Register> buildPairGenFactory(JSONObject strategy, Scamp5AnalogueConfig.Builder configBuilder) {
+        PairGenFactory<G, Scamp5AnalogueTransformation<G>, Register> pairGenFactory;
+        String configGetterName = strategy.getString("name");
+        switch (configGetterName) {
+            default:
+                throw new IllegalArgumentException("Unknown Scamp5 strategy: " + configGetterName);
+            case "Threshold":
+                pairGenFactory = getThresholdPairGenFactory(strategy, configBuilder);
+                break;
+            case "Exhaustive":
+                pairGenFactory =  getExhaustivePairGenFactory(strategy, configBuilder);
+                break;
+            case "AtomDistanceSorted":
+                pairGenFactory = getAtomDistanceSortedPairGenFactory(strategy, configBuilder);
+                break;
+            case "AtomDistance":
+                pairGenFactory = getAtomDistancePairGenFactory(strategy, configBuilder);
+                break;
+        }
+        return pairGenFactory;
+    }
+
+    private PairGenFactory<G, Scamp5AnalogueTransformation<G>, Register> getThresholdPairGenFactory(JSONObject json, Scamp5AnalogueConfig.Builder configBuilder) {
         if(!json.has("threshold")) {throw new IllegalArgumentException("you need to define " + "threshold" + " inside configGetter");}
         int threshold = json.getInt("threshold");
         printLn("Exhaustive Search Threshold  : " + threshold);
-        Scamp5AnalogueConfig<G> scampConfig = getScamp5Config(json, configBuilder);
-        CostHeuristic<G, Scamp5AnalogueTransformation<G>, Register> heuristic = getCostHeuristic(json, "heuristic");
+        Scamp5AnalogueConfig scampConfig = updateConfigBuilder(json, configBuilder).build();
 
-        return new Scamp5AnaloguePairGenFactory<>(
-                new ThresholdScamp5ConfigGetter<>(
-                        initialGoals, threshold,
-                        heuristic, scampConfig,
-                        (goals, conf, scamp5Config, h) -> new Scamp5AnaloguePairGenFactory.AnalogueAtomDistanceSortedPairGen<>(goals, conf, scampConfig, heuristic),
-                        (goals, conf, scamp5Config, h) -> new Scamp5AnaloguePairGenFactory.ExhaustivePairGen<>(goals, conf, scampConfig, heuristic)
-                )
-        );
-    }
-
-    private Scamp5AnaloguePairGenFactory<G> getExhaustivePairGenFactory(JSONObject json, Scamp5AnalogueConfig.Builder<G> configBuilder) {
-        Scamp5AnalogueConfig<G> scampConfig = getScamp5Config(json, configBuilder);
-        CostHeuristic<G, Scamp5AnalogueTransformation<G>, Register> heuristic = getCostHeuristic(json, "heuristic");
-        return new Scamp5AnaloguePairGenFactory<>(new BasicScamp5ConfigGetter<>(scampConfig,
-                (goals, conf, scamp5Config) -> new Scamp5AnaloguePairGenFactory.ExhaustivePairGen<>(goals, conf, scamp5Config, heuristic)
-        ));
-    }
-    private Scamp5AnaloguePairGenFactory<G> getAtomDistanceSortedPairGenFactory(JSONObject json, Scamp5AnalogueConfig.Builder<G> configBuilder) {
-        Scamp5AnalogueConfig<G> scampConfig = getScamp5Config(json, configBuilder);
-        CostHeuristic<G, Scamp5AnalogueTransformation<G>, Register> heuristic = getCostHeuristic(json, "heuristic");
-        return new Scamp5AnaloguePairGenFactory<>(new BasicScamp5ConfigGetter<>(scampConfig,
-                (goals, conf, scamp5Config) -> new Scamp5AnaloguePairGenFactory.AnalogueAtomDistanceSortedPairGen<>(goals, conf, scamp5Config, heuristic)
-        ));
-    }
-    private Scamp5AnaloguePairGenFactory<G> getAtomDistancePairGenFactory(JSONObject json, Scamp5AnalogueConfig.Builder<G> configBuilder) {
-        Scamp5AnalogueConfig<G> scampConfig = getScamp5Config(json, configBuilder);
-        return new Scamp5AnaloguePairGenFactory<>(new BasicScamp5ConfigGetter<>(scampConfig,
-                (goals, conf, scamp5Config) -> new Scamp5AnaloguePairGenFactory.AnalogueAtomDistancePairGen<>(goals, conf, scamp5Config)
-        ));
-    }
-
-    private Scamp5AnalogueConfig<G> getScamp5Config(JSONObject json, Scamp5AnalogueConfig.Builder<G> configBuilder) {
-        if(!json.has("ops")) {throw new IllegalArgumentException("you need to define " + "ops" + " inside configGetter");}
-        printLn("Instruction to use          : " + json.getString("ops"));
-        switch (json.getString("ops")) {
-            default:
-                throw new IllegalArgumentException("Unknown Instructions option " + json.getString("ops"));
-            case "all":
-                return configBuilder.useAll().setSubPowerOf2(true).build();
-            case "basic":
-                return configBuilder.useBasic().setSubPowerOf2(true).build();
+        CostHeuristic<G, Scamp5AnalogueTransformation<G>, Register> heuristic = null;
+        PairGenFactory<G, Scamp5AnalogueTransformation<G>, Register> above;
+        PairGenFactory<G, Scamp5AnalogueTransformation<G>, Register> below;
+        {
+            if (json.has("above")) {
+                above = buildPairGenFactory(json.getJSONObject("above"), scampConfig.builder());
+            } else {
+                heuristic = getCostHeuristic(json.getJSONObject("heuristic"));
+                final CostHeuristic<G, Scamp5AnalogueTransformation<G>, Register> heuristicA = heuristic;
+                above = (goals, context) -> new Scamp5AnaloguePairGens.AnalogueAtomDistanceSortedPairGen<>(goals, context, scampConfig, heuristicA);
+            }
+            if (json.has("below")) {
+                below = buildPairGenFactory(json.getJSONObject("below"), scampConfig.builder());
+            } else {
+                if(heuristic == null){heuristic = getCostHeuristic(json.getJSONObject("heuristic"));}
+                final CostHeuristic<G, Scamp5AnalogueTransformation<G>, Register> heuristicB = heuristic;
+                below = (goals, context) -> new Scamp5AnaloguePairGens.ExhaustivePairGen<>(goals, context, scampConfig, heuristicB);
+            }
         }
+
+        return new ThresholdPairGen<>(threshold, above, below);
     }
 
-    private CostHeuristic<G, Scamp5AnalogueTransformation<G>, Register> getCostHeuristic(JSONObject json, String name) {
-        if(!json.has(name)) {throw new IllegalArgumentException("you need to define " + name + " inside configGetter");}
-        printLn("CostHeuristic to use          : " + json.getString(name));
-        switch (json.getString(name)) {
+    private PairGenFactory<G, Scamp5AnalogueTransformation<G>, Register> getExhaustivePairGenFactory(JSONObject json, Scamp5AnalogueConfig.Builder configBuilder) {
+        Scamp5AnalogueConfig scampConfig = updateConfigBuilder(json, configBuilder).build();
+        CostHeuristic<G, Scamp5AnalogueTransformation<G>, Register> heuristic = getCostHeuristic(json.getJSONObject("heuristic"));
+        return (goals, context) -> new Scamp5AnaloguePairGens.ExhaustivePairGen<>(goals, context, scampConfig, heuristic);
+    }
+    private PairGenFactory<G, Scamp5AnalogueTransformation<G>, Register> getAtomDistanceSortedPairGenFactory(JSONObject json, Scamp5AnalogueConfig.Builder configBuilder) {
+        Scamp5AnalogueConfig scampConfig = updateConfigBuilder(json, configBuilder).build();
+        CostHeuristic<G, Scamp5AnalogueTransformation<G>, Register> heuristic = getCostHeuristic(json.getJSONObject("heuristic"));
+        return (goals, context) -> new Scamp5AnaloguePairGens.AnalogueAtomDistanceSortedPairGen<>(goals, context, scampConfig, heuristic);
+    }
+    private PairGenFactory<G, Scamp5AnalogueTransformation<G>, Register> getAtomDistancePairGenFactory(JSONObject json, Scamp5AnalogueConfig.Builder configBuilder) {
+        Scamp5AnalogueConfig scampConfig = updateConfigBuilder(json, configBuilder).build();
+        return (goals, context) -> new Scamp5AnaloguePairGens.AnalogueAtomDistancePairGen<>(goals, context, scampConfig);
+    }
+
+    private Scamp5AnalogueConfig.Builder updateConfigBuilder(JSONObject json, Scamp5AnalogueConfig.Builder configBuilder) {
+//        if(!json.has("ops")) {throw new IllegalArgumentException("you need to define " + "ops" + " inside configGetter");}
+        if(json.has("ops")) {
+            printLn("Instruction to use          : " + json.getString("ops"));
+            switch (json.getString("ops")) {
+                default:
+                    throw new IllegalArgumentException("Unknown Instructions option " + json.getString("ops"));
+                case "all":
+                    return configBuilder.useAll().setSubPowerOf2(true);
+                case "basic":
+                    return configBuilder.useBasic().setSubPowerOf2(true);
+            }
+        } else return configBuilder.useAll().setSubPowerOf2(true);
+    }
+
+    private CostHeuristic<G, Scamp5AnalogueTransformation<G>, Register> getCostHeuristic(JSONObject json) {
+        if(!json.has("name")) {throw new IllegalArgumentException("you need to define " + "name" + " inside configGetter");}
+        printLn("CostHeuristic to use          : " + json.getString("name"));
+        switch (json.getString("name")) {
             default:
-                throw new IllegalArgumentException("Unknown Heuristic option " + json.getString(name));
+                throw new IllegalArgumentException("Unknown Heuristic option " + json.getString("name"));
             case "Pattern":
                 return new PatternHeuristic<>(initialGoals);
         }
@@ -143,6 +174,7 @@ public abstract class Scamp5AnalogueFileRun<G extends Kernel3DGoal<G>> extends F
 
 
     public static class AtomGoalFileRun extends Scamp5AnalogueFileRun<AtomGoal> {
+        @FileRunImplementation(key="scamp5", fields = {"mode", "goalSystem"}, values = {"analogue", "atom"})
         public AtomGoalFileRun(JSONObject config) {
             super(config);
         }
@@ -154,6 +186,7 @@ public abstract class Scamp5AnalogueFileRun<G extends Kernel3DGoal<G>> extends F
     }
 
     public static class ArrayGoalFileRun extends Scamp5AnalogueFileRun<ArrayGoal> {
+        @FileRunImplementation(key="scamp5", fields = {"mode", "goalSystem"}, values = {"analogue", "array"})
         public ArrayGoalFileRun(JSONObject config) {
             super(config);
         }

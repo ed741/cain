@@ -1,6 +1,7 @@
 package uk.co.edstow.cain.scamp5.emulator;
 
 import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
+import uk.co.edstow.cain.structures.Bounds;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.util.Tuple;
 
@@ -196,7 +197,7 @@ class ProcessingElement {
         return registerState.toString();
     }
 
-    public AtomGoal.AtomBounds getRegCoverage(Reg r) {
+    public Bounds getRegCoverage(Reg r) {
         RegisterState registerState = this.registers.get(r);
         if(registerState == null){
             return null;

@@ -10,9 +10,9 @@ import uk.co.edstow.cain.util.Tuple;
 import java.util.*;
 
 public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> implements StandardTransformation {
-    protected final Scamp5DigitalConfig<G> config;
+    protected final Scamp5DigitalConfig config;
 
-    protected Scamp5DigitalTransformation(Scamp5DigitalConfig<G> scamp5DigitalConfig) {
+    protected Scamp5DigitalTransformation(Scamp5DigitalConfig scamp5DigitalConfig) {
         this.config = scamp5DigitalConfig;
     }
 
@@ -24,7 +24,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
         private final int inputCount;
         private final int outputCount;
 
-        public Null(int inputCount, int outputCount, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
+        public Null(int inputCount, int outputCount, Scamp5DigitalConfig scamp5DigitalConfig) {
             super(scamp5DigitalConfig);
             this.inputCount = inputCount;
             this.outputCount = outputCount;
@@ -88,7 +88,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
 
     abstract static class SimpleScamp5DigitalTransformation<G extends Kernel3DGoal<G>> extends Scamp5DigitalTransformation<G> {
 
-        SimpleScamp5DigitalTransformation(Scamp5DigitalConfig<G> config) {
+        SimpleScamp5DigitalTransformation(Scamp5DigitalConfig config) {
             super(config);
         }
 
@@ -182,7 +182,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
         // u := {}
         final G result;
 
-        public Res(G result, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
+        public Res(G result, Scamp5DigitalConfig scamp5DigitalConfig) {
             super(scamp5DigitalConfig);
             this.result = result;
         }
@@ -252,7 +252,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
         final G result1;
         final G result2;
 
-        public Res_2(G a, G b, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
+        public Res_2(G a, G b, Scamp5DigitalConfig scamp5DigitalConfig) {
             super(scamp5DigitalConfig);
             this.result1 = a;
             this.result2 = b;
@@ -336,13 +336,13 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
         G moved = null;
 
         @SuppressWarnings("WeakerAccess")
-        public Mov(G a, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
+        public Mov(G a, Scamp5DigitalConfig scamp5DigitalConfig) {
             super(scamp5DigitalConfig);
             this.a = a;
         }
 
         @SuppressWarnings("WeakerAccess")
-        public Mov(G in, boolean upper, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
+        public Mov(G in, boolean upper, Scamp5DigitalConfig scamp5DigitalConfig) {
             super(scamp5DigitalConfig);
             if (upper) {
                 this.a = in.copy();
@@ -415,7 +415,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
         G sum;
 
 
-        public Add_2(G a, G b, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
+        public Add_2(G a, G b, Scamp5DigitalConfig scamp5DigitalConfig) {
             super(scamp5DigitalConfig);
 
             this.a = a;
@@ -510,20 +510,20 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
         G sum;
 
 
-        public AddSelf(G a, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
+        public AddSelf(G a, Scamp5DigitalConfig scamp5DigitalConfig) {
             super(scamp5DigitalConfig);
 
             this.a = a;
             this.sum = null;
         }
-        public AddSelf(G a, G sum, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
+        public AddSelf(G a, G sum, Scamp5DigitalConfig scamp5DigitalConfig) {
             super(scamp5DigitalConfig);
 
             this.a = a;
             this.sum = sum;
         }
 
-        public AddSelf(G in, boolean upper, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
+        public AddSelf(G in, boolean upper, Scamp5DigitalConfig scamp5DigitalConfig) {
             super(scamp5DigitalConfig);
 
             if(!upper){
@@ -626,14 +626,14 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
         final G a;
         G div;
 
-        public Div(G a, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
+        public Div(G a, Scamp5DigitalConfig scamp5DigitalConfig) {
             super(scamp5DigitalConfig);
 
             this.a = a;
             this.div = null;
         }
 
-        public Div(G in, boolean upper, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
+        public Div(G in, boolean upper, Scamp5DigitalConfig scamp5DigitalConfig) {
             super(scamp5DigitalConfig);
 
             if(!upper){
@@ -731,12 +731,12 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
 
         final Dir dir;
 
-        public Movx(G a, Dir dir, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
+        public Movx(G a, Dir dir, Scamp5DigitalConfig scamp5DigitalConfig) {
             super(a, scamp5DigitalConfig);
             this.dir = dir;
         }
 
-        public Movx(G in, Dir dir, boolean upper, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
+        public Movx(G in, Dir dir, boolean upper, Scamp5DigitalConfig scamp5DigitalConfig) {
 
             super(upper?in.translated(-dir.x, -dir.y, 0):in, scamp5DigitalConfig);
             this.moved = upper?in:null;

@@ -5,10 +5,7 @@ import uk.co.edstow.cain.goals.atomGoal.pairGen.Distance;
 import uk.co.edstow.cain.goals.atomGoal.pairGen.SimpleTransformation;
 import uk.co.edstow.cain.pairgen.Context;
 import uk.co.edstow.cain.pairgen.CostHeuristic;
-import uk.co.edstow.cain.pairgen.PairGen;
-import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.regAlloc.Register;
-import uk.co.edstow.cain.scamp5.Scamp5ConfigGetter;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
 import uk.co.edstow.cain.util.Tuple;
@@ -19,130 +16,12 @@ import java.util.stream.Stream;
 
 import static uk.co.edstow.cain.scamp5.digital.Scamp5DigitalTransformation.*;
 
-public class Scamp5DigitalPairGenFactory<G extends Kernel3DGoal<G>> implements PairGenFactory<G, Scamp5DigitalTransformation<G>, Register> {
-
-    private final Scamp5ConfigGetter<G, Scamp5DigitalTransformation<G>, Register, Scamp5DigitalConfig<G>> scamp5ConfGet;
-
-    public Scamp5DigitalPairGenFactory(Scamp5ConfigGetter<G, Scamp5DigitalTransformation<G>, Register, Scamp5DigitalConfig<G>> confGetter) {
-        this.scamp5ConfGet = confGetter;
-    }
-
-
-    @Override
-    public List<GoalPair<G, Scamp5DigitalTransformation<G>, Register>> solveDirectly(Context<G, Scamp5DigitalTransformation<G>, Register> context, GoalBag<G> goals){
-        Scamp5DigitalConfig<G> scamp5DigitalConfig = this.scamp5ConfGet.getScamp5ConfigForDirectSolve(goals, context);
-        goals = new GoalBag<>(goals);
-        List<GoalPair<G, Scamp5DigitalTransformation<G>, Register>> allPairs = new ArrayList<>();
-        GoalBag<G> empties = new GoalBag<>();
-        for (int i = goals.size() - 1; i >= 0; i--) {
-          if(goals.get(i).allZero()){
-              empties.add(goals.remove(i));
-          }
-        }
-        if(!scamp5DigitalConfig.onlyMov()) {
-            for (int i = 0; i < empties.size(); i++) {
-                if (scamp5DigitalConfig.useRes2 && i + 1 < empties.size()) {
-                    allPairs.add(new GoalPair<>(Arrays.asList(empties.get(i), empties.get(i + 1)), Collections.emptyList(), new Res_2<>(empties.get(i), empties.get(i + 1), scamp5DigitalConfig)));
-                    i++;
-                } else if (scamp5DigitalConfig.useRes) {
-                    allPairs.add(new GoalPair<>(empties.get(i), Collections.emptyList(), new Res<>(empties.get(i), scamp5DigitalConfig)));
-                }
-            }
-        }
-        List<GoalPair<G, Scamp5DigitalTransformation<G>, Register>> pairList = PairGenFactory.super.solveDirectly(context, goals);
-        if(pairList==null){
-            return null;
-        }
-        allPairs.addAll(pairList);
-        return allPairs;
-    }
-
-    @Override
-    public Collection<Tuple<List<GoalPair<G, Scamp5DigitalTransformation<G>, Register>>, G>> solveDirectly(Context<G, Scamp5DigitalTransformation<G>, Register> context, G goal) {
-        Scamp5DigitalConfig<G> scamp5DigitalConfig = this.scamp5ConfGet.getScamp5ConfigForDirectSolve(new GoalBag<>(goal), context);
-        ArrayList<Tuple<List<GoalPair<G, Scamp5DigitalTransformation<G>, Register>>, G>> list = new ArrayList<>();
-
-        if(context.initialGoals.contains(goal)){
-            list.add(new Tuple<>(Collections.emptyList(), goal));
-            return list;
-        }
-
-        //Res
-        if(scamp5DigitalConfig.useRes && goal.allZero()){
-            Res<G> res = new Res<>(goal, scamp5DigitalConfig);
-            list.add(new Tuple<>(Collections.singletonList((new GoalPair<>(goal, Collections.emptyList(), res))), context.initialGoals.get(0)));
-            return list;
-        }
-
-        //Divide
-        if(scamp5DigitalConfig.useDiv) {
-            try {
-                if (goal.total() == 1d && goal.get(0, 0 ,goal.bounds().getZMax())==1) {
-                    int z = goal.bounds().getZMax();
-                    G ic = null;
-                    for (G i : context.initialGoals) {
-                        if (i.get(0,0,z)>0) {
-                            ic = i;
-                        }
-                    }
-                    if (ic != null) {
-                        List<GoalPair<G, Scamp5DigitalTransformation<G>, Register>> pairs = new ArrayList<>();
-                        Div<G> div = new Div<>(goal, true, scamp5DigitalConfig);
-                        pairs.add(new GoalPair<>(div.applyOpForwards(), Collections.singletonList(div.a), div));
-                        while (div.a.totalI() < ic.totalI()) {
-                            div = new Div<>(div.a, true, scamp5DigitalConfig);
-                            pairs.add(new GoalPair<>(div.applyOpForwards(), Collections.singletonList(div.a), div));
-                        }
-                        if (div.a.equals(ic)) {
-                            list.add(new Tuple<>(pairs, ic));
-                        }
-                    }
-                }
-
-            } catch (TransformationApplicationException e) {
-                e.printStackTrace();
-                // Should be unreachable
-                assert false;
-            }
-        }
-
-        // AddSelf (mul2)
-        if(scamp5DigitalConfig.useAddSelf) {
-            AddSelf<G> addSelf = new AddSelf<>(goal, true, scamp5DigitalConfig);
-            if(addSelf.isPossible()) {
-                list.add(new Tuple<>(Collections.singletonList(new GoalPair<>(goal, addSelf.a, addSelf)), addSelf.a));
-            }
-        }
-
-        //Move x
-        if(scamp5DigitalConfig.useMovx) {
-            for (Dir dir : Dir.values()) {
-                Movx<G> movx = new Movx<>(goal, dir, true, scamp5DigitalConfig);
-                list.add(new Tuple<>(Collections.singletonList(new GoalPair<>(goal, movx.a, movx)), movx.a));
-            }
-        }
-
-        return list;
-    }
-
-
-
-
-
-    @Override
-    public PairGen<G, Scamp5DigitalTransformation<G>, Register> generatePairs(GoalBag<G> goals, Context<G, Scamp5DigitalTransformation<G>, Register> context) {
-        return this.scamp5ConfGet.getScamp5Strategy(goals, context);
-    }
-
-    @Override
-    public Scamp5DigitalTransformation<G> getDummyTransformation(List<G> upperGoals, List<G> lowerGoals, Context<G, Scamp5DigitalTransformation<G>, Register> context) {
-        return new Scamp5DigitalTransformation.Null<>(lowerGoals.size(), upperGoals.size(), this.scamp5ConfGet.getScamp5ConfigForDirectSolve(new GoalBag<>(lowerGoals), context));
-    }
+public class Scamp5DigitalPairGens {
 
     public static class ExhaustivePairGen<G extends Kernel3DGoal<G>> extends uk.co.edstow.cain.pairgen.ExhaustivePairGen<G, Scamp5DigitalTransformation<G>, Register> {
 
-        Scamp5DigitalConfig<G> scamp5DigitalConfig;
-        public ExhaustivePairGen(GoalBag<G> goals, Context<G, Scamp5DigitalTransformation<G>, Register> context, Scamp5DigitalConfig<G> scamp5DigitalConfig, CostHeuristic<G, Scamp5DigitalTransformation<G>, Register> huristic) {
+        Scamp5DigitalConfig scamp5DigitalConfig;
+        public ExhaustivePairGen(GoalBag<G> goals, Context<G, Scamp5DigitalTransformation<G>, Register> context, Scamp5DigitalConfig scamp5DigitalConfig, CostHeuristic<G, Scamp5DigitalTransformation<G>, Register> huristic) {
             super(goals, context, huristic);
             this.scamp5DigitalConfig = scamp5DigitalConfig;
         }
@@ -243,14 +122,14 @@ public class Scamp5DigitalPairGenFactory<G extends Kernel3DGoal<G>> implements P
     }
 
     public static class DigitalAtomDistancePairGen<G extends Kernel3DGoal<G>> extends uk.co.edstow.cain.pairgen.AtomDistancePairGen<G, Scamp5DigitalTransformation<G>, Register> {
-        final Scamp5DigitalConfig<G> scamp5DigitalConfig;
+        final Scamp5DigitalConfig scamp5DigitalConfig;
 
-        public DigitalAtomDistancePairGen(GoalBag<G> goals, Context<G, Scamp5DigitalTransformation<G>, Register> context, Scamp5DigitalConfig<G> scamp5DigitalConfig) {
+        public DigitalAtomDistancePairGen(GoalBag<G> goals, Context<G, Scamp5DigitalTransformation<G>, Register> context, Scamp5DigitalConfig scamp5DigitalConfig) {
             super(goals, context);
             this.scamp5DigitalConfig = scamp5DigitalConfig;
         }
 
-        private DigitalAtomDistancePairGen(GoalBag<G> goals, Context<G, Scamp5DigitalTransformation<G>, Register> context, Scamp5DigitalConfig<G> scamp5DigitalConfig, Iterator<Tuple<Integer, Integer>> ijGetter) {
+        private DigitalAtomDistancePairGen(GoalBag<G> goals, Context<G, Scamp5DigitalTransformation<G>, Register> context, Scamp5DigitalConfig scamp5DigitalConfig, Iterator<Tuple<Integer, Integer>> ijGetter) {
             super(goals, context, ijGetter);
             this.scamp5DigitalConfig = scamp5DigitalConfig;
         }
@@ -329,7 +208,7 @@ public class Scamp5DigitalPairGenFactory<G extends Kernel3DGoal<G>> implements P
         
     }
 
-    public static class DigitalAtomDistanceSortedPairGen<G extends Kernel3DGoal<G>, T extends Scamp5DigitalConfig<G>> extends DigitalAtomDistancePairGen<G> {
+    public static class DigitalAtomDistanceSortedPairGen<G extends Kernel3DGoal<G>, T extends Scamp5DigitalConfig> extends DigitalAtomDistancePairGen<G> {
 
         private final CostHeuristic<G, Scamp5DigitalTransformation<G>, Register> heuristic;
 

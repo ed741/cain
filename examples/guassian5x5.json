@@ -1,5 +1,8 @@
 {"name":"Guassian5x5",
-  "goalSystem":"Kernel3D",
+  "target": "scamp5",
+  "mode": "analogue",
+  "goalSystem":"atom",
+
   "maxApproximationDepth":6,
   "maxApproximationError":0,
   "3d": false,
@@ -40,11 +43,10 @@
   },
 
   "pairGen":{
-    "name": "Scamp5AnalogueAtomGoal",
-    "configGetter": {
+    "strategy": {
       "name":"Threshold",
       "threshold":10,
-      "heuristic": "Pattern",
+      "heuristic": {"name":"Pattern"},
       "ops": "all"
     },
     "outputFormat": {

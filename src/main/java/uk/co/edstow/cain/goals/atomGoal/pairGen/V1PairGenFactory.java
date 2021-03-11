@@ -4,6 +4,7 @@ package uk.co.edstow.cain.goals.atomGoal.pairGen;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
 import uk.co.edstow.cain.pairgen.Context;
+import uk.co.edstow.cain.pairgen.DirectSolver;
 import uk.co.edstow.cain.pairgen.PairGen;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.regAlloc.Register;
@@ -14,7 +15,7 @@ import uk.co.edstow.cain.util.Tuple;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class V1PairGenFactory implements PairGenFactory<AtomGoal, SimpleTransformation, Register> {
+public class V1PairGenFactory extends DirectSolver<AtomGoal, SimpleTransformation, Register> implements PairGenFactory<AtomGoal, SimpleTransformation, Register> {
 
 
     public V1PairGenFactory(AtomGoal.AtomBounds bounds) {

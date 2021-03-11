@@ -3,6 +3,7 @@ package uk.co.edstow.cain.goals.atomGoal.pairGen;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
 import uk.co.edstow.cain.pairgen.Context;
+import uk.co.edstow.cain.pairgen.DirectSolver;
 import uk.co.edstow.cain.pairgen.PairGen;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.regAlloc.Register;
@@ -12,7 +13,7 @@ import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
 
-public class V2PairGenFactory implements PairGenFactory<AtomGoal, SimpleTransformation, Register> {
+public class V2PairGenFactory extends DirectSolver<AtomGoal, SimpleTransformation, Register> implements PairGenFactory<AtomGoal, SimpleTransformation, Register> {
 
     private static final Comparator<Tuple<Distance, AtomGoal>> entryComparator = Comparator.comparingInt((Tuple<Distance, AtomGoal> t) -> t.getB().size()).thenComparingInt(t -> -t.getA().manhattanXY());
 

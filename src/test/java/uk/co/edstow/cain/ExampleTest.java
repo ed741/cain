@@ -2,7 +2,9 @@ package uk.co.edstow.cain;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;;
+import org.junit.jupiter.params.provider.MethodSource;
+import uk.co.edstow.cain.fileRun.FileRun;
+import uk.co.edstow.cain.fileRun.Result;;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -34,7 +36,7 @@ public class ExampleTest {
         try {
             FileRun<?,?,?> fileRun = FileRun.loadFromJson(path);
             fileRun.run();
-            List<? extends FileRun<?,?,?>.Result> results = fileRun.getResults();
+            List<? extends Result> results = fileRun.getResults();
             OptionalInt min = results.stream().mapToInt(r -> r.depth).min();
             assertTrue(min.isPresent(), "Unable to solve: " + path);
         } catch (Exception e){

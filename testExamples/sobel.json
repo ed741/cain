@@ -1,6 +1,9 @@
 {"name":"Sobel",
   "verbose": -1,
-  "goalSystem":"Kernel3D",
+  "target": "scamp5",
+  "mode": "analogue",
+  "goalSystem":"atom",
+
   "maxApproximationDepth":3,
   "maxApproximationError":0,
   "3d": false,
@@ -38,12 +41,14 @@
   },
 
   "pairGen":{
-    "name": "Scamp5AnalogueAtomGoal",
-    "configGetter": {
+    "strategy": {
       "name":"Threshold",
       "threshold":10,
-      "heuristic": "Pattern",
-      "ops": "all"
+      "heuristic": {"name":"Pattern"},
+      "ops": "all",
+      "above": {
+        "name":"AtomDistance"
+      }
     },
     "outputFormat": {
         "name": "defaultFormat"

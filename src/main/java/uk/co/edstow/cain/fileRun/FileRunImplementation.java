@@ -7,4 +7,6 @@ import java.lang.annotation.*;
 public @interface FileRunImplementation {
     String key() default "";
     String arg() default "";
+    String[] fields() default {};
+    String[] values() default {};
 }

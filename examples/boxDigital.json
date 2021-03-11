@@ -1,5 +1,8 @@
 {"name":"boxDigital",
-  "goalSystem":"Kernel3D",
+  "target": "scamp5",
+  "mode": "digital",
+  "goalSystem":"atom",
+
   "maxApproximationDepth":3,
   "maxApproximationError":0,
   "3d": false,
@@ -38,11 +41,10 @@
   },
 
   "pairGen":{
-    "name": "Scamp5DigitalAtomGoal",
-    "configGetter": {
+    "strategy": {
       "name":"Threshold",
       "threshold":8,
-      "heuristic": "Pattern"
+      "heuristic": {"name":"Pattern"}
     },
     "bits":2,
     "scratchRegs":["S1", "S2", "S3", "S4", "S5"],

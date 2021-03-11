@@ -1,5 +1,7 @@
 {"name":"Box3x3",
-  "goalSystem":"Kernel3DBanked",
+  "target": "scamp5",
+  "mode": "superpixel",
+
   "maxApproximationDepth":6,
   "maxApproximationError":0,
   "3d": false,
@@ -36,11 +38,10 @@
   },
 
   "pairGen":{
-    "name": "Scamp5SuperPixel",
-    "configGetter": {
+    "strategy": {
       "name":"Threshold",
       "threshold":30,
-      "heuristic": "Pattern",
+      "heuristic": {"name":"Pattern"},
       "ops": "all"
     },
     "scratchRegs": ["R[scratch1]", "R[scratch2]", "R[scratch3]"],

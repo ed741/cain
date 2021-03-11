@@ -1,6 +1,9 @@
 {"name":"Box7x7",
   "verbose": -1,
-  "goalSystem":"Kernel3D",
+  "target": "scamp5",
+  "mode": "analogue",
+  "goalSystem":"array",
+
   "maxApproximationDepth":6,
   "maxApproximationError":0,
   "3d": false,
@@ -41,11 +44,10 @@
   },
 
   "pairGen":{
-    "name": "Scamp5AnalogueArrayGoal",
-    "configGetter": {
+    "strategy": {
       "name":"Threshold",
       "threshold":10,
-      "heuristic": "Pattern",
+      "heuristic": {"name":"Pattern"},
       "ops": "all"
     },
     "outputFormat": {

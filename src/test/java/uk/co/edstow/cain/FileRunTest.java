@@ -1,6 +1,8 @@
 package uk.co.edstow.cain;
 
 import org.junit.jupiter.api.Test;
+import uk.co.edstow.cain.fileRun.FileRun;
+import uk.co.edstow.cain.fileRun.Result;
 import uk.co.edstow.cain.goals.arrayGoal.ArrayGoal;
 import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
 import uk.co.edstow.cain.regAlloc.Register;
@@ -59,11 +61,11 @@ class FileRunTest {
                 "\n" +
                 "  \"pairGen\":{\n" +
                 "    \"name\": \"Scamp5AnalogueAtomGoal\",\n" +
-                "    \"configGetter\": {\n" +
+                "    \"strategy\": {\n" +
                 "      \"name\":\"Threshold\",\n" +
                 "      \"threshold\":10,\n" +
                 "      \"ops\":all,\n" +
-                "      \"heuristic\": \"Pattern\"\n" +
+                "      \"heuristic\": {\"name\":\"Pattern\"}" +
                 "    }," +
                 "    \"ops\":\"all\",\n" +
                 "    \"threshold\":10,\n" +
@@ -77,7 +79,7 @@ class FileRunTest {
         try {
             FileRun<AtomGoal, Scamp5AnalogueTransformation<AtomGoal>, Register> fileRun = new Scamp5AnalogueFileRun.AtomGoalFileRun(FileRun.fromJson(json, true));
             fileRun.run();
-            List<FileRun<AtomGoal, Scamp5AnalogueTransformation<AtomGoal>, Register>.Result> results = fileRun.getResults();
+            List<Result<AtomGoal, Scamp5AnalogueTransformation<AtomGoal>, Register>> results = fileRun.getResults();
             OptionalInt min = results.stream().mapToInt(r -> r.depth).min();
             assertTrue(min.isPresent());
             assertTrue(min.getAsInt()<=5, "Got value: " +min.getAsInt() + " Expected: <= 5");
@@ -132,11 +134,11 @@ class FileRunTest {
                         "\n" +
                         "  \"pairGen\":{\n" +
                         "    \"name\": \"Scamp5AnalogueArrayGoal\",\n" +
-                        "    \"configGetter\": {\n" +
+                        "    \"strategy\": {\n" +
                         "      \"name\":\"Threshold\",\n" +
                         "      \"threshold\":10,\n" +
                         "      \"ops\":all,\n" +
-                        "      \"heuristic\": \"Pattern\"\n" +
+                        "      \"heuristic\": {\"name\":\"Pattern\"}" +
                         "    }," +
                         "    \"outputFormat\": {\n" +
                         "      \"name\": \"defaultFormat\"\n" +
@@ -148,7 +150,7 @@ class FileRunTest {
         try {
             FileRun<ArrayGoal, Scamp5AnalogueTransformation<ArrayGoal>, Register> fileRun = new Scamp5AnalogueFileRun.ArrayGoalFileRun(FileRun.fromJson(json, true));
             fileRun.run();
-            List<FileRun<ArrayGoal, Scamp5AnalogueTransformation<ArrayGoal>, Register>.Result> results = fileRun.getResults();
+            List<Result<ArrayGoal, Scamp5AnalogueTransformation<ArrayGoal>, Register>> results = fileRun.getResults();
             OptionalInt min = results.stream().mapToInt(r -> r.depth).min();
             assertTrue(min.isPresent());
             assertTrue(min.getAsInt()<=7, "Got value: " +min.getAsInt() + " Expected: <= 7");
@@ -209,10 +211,10 @@ class FileRunTest {
                         "\n" +
                         "  \"pairGen\":{\n" +
                         "    \"name\": \"Scamp5DigitalAtomGoal\",\n" +
-                        "    \"configGetter\": {\n" +
+                        "    \"strategy\": {\n" +
                         "      \"name\":\"Threshold\",\n" +
                         "      \"threshold\":10,\n" +
-                        "      \"heuristic\": \"Pattern\"\n" +
+                        "      \"heuristic\": {\"name\":\"Pattern\"}" +
                         "    }," +
                         "    \"bits\":2,\n" +
                         "    \"scratchRegs\":[\"S1\", \"S2\", \"S3\", \"S4\"],\n" +
@@ -232,7 +234,7 @@ class FileRunTest {
         try {
             FileRun<AtomGoal, Scamp5DigitalTransformation<AtomGoal>, Register> fileRun = new Scamp5DigitalFileRun.AtomGoalFileRun(FileRun.fromJson(json, true));
             fileRun.run();
-            List<FileRun<AtomGoal, Scamp5DigitalTransformation<AtomGoal>, Register>.Result> results = fileRun.getResults();
+            List<Result<AtomGoal, Scamp5DigitalTransformation<AtomGoal>, Register>> results = fileRun.getResults();
 //            System.out.println((fileRun.getBest()));
             OptionalInt min = results.stream().mapToInt(r -> r.cost).min();
             assertTrue(min.isPresent());

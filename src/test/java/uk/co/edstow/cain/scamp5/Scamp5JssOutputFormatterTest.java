@@ -2,6 +2,7 @@ package uk.co.edstow.cain.scamp5;
 
 import org.junit.jupiter.api.Test;
 import uk.co.edstow.cain.regAlloc.Register;
+import uk.co.edstow.cain.scamp5.output.Scamp5JssOutputFormatter;
 
 import static org.junit.jupiter.api.Assertions.*;
 

@@ -5,7 +5,6 @@ import uk.co.edstow.cain.goals.atomGoal.pairGen.Distance;
 import uk.co.edstow.cain.goals.atomGoal.pairGen.SimpleTransformation;
 import uk.co.edstow.cain.pairgen.*;
 import uk.co.edstow.cain.regAlloc.BRegister;
-import uk.co.edstow.cain.scamp5.Scamp5ConfigGetter;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
 import uk.co.edstow.cain.util.Tuple;
@@ -16,129 +15,12 @@ import java.util.stream.Stream;
 
 import static uk.co.edstow.cain.scamp5.superPixel.Scamp5SuperPixelTransformation.*;
 
-public class Scamp5SuperPixelPairGenFactory<G extends BankedKernel3DGoal<G>> implements PairGenFactory<G, Scamp5SuperPixelTransformation<G>, BRegister> {
-
-    private final Scamp5ConfigGetter<G, Scamp5SuperPixelTransformation<G>, BRegister, Scamp5SuperPixelConfig<G>> scamp5ConfGet;
-
-    public Scamp5SuperPixelPairGenFactory(Scamp5ConfigGetter<G, Scamp5SuperPixelTransformation<G>, BRegister, Scamp5SuperPixelConfig<G>> confGetter) {
-        this.scamp5ConfGet = confGetter;
-    }
-
-
-    @Override
-    public List<GoalPair<G, Scamp5SuperPixelTransformation<G>, BRegister>> solveDirectly(Context<G, Scamp5SuperPixelTransformation<G>, BRegister> context, GoalBag<G> goals){
-        Scamp5SuperPixelConfig<G> scamp5SuperPixelConfig = this.scamp5ConfGet.getScamp5ConfigForDirectSolve(goals, context);
-        goals = new GoalBag<>(goals);
-        List<GoalPair<G, Scamp5SuperPixelTransformation<G>, BRegister>> allPairs = new ArrayList<>();
-        List<G> empties = new ArrayList<>();
-        for (int i = goals.size() - 1; i >= 0; i--) {
-          if(goals.get(i).allZero()){
-              empties.add(goals.remove(i));
-          }
-        }
-        if(!scamp5SuperPixelConfig.onlyMov()) {
-            if(scamp5SuperPixelConfig.useRes && !empties.isEmpty()) {
-                allPairs.add(new GoalPair<>(empties, Collections.emptyList(), new Res<>(empties, scamp5SuperPixelConfig)));
-            }
-        }
-        List<GoalPair<G,Scamp5SuperPixelTransformation<G>, BRegister>> pairList = PairGenFactory.super.solveDirectly(context, goals);
-        if(pairList==null){
-            return null;
-        }
-        allPairs.addAll(pairList);
-        return allPairs;
-    }
-
-    @Override
-    public Collection<Tuple<List<GoalPair<G, Scamp5SuperPixelTransformation<G>, BRegister>>, G>> solveDirectly(Context<G, Scamp5SuperPixelTransformation<G>, BRegister> context, G goal) {
-        Scamp5SuperPixelConfig<G> scamp5SuperPixelConfig = this.scamp5ConfGet.getScamp5ConfigForDirectSolve(new GoalBag<>(goal), context);
-        ArrayList<Tuple<List<GoalPair<G,Scamp5SuperPixelTransformation<G>, BRegister>>, G>> list = new ArrayList<>();
-
-        if(context.initialGoals.contains(goal)){
-            list.add(new Tuple<>(Collections.emptyList(), goal));
-            return list;
-        }
-
-        //Res
-        if(scamp5SuperPixelConfig.useRes && goal.allZero()){
-            Res<G> res = new Res<>(Collections.singletonList(goal), scamp5SuperPixelConfig);
-            list.add(new Tuple<>(Collections.singletonList((new GoalPair<>(goal, Collections.emptyList(), res))), context.initialGoals.get(0)));
-            return list;
-        }
-
-        //Divide
-        if(scamp5SuperPixelConfig.useDiv) {
-            try {
-                if (goal.total() == 1d && goal.get(0, 0 ,goal.bounds().getZMax())==1) {
-                    int z = goal.bounds().getZMax();
-                    G ic = null;
-                    for (G i : context.initialGoals) {
-                        if (i.get(0,0,z)>0) {
-                            ic = i;
-                        }
-                    }
-                    if (ic != null) {
-                        List<GoalPair<G,Scamp5SuperPixelTransformation<G>, BRegister>> pairs = new ArrayList<>();
-                        Div<G> div = new Div<>(goal, true, scamp5SuperPixelConfig);
-                        pairs.add(new GoalPair<>(div.applyForwards(), Collections.singletonList(div.a), div));
-                        while (div.a.totalI() < ic.totalI()) {
-                            div = new Div<>(div.a, true, scamp5SuperPixelConfig);
-                            pairs.add(new GoalPair<>(div.applyForwards(), Collections.singletonList(div.a), div));
-                        }
-                        if (div.a.equals(ic)) {
-                            list.add(new Tuple<>(pairs, ic));
-                        }
-                    }
-                }
-
-            } catch (TransformationApplicationException e) {
-                e.printStackTrace();
-                // Should be unreachable
-                assert false;
-            }
-        }
-
-        // AddSelf (mul2)
-        if(scamp5SuperPixelConfig.useAddSelf) {
-            AddSelf<G> addSelf = new AddSelf<>(goal, true, scamp5SuperPixelConfig);
-            if(addSelf.isPossible()) {
-                list.add(new Tuple<>(Collections.singletonList(new GoalPair<>(goal, addSelf.a, addSelf)), addSelf.a));
-            }
-        }
-
-        //Move x
-        if(scamp5SuperPixelConfig.useMovbx) {
-            for (Dir dir : Dir.values()) {
-                for (int i = 0; i < scamp5SuperPixelConfig.banks; i++) {
-                    if(scamp5SuperPixelConfig.isBankSameShape(goal.getBank(), i)) {
-                        Movxb<G> movx = new Movxb<>(goal, dir.x, dir.y, i, scamp5SuperPixelConfig);
-                        list.add(new Tuple<>(Collections.singletonList(new GoalPair<>(goal, movx.lower, movx)), movx.lower));
-                    }
-                }
-            }
-        }
-
-        return list;
-    }
-
-
-
-
-
-    @Override
-    public PairGen<G, Scamp5SuperPixelTransformation<G>,BRegister> generatePairs(GoalBag<G> goals, Context<G, Scamp5SuperPixelTransformation<G>, BRegister> context) {
-        return this.scamp5ConfGet.getScamp5Strategy(goals, context);
-    }
-
-    @Override
-    public Scamp5SuperPixelTransformation<G> getDummyTransformation(List<G> upperGoals, List<G> lowerGoals, Context<G, Scamp5SuperPixelTransformation<G>, BRegister> context) {
-        return new Scamp5SuperPixelTransformation.Null<>(lowerGoals.size(), upperGoals.size(), this.scamp5ConfGet.getScamp5ConfigForDirectSolve(new GoalBag<>(lowerGoals), context));
-    }
+public class Scamp5SuperPixelPairGens {
 
     public static class ExhaustivePairGen<G extends BankedKernel3DGoal<G>> extends uk.co.edstow.cain.pairgen.ExhaustivePairGen<G, Scamp5SuperPixelTransformation<G>, BRegister> {
 
-        Scamp5SuperPixelConfig<G> scamp5SuperPixelConfig;
-        public ExhaustivePairGen(GoalBag<G> goals, Context<G, Scamp5SuperPixelTransformation<G>, BRegister> context, Scamp5SuperPixelConfig<G> scamp5SuperPixelConfig, CostHeuristic<G, Scamp5SuperPixelTransformation<G>, BRegister> heuristic) {
+        Scamp5SuperPixelConfig scamp5SuperPixelConfig;
+        public ExhaustivePairGen(GoalBag<G> goals, Context<G, Scamp5SuperPixelTransformation<G>, BRegister> context, Scamp5SuperPixelConfig scamp5SuperPixelConfig, CostHeuristic<G, Scamp5SuperPixelTransformation<G>, BRegister> heuristic) {
             super(goals, context, heuristic);
             this.scamp5SuperPixelConfig = scamp5SuperPixelConfig;
         }
@@ -227,16 +109,16 @@ public class Scamp5SuperPixelPairGenFactory<G extends BankedKernel3DGoal<G>> imp
 
 
     public static class SuperPixelAtomDistancePairGen<G extends BankedKernel3DGoal<G>> extends AtomDistancePairGen<G, Scamp5SuperPixelTransformation<G>, BRegister> {
-        final Scamp5SuperPixelConfig<G> scamp5SuperPixelConfig;
+        final Scamp5SuperPixelConfig scamp5SuperPixelConfig;
 
 
 
-        public SuperPixelAtomDistancePairGen(GoalBag<G> goals, Context<G, Scamp5SuperPixelTransformation<G>, BRegister> context, Scamp5SuperPixelConfig<G> scamp5SuperPixelConfig) {
+        public SuperPixelAtomDistancePairGen(GoalBag<G> goals, Context<G, Scamp5SuperPixelTransformation<G>, BRegister> context, Scamp5SuperPixelConfig scamp5SuperPixelConfig) {
             super(goals, context);
             this.scamp5SuperPixelConfig = scamp5SuperPixelConfig;
         }
 
-        private SuperPixelAtomDistancePairGen(GoalBag<G> goals, Context<G, Scamp5SuperPixelTransformation<G>, BRegister> context, Scamp5SuperPixelConfig<G> scamp5SuperPixelConfig, Iterator<Tuple<Integer, Integer>> ijGetter) {
+        private SuperPixelAtomDistancePairGen(GoalBag<G> goals, Context<G, Scamp5SuperPixelTransformation<G>, BRegister> context, Scamp5SuperPixelConfig scamp5SuperPixelConfig, Iterator<Tuple<Integer, Integer>> ijGetter) {
             super(goals, context, ijGetter);
             this.scamp5SuperPixelConfig = scamp5SuperPixelConfig;
         }
@@ -319,7 +201,7 @@ public class Scamp5SuperPixelPairGenFactory<G extends BankedKernel3DGoal<G>> imp
 
         private final CostHeuristic<G, Scamp5SuperPixelTransformation<G>, BRegister> huristic;
 
-        public SuperPixelAtomDistanceSortedPairGen(GoalBag<G> goals, Context<G, Scamp5SuperPixelTransformation<G>, BRegister> conf, Scamp5SuperPixelConfig<G> scamp5Config, CostHeuristic<G, Scamp5SuperPixelTransformation<G>, BRegister> huristic) {
+        public SuperPixelAtomDistanceSortedPairGen(GoalBag<G> goals, Context<G, Scamp5SuperPixelTransformation<G>, BRegister> conf, Scamp5SuperPixelConfig scamp5Config, CostHeuristic<G, Scamp5SuperPixelTransformation<G>, BRegister> huristic) {
             super(goals, conf, scamp5Config, new PlainCombinationIterator(goals.size()));
             this.huristic = huristic;
         }
