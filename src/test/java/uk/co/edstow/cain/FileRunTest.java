@@ -65,7 +65,7 @@ class FileRunTest {
                 "      \"name\":\"Threshold\",\n" +
                 "      \"threshold\":10,\n" +
                 "      \"ops\":all,\n" +
-                "      \"heuristic\": \"Pattern\"\n" +
+                "      \"heuristic\": {\"name\":\"Pattern\"}" +
                 "    }," +
                 "    \"ops\":\"all\",\n" +
                 "    \"threshold\":10,\n" +
@@ -138,7 +138,7 @@ class FileRunTest {
                         "      \"name\":\"Threshold\",\n" +
                         "      \"threshold\":10,\n" +
                         "      \"ops\":all,\n" +
-                        "      \"heuristic\": \"Pattern\"\n" +
+                        "      \"heuristic\": {\"name\":\"Pattern\"}" +
                         "    }," +
                         "    \"outputFormat\": {\n" +
                         "      \"name\": \"defaultFormat\"\n" +
@@ -214,7 +214,7 @@ class FileRunTest {
                         "    \"strategy\": {\n" +
                         "      \"name\":\"Threshold\",\n" +
                         "      \"threshold\":10,\n" +
-                        "      \"heuristic\": \"Pattern\"\n" +
+                        "      \"heuristic\": {\"name\":\"Pattern\"}" +
                         "    }," +
                         "    \"bits\":2,\n" +
                         "    \"scratchRegs\":[\"S1\", \"S2\", \"S3\", \"S4\"],\n" +
