@@ -16,6 +16,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
     public final boolean useMovbx;
     public final boolean useAdd;
     public final boolean useAddSelf;
+    public final boolean useSub;
     public final boolean useDiv;
     public final boolean useRes;
     private final boolean onlyMov;
@@ -39,11 +40,12 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
     public final int[] yBankStart;
     public final boolean[][] sameShapeLookup;
     
-    public Scamp5SuperPixelConfig(boolean useMovbx, boolean useAdd, boolean useAddSelf, boolean useDiv, boolean useRes, List<String> scratchRegisters, String selectReg, String maskReg, String maskedReg, String northReg, String eastReg, String southReg, String westReg, int width, int height, int banks, int[][][] bitOrder, Scamp5OutputFormatter outputFormatter) {
+    public Scamp5SuperPixelConfig(boolean useMovbx, boolean useAdd, boolean useAddSelf, boolean useSub, boolean useDiv, boolean useRes, List<String> scratchRegisters, String selectReg, String maskReg, String maskedReg, String northReg, String eastReg, String southReg, String westReg, int width, int height, int banks, int[][][] bitOrder, Scamp5OutputFormatter outputFormatter) {
         super(outputFormatter);
         this.useMovbx = useMovbx;
         this.useAdd = useAdd;
         this.useAddSelf = useAddSelf;
+        this.useSub = useSub;
         this.useDiv = useDiv;
         this.useRes = useRes;
 
@@ -76,6 +78,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         this.useMovbx = proto.useMovbx;
         this.useAdd = proto.useAdd;
         this.useAddSelf = proto.useAddSelf;
+        this.useSub = proto.useSub;
         this.useDiv = proto.useDiv;
         this.useRes = proto.useRes;
 
@@ -109,6 +112,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         this.useMovbx = proto.useMovbx;
         this.useAdd = proto.useAdd && (!onlyMov);
         this.useAddSelf = proto.useAddSelf && (!onlyMov);
+        this.useSub = proto.useSub && (!onlyMov);
         this.useDiv = proto.useDiv && (!onlyMov);
         this.useRes = proto.useRes && (!onlyMov);
 
@@ -188,7 +192,6 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
     public Builder builder() {
         return new Builder(this);
     }
-
 
     private enum Dir{
         N(0,'N','n', 0,1, c->c.northReg),
@@ -275,19 +278,19 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
     }
 
     private static class Pattern {
-        public final int xMask;
-        public final int yMask;
-        public final int xVal;
-        public final int yVal;
+        public final byte xMask;
+        public final byte yMask;
+        public final byte xVal;
+        public final byte yVal;
         public final int count;
         public final boolean[][] set;
 
 
         Pattern(int xMask, int yMask, int xVal, int yVal, int count, boolean[][] set) {
-            this.xMask = xMask;
-            this.yMask = yMask;
-            this.xVal = xVal;
-            this.yVal = yVal;
+            this.xMask = (byte) xMask;
+            this.yMask = (byte) yMask;
+            this.xVal = (byte) xVal;
+            this.yVal = (byte) yVal;
             this.count = count;
             this.set = set;
         }
@@ -335,9 +338,8 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
 
 
     void setDirLessSignificant(StringBuilder sb, int bank) {
-        int[][] bitOrder = this.bitOrder[bank];
         char[][] bitDir = new char[this.width][this.height];
-        int[] count = generateBitDirectionArray(bank, bitOrder, bitDir, true);
+        int[] count = generateBitDirectionArray(bank, bitDir, true);
         Map<Dir, List<Pattern>> patterns = generateBitDirectionPatterns(bitDir, count);
         sb.append("/*SetDirLessSignificant*/");
         generateCodeForDirectionPatterns(sb, patterns);
@@ -346,14 +348,68 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
     }
 
     void setDirMoreSignificant(StringBuilder sb, int bank) {
-        int[][] bitOrder = this.bitOrder[bank];
         char[][] bitDir = new char[this.width][this.height];
-        int[] count = generateBitDirectionArray(bank, bitOrder, bitDir, false);
+        int[] count = generateBitDirectionArray(bank, bitDir, false);
         Map<Dir, List<Pattern>> patterns = generateBitDirectionPatterns(bitDir, count);
         sb.append("/*SetDirMoreSignificant*/");
         generateCodeForDirectionPatterns(sb, patterns);
         sb.append("/*done - SetDirMoreSignificant*/");
     }
+
+    public void setDirLessSignificantAndSelectBit(StringBuilder sb, int bank, int place, String reg, List<String> availableRegs) {
+        sb.append("/*SetDirLessSignificantAndSelect*/");
+        setDirSignificantAndSelectBit(sb, bank, place, reg, true, availableRegs);
+        sb.append("/*done - SetDirLessSignificantAndSelect*/");
+    }
+
+    public void setDirMoreSignificantAndSelectBit(StringBuilder sb, int bank, int place, String reg, List<String> availableRegs) {
+        sb.append("/*SetDirMoreSignificantAndSelect*/");
+        setDirSignificantAndSelectBit(sb, bank, place, reg, false, availableRegs);
+        sb.append("/*done - SetDirMoreSignificantAndSelect*/");
+    }
+
+    private void setDirSignificantAndSelectBit(StringBuilder sb, int bank, int place, String reg, boolean forwards, List<String> availableRegs) {
+        int x = -1;
+        int y = -1;
+        Dir direction = null;
+        {
+            bitSearch:
+            for (int xPos = 0; xPos < this.width; xPos++) {
+                for (int yPos = 0; yPos < this.height; yPos++) {
+                    if (this.bitOrder[bank][xPos][yPos] == place) {
+                        x = xPos;
+                        y = yPos;
+                        for (int d = 0; d < Dir.values().length; d++) {
+                            Dir dir = Dir.values()[d];
+                            if (0 <= xPos - dir.x && xPos - dir.x < this.width && 0 <= yPos - dir.y && yPos - dir.y < this.height && this.bitOrder[bank][xPos - dir.x][yPos - dir.y] == place + (forwards?1:-1) && place + (forwards?1:-1)>0) {
+                                direction = dir;
+                                break;
+                            }
+                        }
+
+                        break bitSearch;
+                    }
+                }
+            }
+            if(x<0) throw new IllegalArgumentException("Bit " + place + " Not found in Bank "+ bank);
+        }
+        byte xMask = (byte) (256-this.width); // mask set to like this since only 1 PE in the SuperPixel can be set at
+        byte yMask = (byte) (256-this.height);// a time using this method.
+        byte xVal = (byte) x;
+        byte yVal = (byte) y;
+
+        sb.append(outputFormatter.CLR(this.northReg, this.southReg, this.eastReg, this.westReg));
+        if(reg.equals(this.selectReg)) {
+            sb.append(outputFormatter.select_pattern(xVal, yVal, xMask, yMask));
+        } else {
+            sb.append(outputFormatter.load_pattern(reg, xVal, yVal, xMask, yMask));
+        }
+        if(direction != null){
+                sb.append(outputFormatter.MOV(direction.getReg.apply(this), reg));
+        }
+
+    }
+
 
     private void generateCodeForDirectionPatterns(StringBuilder sb, Map<Dir, List<Pattern>> patterns) {
         List<Map.Entry<Dir, List<Pattern>>> patternList = patterns.entrySet().stream().sorted(Comparator.comparingInt(e -> -e.getValue().size())).collect(Collectors.toList());
@@ -367,11 +423,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
             generateCodeForPatternsReg(sb, availableRegs, toClear, reg, list);
         }
         if(!toClear.isEmpty()){
-            sb.append(String.format("CLR(%s",toClear.get(0)));
-            for (int i = 1; i < toClear.size(); i++) {
-                sb.append(String.format(", %s", toClear.get(i)));
-            }
-            sb.append("); ");
+            sb.append(outputFormatter.CLR(toClear.toArray(new String[0])));
         }
     }
 
@@ -382,9 +434,10 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         } else if (list.size()==1){
             Pattern pattern = list.get(0);
             if(reg.equals(this.selectReg)) {
-                sb.append(String.format("scamp5_select_pattern(%s, %s, %s, %s); ", pattern.xVal, pattern.yVal, pattern.xMask, pattern.yMask));
+                // x and y may need to be swapped in these pattern calls
+                sb.append(outputFormatter.select_pattern(pattern.xVal, pattern.yVal, pattern.xMask, pattern.yMask));
             } else {
-                sb.append(String.format("scamp5_load_pattern(%s, %s, %s, %s, %s); ", reg, pattern.xVal, pattern.yVal, pattern.xMask, pattern.yMask));
+                sb.append(outputFormatter.load_pattern(reg, pattern.xVal, pattern.yVal, pattern.xMask, pattern.yMask));
             }
         } else if (list.size() <= 4 && list.size() <= availableRegs.size()+1) {
             if(reg.equals(this.selectReg)) {
@@ -393,15 +446,17 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
             Pattern pattern;
             for (int i = 0; i < list.size() - 1; i++) {
                 pattern = list.get(i);
-                sb.append(String.format("scamp5_load_pattern(%s, %s, %s, %s, %s); ", availableRegs.get(i), pattern.xVal, pattern.yVal, pattern.xMask, pattern.yMask));
+                sb.append(outputFormatter.load_pattern(availableRegs.get(i), pattern.xVal, pattern.yVal, pattern.xMask, pattern.yMask));
             }
             pattern = list.get(list.size()-1);
-            sb.append(String.format("scamp5_select_pattern(%s, %s, %s, %s); ", pattern.xVal, pattern.yVal, pattern.xMask, pattern.yMask));
-            sb.append(String.format("OR(%s, ", reg));
+            sb.append(outputFormatter.select_pattern(pattern.xVal, pattern.yVal, pattern.xMask, pattern.yMask));
+
+            List<String> regs = new ArrayList<>();
             for (int i = 0; i < list.size() - 1; i++) {
-                sb.append(availableRegs.get(i)).append(", ");
+                regs.add(availableRegs.get(i));
             }
-            sb.append(String.format("%s); ", this.selectReg));
+            sb.append(outputFormatter.OR(reg, regs.toArray(new String[0])));
+
         } else {
             throw new IllegalArgumentException("More complex Direction-Pattern loading not supported. Ask a developer for support");
         }
@@ -418,7 +473,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         {
             for (int i = 0; i < this.width; i++) {
                 for (int j = 0; j < this.height; j++) {
-                    masks.add(new Tuple<>(i, j));
+                    masks.add(new Tuple<>(256-this.width+i, 256-this.height+j));
                 }
             }
             masks.sort(Comparator.comparingInt(a -> -Bits.countOnes(a.getA()) - Bits.countOnes(a.getB())));
@@ -489,7 +544,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         return patterns;
     }
 
-    private int[] generateBitDirectionArray(int bank, int[][] bitOrder, char[][] bitDir, boolean forwards) {
+    private int[] generateBitDirectionArray(int bank, char[][] bitDir, boolean forwards) {
         int bits = this.getBits(bank);
         int xPos = -1;
         int yPos = -1;
@@ -501,7 +556,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
             // start at the highest number (most significant bit)
             for (int x = 0; x < this.width; x++) {
                 for (int y = 0; y < this.height; y++) {
-                    if(bitOrder[x][y] == bits){
+                    if(this.bitOrder[bank][x][y] == bits){
                         xPos = x;
                         yPos = y;
                         found = true;
@@ -516,10 +571,10 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         int[] count = Dir.makeArray(0);
         bitDir[xPos][yPos] = 'O';// origin (least or most significant bit depending on 'forwards')
         do {
-            place = bitOrder[xPos][yPos];
+            place = this.bitOrder[bank][xPos][yPos];
             for (int i = 0; i < Dir.values().length; i++) {
                 Dir dir = Dir.values()[i];
-                if (0 <= xPos - dir.x && xPos - dir.x < this.width && 0 <= yPos - dir.y && yPos - dir.y < this.height && bitOrder[xPos - dir.x][yPos - dir.y] == place + (forwards?1:-1) && place + (forwards?1:-1)>0) {
+                if (0 <= xPos - dir.x && xPos - dir.x < this.width && 0 <= yPos - dir.y && yPos - dir.y < this.height && this.bitOrder[bank][xPos - dir.x][yPos - dir.y] == place + (forwards?1:-1) && place + (forwards?1:-1)>0) {
                     bitDir[xPos - dir.x][yPos - dir.y] = dir.u;
                     dir.inc(count);
                     xPos = xPos - dir.x;
@@ -527,7 +582,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
                     break;
                 }
             }
-        } while (place != bitOrder[xPos][yPos]);
+        } while (place != this.bitOrder[bank][xPos][yPos]);
 //        printBitCharMask(bitDir, this.width, this.height);
         if (place != (forwards?bits:1)) throw new IllegalArgumentException("Cannot find bits!");
         return count;
@@ -637,6 +692,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         public boolean useMovbx;
         public boolean useAdd;
         public boolean useAddSelf;
+        public boolean useSub;
         public boolean useDiv;
         public boolean useRes;
         public String maskReg;
@@ -659,6 +715,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
             this.useMovbx = src.useMovbx;
             this.useAdd = src.useAdd;
             this.useAddSelf = src.useAddSelf;
+            this.useSub = src.useSub;
             this.useDiv = src.useDiv;
             this.useRes = src.useRes;
             this.maskReg = src.maskReg;
@@ -687,6 +744,11 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
 
         public Builder useAddSelf(boolean useAddSelf) {
             this.useAddSelf = useAddSelf;
+            return this;
+        }
+
+        public Builder useSub(boolean useSub) {
+            this.useSub = useSub;
             return this;
         }
 
@@ -761,7 +823,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         }
 
         public Scamp5SuperPixelConfig build() {
-            return new Scamp5SuperPixelConfig(useMovbx, useAdd, useAddSelf, useDiv, useRes, scratchRegisters, selectReg, maskReg, maskedReg, northReg, eastReg, southReg, westReg, width, height, banks, bitOrder, outputFormatter);
+            return new Scamp5SuperPixelConfig(useMovbx, useAdd, useAddSelf, useSub, useDiv, useRes, scratchRegisters, selectReg, maskReg, maskedReg, northReg, eastReg, southReg, westReg, width, height, banks, bitOrder, outputFormatter);
         }
     }
 }

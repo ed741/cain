@@ -101,6 +101,11 @@ public class Scamp5SuperPixelPairGens {
                         pairs.add(new GoalPair<>(upper, Arrays.asList(a, b), add));
                     }
                 }
+                G negB = b.negated();
+                if(scamp5SuperPixelConfig.useSub) {
+                    Sub_2<G> sub = new Sub_2<>(a, negB, scamp5SuperPixelConfig);
+                    pairs.add(new GoalPair<>(upper, Arrays.asList(a, negB), sub));
+                }
             }
 
             return pairs.stream();
@@ -136,10 +141,14 @@ public class Scamp5SuperPixelPairGens {
                 if (scamp5SuperPixelConfig.useMovbx && item.distance.manhattanXY() > 0){
                     //movx
                     SimpleTransformation.Direction d1 = item.distance.majorXYDirection();
-                    Dir dir1 = Dir.fromDirection(d1).opposite();
-                    Movxb<G> movx = new Movxb<>(item.a, dir1.x, dir1.y, item.a.getBank(), scamp5SuperPixelConfig);
-                    Item newItem = new Item(item, new GoalPair<>(item.a, movx.lower, movx));
-                    outList.add(newItem);
+                    Dir dir1 = Dir.fromDirection(d1);
+                    for (int bank = 0; bank < scamp5SuperPixelConfig.banks; bank++) {
+                        if (scamp5SuperPixelConfig.isBankSameShape(item.a.getBank(), bank)) {
+                            Movxb<G> movx = new Movxb<>(item.a, dir1.x, dir1.y, bank, scamp5SuperPixelConfig);
+                            Item newItem = new Item(item, new GoalPair<>(item.a, movx.lower, movx));
+                            outList.add(newItem);
+                        }
+                    }
                 }
             } else if (!scamp5SuperPixelConfig.onlyMov()){
                 G aWithoutTmp = item.a.without(tmp);
@@ -169,6 +178,13 @@ public class Scamp5SuperPixelPairGens {
                     Item newItem = new Item(item, new GoalPair<>(item.a, Arrays.asList(split1, split2), new Add_2<>(split1, split2, scamp5SuperPixelConfig)));
                     outList.add(newItem);
                 }
+            } else {
+                if(scamp5SuperPixelConfig.useSub) {
+                    G split1 = aWithoutTo;
+                    G split2 = item.to.negated();
+                    Item newItem = new Item(item, new GoalPair<>(item.a, Arrays.asList(split1, split2), new Sub_2<>(split1, split2, scamp5SuperPixelConfig)));
+                    outList.add(newItem);
+                }
             }
         }
 
@@ -178,10 +194,14 @@ public class Scamp5SuperPixelPairGens {
             if(scamp5SuperPixelConfig.useMovbx && centre.manhattanXY()>0){
                 SimpleTransformation.Direction d1 = centre.majorXYDirection();
                 if(d1!= null) {
-                    Dir dir1 = Dir.fromDirection(d1);
-                    Movxb<G> movx = new Movxb<>(a, dir1.x, dir1.y, a.getBank(), scamp5SuperPixelConfig);
-                    Item newItem = new Item(a, movx.lower, movx);
-                    outList.add(newItem);
+                    Dir dir1 = Dir.fromDirection(d1).opposite();
+                    for (int bank = 0; bank < scamp5SuperPixelConfig.banks; bank++) {
+                        if (scamp5SuperPixelConfig.isBankSameShape(a.getBank(), bank)) {
+                            Movxb<G> movx = new Movxb<>(a, dir1.x, dir1.y, bank, scamp5SuperPixelConfig);
+                            Item newItem = new Item(a, movx.lower, movx);
+                            outList.add(newItem);
+                        }
+                    }
                 }
             }
 

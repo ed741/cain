@@ -193,7 +193,7 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
 
     private Scamp5SuperPixelConfig.Builder updateConfigBuilder(JSONObject json, Scamp5SuperPixelConfig.Builder configBuilder) {
         // Currently no options available - all instructions kept on always
-        return configBuilder.useMovbx(true).useAdd(true).useAddSelf(true).useDiv(true).useRes(true);
+        return configBuilder.useMovbx(true).useAdd(true).useAddSelf(true).useSub(true).useDiv(true).useRes(true);
     }
 
 

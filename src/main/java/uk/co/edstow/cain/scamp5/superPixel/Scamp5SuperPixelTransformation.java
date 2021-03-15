@@ -226,24 +226,21 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
         }
     }
 
-    public static class Add_2<G extends BankedKernel3DGoal<G>> extends Scamp5SuperPixelTransformation<G> {
+    public static abstract class AddSub_2<G extends BankedKernel3DGoal<G>> extends Scamp5SuperPixelTransformation<G> {
         // u := a + b
 
         final G a;
         final G b;
-        G sum;
 
 
-        public Add_2(G a, G b, Scamp5SuperPixelConfig scamp5SuperPixelConfig) {
+        public AddSub_2(G a, G b, Scamp5SuperPixelConfig scamp5SuperPixelConfig) {
             super(scamp5SuperPixelConfig);
             assert a.getBank() == b.getBank();
             this.a = a;
             this.b = b;
-            this.sum = null;
         }
 
-        @Override
-        public String code(List<BRegister> uppers, List<BRegister> lowers, List<BRegister> trash) {
+        protected String longAddCode(List<BRegister> uppers, List<BRegister> lowers, List<BRegister> trash) {
             assert uppers.size() == 1;
             assert lowers.size() == 2;
             assert uppers.get(0).bank == lowers.get(0).bank && uppers.get(0).bank == lowers.get(1).bank;
@@ -254,7 +251,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
             String inputBReg = lowers.get(1).name;
             List<String> scratch = config.scratchRegisters;
 
-            for(int i = 0; i<config.getBits(bank); i++){
+            for (int i = 0; i < config.getBits(bank); i++) {
                 sb.append(String.format("\n/* Bit %d */", i));
                 // Copy in Carry in from correct PE
                 config.setDirLessSignificant(sb, bank);
@@ -285,14 +282,64 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
             return sb.toString();
         }
 
-        @Override
-        public double cost() {
-            return (15 * this.config.getBits(a.getBank()));
-        }
+        protected String shortCode(List<BRegister> uppers, List<BRegister> lowers, List<BRegister> trash, boolean sub) {
+            assert uppers.size() == 1;
+            assert lowers.size() == 2;
+            assert uppers.get(0).bank == lowers.get(0).bank && uppers.get(0).bank == lowers.get(1).bank;
+            int bank = uppers.get(0).bank;
+            StringBuilder sb = new StringBuilder(String.format("/*SP %s(%s, %s, %s)*/ ", sub?"Sub":"Add", uppers.get(0), lowers.get(0), lowers.get(1)));
+            String outputReg = uppers.get(0).name;
+            String inputAReg = lowers.get(0).name;
+            String inputBReg = lowers.get(1).name;
 
-        @Override
-        public String toString() {
-            return String.format("SP Add2(%s, %s)", a, b);
+            // Multiplex to only store half sum if we're in the correct bank.
+            sb.append(config.outputFormatter.SET(config.maskReg));
+            sb.append(config.outputFormatter.MOV(config.maskedReg, outputReg));
+            config.selectBank(sb, bank, config.maskReg, Arrays.asList(config.northReg, config.eastReg, config.southReg, config.westReg));
+
+            if (sub) { // invert b if we want to subtract
+                sb.append(config.outputFormatter.NOT(config.westReg, inputBReg));
+                inputBReg = config.westReg;
+            }
+            // add A and B into maskedReg
+            sb.append(config.outputFormatter.NOR(config.northReg, inputAReg, inputBReg));           //vn(1) = !(a+b)
+            sb.append(config.outputFormatter.NOR(config.eastReg, inputAReg, config.northReg));      //ve(2) = !(a+vn(1))
+            sb.append(config.outputFormatter.NOR(config.southReg, inputBReg, config.northReg));     //vs(3) = !(b+vn(1))
+            sb.append(config.outputFormatter.NOR(config.maskedReg, config.eastReg, config.southReg)); //vM(4) = !(ve(2)+vs(3))
+            sb.append(config.outputFormatter.MOV(outputReg, config.maskedReg));                      //vO(4) = vM(4)
+            // v(4) is in maskedReg
+
+            for (int i = 1; i <= config.getBits(bank); i++) {
+                sb.append(String.format("\n/* Bit %d */", i));
+                // Copy in Carry in from correct PE
+                config.setDirLessSignificantAndSelectBit(sb, bank, i, config.maskReg, Collections.emptyList());
+                if (i == 1) { // If least significant bit set carry in directly based on if we're doing a sub or add
+                    if (sub) {
+                        sb.append(config.outputFormatter.SET(config.maskedReg));
+                    } else {
+                        sb.append(config.outputFormatter.CLR(config.maskedReg));
+                    }
+                } else {// for the other bits read in from less significant bit
+                    sb.append(config.outputFormatter.DNEWS0(config.maskedReg, config.scratchRegisters.get(0)));
+                }
+                // maskedReg := Carry in bit
+
+                // Use dir registers as scratch registers
+                if (sub) { // invert b if we want to subtract
+                    sb.append(config.outputFormatter.NOT(config.westReg, lowers.get(1).name));   // vw(!b) = !b (for subtraction)
+                }
+                sb.append(config.outputFormatter.NOR(config.northReg, inputAReg, inputBReg));           //vn(1) = !(a+b)
+                sb.append(config.outputFormatter.NOR(config.eastReg, config.maskedReg, outputReg)); //ve(5) = !(vM(C)+vO(4))
+                sb.append(config.outputFormatter.NOR(config.southReg, outputReg, config.eastReg)); //vs(6) = !(vO(4)+ve(5))
+                sb.append(config.outputFormatter.NOR(config.westReg, config.maskedReg, config.eastReg)); //vw(7) = !(vM(C)+ve(5))
+                sb.append(config.outputFormatter.NOR(config.scratchRegisters.get(0), config.eastReg, config.northReg)); //v0(C) = !(ve(5)+vn(1))
+                // scratch[0] := Carry out bit
+
+                sb.append(config.outputFormatter.NOR(config.maskedReg, config.southReg, config.westReg)); //vM(S) = !(vs(6)+vw(7))
+                sb.append(config.outputFormatter.MOV(outputReg, config.maskedReg));
+
+            }
+            return sb.toString();
         }
 
         private static final boolean[] inputRegisterOutputInterference = {true, true};
@@ -316,6 +363,51 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
         @Override
         public int ExtraRegisterCount(int bank) {
             return 1;
+        }
+    }
+
+    public static class Add_2<G extends BankedKernel3DGoal<G>> extends AddSub_2<G> {
+
+        public Add_2(G a, G b, Scamp5SuperPixelConfig scamp5SuperPixelConfig) {
+            super(a, b, scamp5SuperPixelConfig);
+        }
+
+        @Override
+        public String toString() {
+            return String.format("SP Add2(%s, %s)", a, b);
+        }
+
+        @Override
+        public String code(List<BRegister> uppers, List<BRegister> lowers, List<BRegister> trash) {
+            return shortCode(uppers, lowers, trash, false);
+        }
+
+        @Override
+        public double cost() {
+            return 8 + (9 * this.config.getBits(a.getBank()));
+        }
+    }
+
+
+    public static class Sub_2<G extends BankedKernel3DGoal<G>> extends AddSub_2<G> {
+
+        public Sub_2(G a, G b, Scamp5SuperPixelConfig scamp5SuperPixelConfig) {
+            super(a, b, scamp5SuperPixelConfig);
+        }
+
+        @Override
+        public String toString() {
+            return String.format("SP Sub2(%s, %s)", a, b);
+        }
+
+        @Override
+        public String code(List<BRegister> uppers, List<BRegister> lowers, List<BRegister> trash) {
+            return shortCode(uppers, lowers, trash, true);
+        }
+
+        @Override
+        public double cost() {
+            return 9 + (10 * this.config.getBits(a.getBank()));
         }
     }
 

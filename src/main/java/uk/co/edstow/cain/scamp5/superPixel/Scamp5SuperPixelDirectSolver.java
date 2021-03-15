@@ -115,6 +115,12 @@ public class Scamp5SuperPixelDirectSolver<G extends BankedKernel3DGoal<G>> exten
                     }
                 }
             }
+            for (int i = 0; i < scamp5SuperPixelConfig.banks; i++) {
+                if(scamp5SuperPixelConfig.isBankSameShape(goal.getBank(), i)) {
+                    Scamp5SuperPixelTransformation.Movxb<G> movx = new Scamp5SuperPixelTransformation.Movxb<>(goal, 0, 0, i, scamp5SuperPixelConfig);
+                    list.add(new Tuple<>(Collections.singletonList(new GoalPair<>(goal, movx.lower, movx)), movx.lower));
+                }
+            }
         }
 
         return list;

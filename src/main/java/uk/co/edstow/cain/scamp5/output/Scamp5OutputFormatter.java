@@ -10,13 +10,15 @@ public interface Scamp5OutputFormatter {
 
   String MOV(String r1, String r2);
 
-  String CLR(String r1);
+  String CLR(String... rs);
 
-  String CLR(String r1, String r2);
+  default String CLR(String r1){return CLR(new String[]{r1});}
 
-  String CLR(String r1, String r2, String r3);
+  default String CLR(String r1, String r2){return CLR(new String[]{r1, r2});};
 
-  String CLR(String r1, String r2, String r3, String r4);
+  default String CLR(String r1, String r2, String r3){return CLR(new String[]{r1, r2, r3});};
+
+  default String CLR(String r1, String r2, String r3, String r4){return CLR(new String[]{r1, r2, r3, r4});};
 
   String SET(String r1);
 
@@ -24,7 +26,20 @@ public interface Scamp5OutputFormatter {
 
   String NOT(String r1, String r2);
 
-  String OR(String r1, String r2, String r3, String r4, String r5);
+  String OR(String r1, String... rs);
+
+  default String OR(String r1, String r2, String r3, String r4, String r5) {
+    return OR(r1, new String[]{r2, r3, r4, r5});
+  }
+
+  default String OR(String r1, String r2, String r3, String r4) {
+    return OR(r1, new String[]{r2, r3, r4});
+  }
+
+  default String OR(String r1, String r2, String r3) {
+    return OR(r1, new String[]{r2, r3});
+  }
+
 
   String DNEWS0(String r1, String r2);
 
@@ -62,5 +77,10 @@ public interface Scamp5OutputFormatter {
   String sub2x(Register y, Register x0, String dir1, String dir2, Register x1);
 
   String subx(Register y, Register x0, String dir1, Register x1);
+
+
+  String load_pattern(String r1, byte r, byte c, byte rx, byte cx);
+
+  String select_pattern(byte r, byte c, byte rx, byte cx);
 
 }
