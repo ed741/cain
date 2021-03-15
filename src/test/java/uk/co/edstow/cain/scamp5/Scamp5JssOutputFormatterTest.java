@@ -21,6 +21,6 @@ class Scamp5JssOutputFormatterTest {
     Scamp5JssOutputFormatter formatter = new Scamp5JssOutputFormatter("sim");
     String subx = formatter.subx(new Register("A"), new Register("B"), "north", new Register("C"));
 
-    assertEquals("sim.subx(sim.A, sim.B, north, sim.C);", subx);
+    assertEquals("sim.subx(sim.A, sim.B, north, sim.C); ", subx);
   }
 }
