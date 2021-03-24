@@ -634,7 +634,7 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation<R>, R ext
                     if(!tryChildren){
                         return false;
                     }
-                    p = p.newAdd(pair, currentGoals, translation, 0);
+                    p = p.newAdd(pair, currentGoals, translation, -1);
                 }
                 return addPlan(p, id, depth, this.nodesExpanded);
             }

@@ -125,12 +125,12 @@ public class Scamp5DigitalPairGens {
         final Scamp5DigitalConfig scamp5DigitalConfig;
 
         public DigitalAtomDistancePairGen(GoalBag<G> goals, Context<G, Scamp5DigitalTransformation<G>, Register> context, Scamp5DigitalConfig scamp5DigitalConfig) {
-            super(goals, context);
+            super(goals, context, true);
             this.scamp5DigitalConfig = scamp5DigitalConfig;
         }
 
         private DigitalAtomDistancePairGen(GoalBag<G> goals, Context<G, Scamp5DigitalTransformation<G>, Register> context, Scamp5DigitalConfig scamp5DigitalConfig, Iterator<Tuple<Integer, Integer>> ijGetter) {
-            super(goals, context, ijGetter);
+            super(goals, context, ijGetter, true);
             this.scamp5DigitalConfig = scamp5DigitalConfig;
         }
 
@@ -228,7 +228,7 @@ public class Scamp5DigitalPairGens {
                 G a = goals.get(ij.getA());
                 G b = goals.get(ij.getB());
                 boolean diagonal = ij.getA().equals(ij.getB());
-                List<Item> inList = getAtomDistanceList(a, b, diagonal);
+                List<Item> inList = getAtomDistanceList2D(a, b, diagonal);
                 //inList.sort(atomDistanceComparator);
                 addPairs(a, diagonal, inList, outList);
             }

@@ -17,6 +17,11 @@ public interface Kernel3DGoal<G extends Kernel3DGoal<G>> extends Goal<G> {
     boolean allSame();
     int minimumCount();
     int maximumCount();
+
+    /**
+     * @param pattern A goal to compare
+     * @return true iff there exists a translation that would make pattern equal to this.
+     */
     boolean isTranslation(G pattern);
 
     G copy();

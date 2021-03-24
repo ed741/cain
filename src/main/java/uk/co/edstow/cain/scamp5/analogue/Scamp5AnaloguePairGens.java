@@ -227,12 +227,12 @@ public class Scamp5AnaloguePairGens {
         final Scamp5AnalogueConfig scamp5AnalogueConfig;
 
         public AnalogueAtomDistancePairGen(GoalBag<G> goals, Context<G, Scamp5AnalogueTransformation<G>, Register> context, Scamp5AnalogueConfig scamp5AnalogueConfig) {
-            super(goals, context);
+            super(goals, context, true);
             this.scamp5AnalogueConfig = scamp5AnalogueConfig;
         }
 
         private AnalogueAtomDistancePairGen(GoalBag<G> goals, Context<G, Scamp5AnalogueTransformation<G>, Register> context, Scamp5AnalogueConfig scamp5AnalogueConfig, Iterator<Tuple<Integer, Integer>> ijGetter) {
-            super(goals, context, ijGetter);;
+            super(goals, context, ijGetter, true);
             this.scamp5AnalogueConfig = scamp5AnalogueConfig;
         }
 
@@ -475,7 +475,7 @@ public class Scamp5AnaloguePairGens {
                 G a = goals.get(ij.getA());
                 G b = goals.get(ij.getB());
                 boolean diagonal = ij.getA().equals(ij.getB());
-                List<Item> inList = getAtomDistanceList(a, b, diagonal);
+                List<Item> inList = getAtomDistanceList2D(a, b, diagonal);
                 //inList.sort(atomDistanceComparator);
                 addPairs(a, diagonal, inList, outList);
             }
