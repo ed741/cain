@@ -400,9 +400,9 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
 
         sb.append(outputFormatter.CLR(this.northReg, this.southReg, this.eastReg, this.westReg));
         if(reg.equals(this.selectReg)) {
-            sb.append(outputFormatter.select_pattern(xVal, yVal, xMask, yMask));
+            sb.append(outputFormatter.select_pattern(yVal, xVal, yMask, xMask));
         } else {
-            sb.append(outputFormatter.load_pattern(reg, xVal, yVal, xMask, yMask));
+            sb.append(outputFormatter.load_pattern(reg, yVal, xVal, yMask, xMask));
         }
         if(direction != null){
                 sb.append(outputFormatter.MOV(direction.getReg.apply(this), reg));
@@ -435,9 +435,9 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
             Pattern pattern = list.get(0);
             if(reg.equals(this.selectReg)) {
                 // x and y may need to be swapped in these pattern calls
-                sb.append(outputFormatter.select_pattern(pattern.xVal, pattern.yVal, pattern.xMask, pattern.yMask));
+                sb.append(outputFormatter.select_pattern(pattern.yVal, pattern.xVal, pattern.yMask, pattern.xMask));
             } else {
-                sb.append(outputFormatter.load_pattern(reg, pattern.xVal, pattern.yVal, pattern.xMask, pattern.yMask));
+                sb.append(outputFormatter.load_pattern(reg, pattern.yVal, pattern.xVal, pattern.yMask, pattern.xMask));
             }
         } else if (list.size() <= 4 && list.size() <= availableRegs.size()+1) {
             if(reg.equals(this.selectReg)) {
@@ -446,15 +446,16 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
             Pattern pattern;
             for (int i = 0; i < list.size() - 1; i++) {
                 pattern = list.get(i);
-                sb.append(outputFormatter.load_pattern(availableRegs.get(i), pattern.xVal, pattern.yVal, pattern.xMask, pattern.yMask));
+                sb.append(outputFormatter.load_pattern(availableRegs.get(i), pattern.yVal, pattern.xVal, pattern.yMask, pattern.xMask));
             }
             pattern = list.get(list.size()-1);
-            sb.append(outputFormatter.select_pattern(pattern.xVal, pattern.yVal, pattern.xMask, pattern.yMask));
+            sb.append(outputFormatter.select_pattern(pattern.yVal, pattern.xVal, pattern.yMask, pattern.xMask));
 
             List<String> regs = new ArrayList<>();
             for (int i = 0; i < list.size() - 1; i++) {
                 regs.add(availableRegs.get(i));
             }
+            regs.add(this.selectReg);
             sb.append(outputFormatter.OR(reg, regs.toArray(new String[0])));
 
         } else {
@@ -469,15 +470,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         Map<Dir, List<Pattern>> patterns = Dir.makeMap(ArrayList::new);
 
 
-        List<Tuple<Integer, Integer>> masks = new ArrayList<>();
-        {
-            for (int i = 0; i < this.width; i++) {
-                for (int j = 0; j < this.height; j++) {
-                    masks.add(new Tuple<>(256-this.width+i, 256-this.height+j));
-                }
-            }
-            masks.sort(Comparator.comparingInt(a -> -Bits.countOnes(a.getA()) - Bits.countOnes(a.getB())));
-        }
+        List<Tuple<Integer, Integer>> masks = getMaskList();
 
         while(Arrays.stream(count).sum()>0){
 
@@ -594,16 +587,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
 
         List<Pattern> patterns = new ArrayList<>();
 
-
-        List<Tuple<Integer, Integer>> masks = new ArrayList<>();
-        {
-            for (int i = 0; i < this.width; i++) {
-                for (int j = 0; j < this.height; j++) {
-                    masks.add(new Tuple<>(i, j));
-                }
-            }
-            masks.sort(Comparator.comparingInt(a -> -Bits.countOnes(a.getA()) - Bits.countOnes(a.getB())));
-        }
+        List<Tuple<Integer, Integer>> masks = getMaskList();
 
         while(count>0){
 
@@ -661,6 +645,19 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         return patterns;
     }
 
+    private List<Tuple<Integer, Integer>> getMaskList() {
+        List<Tuple<Integer, Integer>> masks = new ArrayList<>();
+        {
+            for (int i = 0; i < this.width; i++) {
+                for (int j = 0; j < this.height; j++) {
+                    masks.add(new Tuple<>(256-this.width+i, 256-this.height+j));
+                }
+            }
+            masks.sort(Comparator.comparingInt(a -> -Bits.countOnes(a.getA()) - Bits.countOnes(a.getB())));
+        }
+        return masks;
+    }
+
     private boolean[][] getPatternSetArray(int xMask, int yMask, int xVal, int yVal) {
         boolean[][] set = new boolean[this.width][this.height];
         for (int x = 0; x < this.width; x++) {
@@ -680,7 +677,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
                             break;
                         }
                     }
-                    set[x][y] = ySet;
+                    set[x][this.height-1-y] = ySet;
                 }
             }
         }

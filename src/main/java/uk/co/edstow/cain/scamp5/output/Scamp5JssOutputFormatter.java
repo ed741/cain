@@ -17,7 +17,7 @@ public class Scamp5JssOutputFormatter implements Scamp5OutputFormatter {
 
   @Override
   public String MOV(String r1, String r2) {
-    return String.format("%1$s.NOR(%1$s.%2$s, %1$s.%3$s); ", simulatorName, r1, r2);
+    return String.format("%1$s.MOV(%1$s.%2$s, %1$s.%3$s); ", simulatorName, r1, r2);
   }
 
   @Override
@@ -175,11 +175,11 @@ public class Scamp5JssOutputFormatter implements Scamp5OutputFormatter {
 
   @Override
   public String load_pattern(String r1, byte r, byte c, byte rx, byte cx) {
-    return String.format("%1$s.load_pattern(%1$s.%2$s, 0x%3$02x, 0x%4$02x, 0x%5$02x, 0x%6$02x); ", simulatorName, r1, r, c, rx, cx);
+    return String.format("%1$s.scamp5_load_pattern(%1$s.%2$s, 0x%3$02x, 0x%4$02x, 0x%5$02x, 0x%6$02x); ", simulatorName, r1, r, c, rx, cx);
   }
 
   @Override
   public String select_pattern(byte r, byte c, byte rx, byte cx) {
-    return String.format("%1$s.load_pattern(0x%2$02x, 0x%3$02x, 0x%4$02x, 0x%5$02x); ", simulatorName, r, c, rx, cx);
+    return String.format("%1$s.scamp5_select_pattern(0x%2$02x, 0x%3$02x, 0x%4$02x, 0x%5$02x); ", simulatorName, r, c, rx, cx);
   }
 }

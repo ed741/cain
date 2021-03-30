@@ -443,7 +443,7 @@ public final class BankedArrayGoal implements BankedKernel3DGoal<BankedArrayGoal
         if (c != 0) return c;
         c = Integer.compare(arrayGoal.ySize, this.ySize);
         if (c != 0) return c;
-        c = Integer.compare(arrayGoal.ySize, this.ySize);
+        c = Integer.compare(arrayGoal.zSize, this.zSize);
         if (c != 0) return c;
         for (int i = 0; i < arr.length; i++) {
             c = Integer.compare(arrayGoal.arr[i], this.arr[i]);
@@ -608,7 +608,7 @@ public final class BankedArrayGoal implements BankedKernel3DGoal<BankedArrayGoal
                     int yPos = y + centerY;
                     int zPos = z + centerZ;
                     int idx = (xPos*(ySize) + yPos)*(zSize) + zPos;
-                    int thisC = arr[idx];
+                    int thisC = Math.abs(arr[idx]);
                     ax += thisC*x;
                     ay += thisC*y;
                     az += thisC*z;

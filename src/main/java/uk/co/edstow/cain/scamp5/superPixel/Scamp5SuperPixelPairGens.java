@@ -119,12 +119,12 @@ public class Scamp5SuperPixelPairGens {
 
 
         public SuperPixelAtomDistancePairGen(GoalBag<G> goals, Context<G, Scamp5SuperPixelTransformation<G>, BRegister> context, Scamp5SuperPixelConfig scamp5SuperPixelConfig) {
-            super(goals, context);
+            super(goals, context, true);
             this.scamp5SuperPixelConfig = scamp5SuperPixelConfig;
         }
 
         private SuperPixelAtomDistancePairGen(GoalBag<G> goals, Context<G, Scamp5SuperPixelTransformation<G>, BRegister> context, Scamp5SuperPixelConfig scamp5SuperPixelConfig, Iterator<Tuple<Integer, Integer>> ijGetter) {
-            super(goals, context, ijGetter);
+            super(goals, context, ijGetter, true);
             this.scamp5SuperPixelConfig = scamp5SuperPixelConfig;
         }
         
@@ -237,7 +237,7 @@ public class Scamp5SuperPixelPairGens {
                 G a = goals.get(ij.getA());
                 G b = goals.get(ij.getB());
                 boolean diagonal = ij.getA().equals(ij.getB());
-                List<Item> inList = getAtomDistanceList(a, b, diagonal);
+                List<Item> inList = getAtomDistanceList2D(a, b, diagonal);
                 //inList.sort(atomDistanceComparator);
                 addPairs(a, diagonal, inList, outList);
             }

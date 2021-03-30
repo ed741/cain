@@ -84,7 +84,13 @@ public class Scamp5SuperPixelDirectSolver<G extends BankedKernel3DGoal<G>> exten
                             div = new Scamp5SuperPixelTransformation.Div<>(div.a, true, scamp5SuperPixelConfig);
                             pairs.add(new GoalPair<>(div.applyForwards(), Collections.singletonList(div.a), div));
                         }
-                        if (div.a.equals(ic)) {
+                        G result = div.a;
+                        if(scamp5SuperPixelConfig.useMovbx && div.a.getBank() != ic.getBank()){
+                            Scamp5SuperPixelTransformation.Movxb<G> movx = new Scamp5SuperPixelTransformation.Movxb<>(div.a, 0, 0, ic.getBank(), scamp5SuperPixelConfig);
+                            pairs.add(new GoalPair<>(movx.upper, movx.lower, movx));
+                            result = movx.lower;
+                        }
+                        if (result.equals(ic)) {
                             list.add(new Tuple<>(pairs, ic));
                         }
                     }
