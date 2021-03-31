@@ -53,10 +53,10 @@ public class Scamp5SuperPixelDirectSolver<G extends BankedKernel3DGoal<G>> exten
     public Collection<Tuple<List<GoalPair<G, Scamp5SuperPixelTransformation<G>, BRegister>>, G>> solveDirectly(Context<G, Scamp5SuperPixelTransformation<G>, BRegister> context, G goal) {
         ArrayList<Tuple<List<GoalPair<G,Scamp5SuperPixelTransformation<G>, BRegister>>, G>> list = new ArrayList<>();
 
-        if(context.initialGoals.contains(goal)){
-            list.add(new Tuple<>(Collections.emptyList(), goal));
-            return list;
-        }
+//        if(context.initialGoals.contains(goal)){
+//            list.add(new Tuple<>(Collections.emptyList(), goal));
+//            return list;
+//        }
 
         //Res
         if(scamp5SuperPixelConfig.useRes && goal.allZero()){
