@@ -368,7 +368,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         sb.append("/*done - SetDirMoreSignificantAndSelect*/");
     }
 
-    private void setDirSignificantAndSelectBit(StringBuilder sb, int bank, int place, String reg, boolean forwards, List<String> availableRegs) {
+    private void setDirSignificantAndSelectBit(StringBuilder sb, int bank, int place, String reg, boolean lessSignificant, List<String> availableRegs) {
         int x = -1;
         int y = -1;
         Dir direction = null;
@@ -381,7 +381,10 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
                         y = yPos;
                         for (int d = 0; d < Dir.values().length; d++) {
                             Dir dir = Dir.values()[d];
-                            if (0 <= xPos - dir.x && xPos - dir.x < this.width && 0 <= yPos - dir.y && yPos - dir.y < this.height && this.bitOrder[bank][xPos - dir.x][yPos - dir.y] == place + (forwards?1:-1) && place + (forwards?1:-1)>0) {
+                            if (0 <= xPos + dir.x && xPos + dir.x < this.width &&
+                                    0 <= yPos + dir.y && yPos + dir.y < this.height &&
+                                    this.bitOrder[bank][xPos + dir.x][yPos + dir.y] == place + (lessSignificant?-1:1) &&
+                                    place + (lessSignificant?1:-1)>0) {
                                 direction = dir;
                                 break;
                             }
@@ -396,7 +399,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         byte xMask = (byte) (256-this.width); // mask set to like this since only 1 PE in the SuperPixel can be set at
         byte yMask = (byte) (256-this.height);// a time using this method.
         byte xVal = (byte) x;
-        byte yVal = (byte) y;
+        byte yVal = (byte) (this.height - 1 - y);
 
         sb.append(outputFormatter.CLR(this.northReg, this.southReg, this.eastReg, this.westReg));
         if(reg.equals(this.selectReg)) {
@@ -537,11 +540,11 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         return patterns;
     }
 
-    private int[] generateBitDirectionArray(int bank, char[][] bitDir, boolean forwards) {
+    private int[] generateBitDirectionArray(int bank, char[][] bitDir, boolean lessSignificant) {
         int bits = this.getBits(bank);
         int xPos = -1;
         int yPos = -1;
-        if(forwards) {
+        if(lessSignificant) {
             xPos = this.xBankStart[bank];
             yPos = this.yBankStart[bank];
         } else {
@@ -562,12 +565,15 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         int place;
 
         int[] count = Dir.makeArray(0);
-        bitDir[xPos][yPos] = 'O';// origin (least or most significant bit depending on 'forwards')
+        bitDir[xPos][yPos] = 'O';// origin (least or most significant bit depending on 'lessSignificant')
         do {
             place = this.bitOrder[bank][xPos][yPos];
             for (int i = 0; i < Dir.values().length; i++) {
                 Dir dir = Dir.values()[i];
-                if (0 <= xPos - dir.x && xPos - dir.x < this.width && 0 <= yPos - dir.y && yPos - dir.y < this.height && this.bitOrder[bank][xPos - dir.x][yPos - dir.y] == place + (forwards?1:-1) && place + (forwards?1:-1)>0) {
+                if (0 <= xPos - dir.x && xPos - dir.x < this.width &&
+                        0 <= yPos - dir.y && yPos - dir.y < this.height &&
+                        this.bitOrder[bank][xPos - dir.x][yPos - dir.y] == place + (lessSignificant?1:-1) &&
+                        place + (lessSignificant?1:-1)>0) {
                     bitDir[xPos - dir.x][yPos - dir.y] = dir.u;
                     dir.inc(count);
                     xPos = xPos - dir.x;
@@ -577,7 +583,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
             }
         } while (place != this.bitOrder[bank][xPos][yPos]);
 //        printBitCharMask(bitDir, this.width, this.height);
-        if (place != (forwards?bits:1)) throw new IllegalArgumentException("Cannot find bits!");
+        if (place != (lessSignificant?bits:1)) throw new IllegalArgumentException("Cannot find bits!");
         return count;
     }
 

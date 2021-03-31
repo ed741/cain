@@ -167,7 +167,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
         @Override
         public String code(List<BRegister> uppers, List<BRegister> lowers, List<BRegister> trash) {
 //            assert lowers.size() == inputCount();
-            StringBuilder sb = new StringBuilder(String.format("/*SP Res(%s)*/ ", lowers));
+            StringBuilder sb = new StringBuilder(String.format("/*SP Res(%s)*/ ", uppers));
             List<String> scratch = new ArrayList<>(config.scratchRegisters);
             scratch.add(config.northReg);
             scratch.add(config.eastReg);
@@ -714,7 +714,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
                 }
             }
             if(yPETranslation != 0) {
-                String dirReg = yPETranslation<0? config.northReg : config.southReg;
+                String dirReg = yPETranslation<0? config.southReg : config.northReg;
                 // set move direction
                 sb.append(config.outputFormatter.CLR(config.northReg, config.eastReg, config.southReg, config.westReg));
                 sb.append(config.outputFormatter.SET(dirReg, config.maskReg));//also set maskReg so we can use maskedReg

@@ -66,6 +66,11 @@ public class Scamp5SuperPixelPairGens {
                 }
             }
 
+            if(scamp5SuperPixelConfig.useSub) {
+                Sub_2<G> sub = new Sub_2<>(upper.newFactory().get(), upper.negated(), scamp5SuperPixelConfig);
+                pairs.add(new GoalPair<>(upper, Arrays.asList(sub.a, sub.b), sub));
+            }
+
             return pairs.stream();
         }
 
