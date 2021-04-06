@@ -2,7 +2,6 @@ package uk.co.edstow.cain.scamp5.superPixel;
 
 import uk.co.edstow.cain.scamp5.Scamp5Config;
 import uk.co.edstow.cain.scamp5.output.Scamp5OutputFormatter;
-import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.util.Bits;
 import uk.co.edstow.cain.util.Tuple;
 
@@ -19,6 +18,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
     public final boolean useSub;
     public final boolean useDiv;
     public final boolean useRes;
+    public final boolean useNeg;
     private final boolean onlyMov;
 
     final List<String> scratchRegisters;
@@ -39,8 +39,9 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
     public final int[] xBankStart;
     public final int[] yBankStart;
     public final boolean[][] sameShapeLookup;
-    
-    public Scamp5SuperPixelConfig(boolean useMovbx, boolean useAdd, boolean useAddSelf, boolean useSub, boolean useDiv, boolean useRes, List<String> scratchRegisters, String selectReg, String maskReg, String maskedReg, String northReg, String eastReg, String southReg, String westReg, int width, int height, int banks, int[][][] bitOrder, Scamp5OutputFormatter outputFormatter) {
+
+
+    public Scamp5SuperPixelConfig(boolean useMovbx, boolean useAdd, boolean useAddSelf, boolean useSub, boolean useDiv, boolean useRes, boolean useNeg, List<String> scratchRegisters, String selectReg, String maskReg, String maskedReg, String northReg, String eastReg, String southReg, String westReg, int width, int height, int banks, int[][][] bitOrder, Scamp5OutputFormatter outputFormatter) {
         super(outputFormatter);
         this.useMovbx = useMovbx;
         this.useAdd = useAdd;
@@ -48,8 +49,9 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         this.useSub = useSub;
         this.useDiv = useDiv;
         this.useRes = useRes;
+        this.useNeg = useNeg;
 
-        this.onlyMov = !(this.useAdd || this.useDiv || this.useRes);
+        this.onlyMov = !(this.useAdd || this.useDiv || this.useRes || this.useNeg);
 
         this.width = width;
         this.height = height;
@@ -81,8 +83,9 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         this.useSub = proto.useSub;
         this.useDiv = proto.useDiv;
         this.useRes = proto.useRes;
+        this.useNeg = proto.useNeg;
 
-        this.onlyMov = !(this.useAdd || this.useAddSelf || this.useDiv || this.useRes);
+        this.onlyMov = !(this.useAdd || this.useAddSelf || this.useDiv || this.useRes || this.useNeg);
 
 
         this.width = width;
@@ -115,6 +118,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         this.useSub = proto.useSub && (!onlyMov);
         this.useDiv = proto.useDiv && (!onlyMov);
         this.useRes = proto.useRes && (!onlyMov);
+        this.useNeg = proto.useNeg && (!onlyMov);
 
         this.onlyMov = !(this.useAdd || this.useDiv || this.useRes);
 
@@ -331,7 +335,8 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         sb.append(String.format("/*SetSelectBank %s -> %s*/", bank, reg));
         List<String> availableRegs = new ArrayList<>(scratchRegisters);
         if(!availableRegs.contains(reg)) availableRegs.add(reg);
-        generateCodeForPatternsReg(sb, availableRegs, toClear, reg, patternList);
+        boolean inKernelMode = generateCodeForPatternsReg(sb, availableRegs, toClear, reg, patternList, true);
+        if(!inKernelMode){ sb.append(outputFormatter.kernel_begin()); }
         sb.append("/*done - SetSelectBank*/");
     }
 
@@ -401,12 +406,14 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         byte xVal = (byte) x;
         byte yVal = (byte) (this.height - 1 - y);
 
-        sb.append(outputFormatter.CLR(this.northReg, this.southReg, this.eastReg, this.westReg));
+        sb.append(outputFormatter.kernel_end());
         if(reg.equals(this.selectReg)) {
             sb.append(outputFormatter.select_pattern(yVal, xVal, yMask, xMask));
         } else {
             sb.append(outputFormatter.load_pattern(reg, yVal, xVal, yMask, xMask));
         }
+        sb.append(outputFormatter.kernel_begin());
+        sb.append(outputFormatter.CLR(this.northReg, this.southReg, this.eastReg, this.westReg));
         if(direction != null){
                 sb.append(outputFormatter.MOV(direction.getReg.apply(this), reg));
         }
@@ -418,23 +425,26 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         List<Map.Entry<Dir, List<Pattern>>> patternList = patterns.entrySet().stream().sorted(Comparator.comparingInt(e -> -e.getValue().size())).collect(Collectors.toList());
         List<String> availableRegs = new ArrayList<>(Arrays.asList(this.northReg, this.southReg, this.eastReg, this.westReg, this.maskReg));
         List<String> toClear = new ArrayList<>();
+        boolean inKernelMode = true;
         for (Map.Entry<Dir, List<Pattern>> entry : patternList) {
             Dir dir = entry.getKey();
             List<Pattern> list = entry.getValue();
             String reg = dir.getReg(this);
             sb.append(String.format("/* loading Dir: %s into %s */", dir.u, reg));
-            generateCodeForPatternsReg(sb, availableRegs, toClear, reg, list);
+            inKernelMode = generateCodeForPatternsReg(sb, availableRegs, toClear, reg, list, inKernelMode);
         }
+        if(!inKernelMode) {sb.append(outputFormatter.kernel_begin());}
         if(!toClear.isEmpty()){
             sb.append(outputFormatter.CLR(toClear.toArray(new String[0])));
         }
     }
 
-    private void generateCodeForPatternsReg(StringBuilder sb, List<String> availableRegs, List<String> toClear, String reg, List<Pattern> list) {
+    private boolean generateCodeForPatternsReg(StringBuilder sb, List<String> availableRegs, List<String> toClear, String reg, List<Pattern> list, boolean inKernelMode) {
         availableRegs.remove(reg);
         if (list.isEmpty()){
             toClear.add(reg);
         } else if (list.size()==1){
+            if(inKernelMode) {sb.append(outputFormatter.kernel_end()); inKernelMode = false;}
             Pattern pattern = list.get(0);
             if(reg.equals(this.selectReg)) {
                 // x and y may need to be swapped in these pattern calls
@@ -446,6 +456,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
             if(reg.equals(this.selectReg)) {
                 throw new IllegalArgumentException("Scamp5 cannot have multiple patterns together in select register: "+this.selectReg);
             }
+            if(inKernelMode) {sb.append(outputFormatter.kernel_end()); inKernelMode = false;}
             Pattern pattern;
             for (int i = 0; i < list.size() - 1; i++) {
                 pattern = list.get(i);
@@ -459,11 +470,13 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
                 regs.add(availableRegs.get(i));
             }
             regs.add(this.selectReg);
+            {sb.append(outputFormatter.kernel_begin()); inKernelMode = true;}
             sb.append(outputFormatter.OR(reg, regs.toArray(new String[0])));
 
         } else {
             throw new IllegalArgumentException("More complex Direction-Pattern loading not supported. Ask a developer for support");
         }
+        return inKernelMode;
     }
 
 
@@ -698,6 +711,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         public boolean useSub;
         public boolean useDiv;
         public boolean useRes;
+        public boolean useNeg;
         public String maskReg;
         public String maskedReg;
         public String northReg;
@@ -721,6 +735,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
             this.useSub = src.useSub;
             this.useDiv = src.useDiv;
             this.useRes = src.useRes;
+            this.useNeg = src.useNeg;
             this.maskReg = src.maskReg;
             this.maskedReg = src.maskedReg;
             this.northReg = src.northReg;
@@ -762,6 +777,11 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
 
         public Builder useRes(boolean useRes) {
             this.useRes = useRes;
+            return this;
+        }
+
+        public Builder useNeg(boolean useNeg) {
+            this.useNeg = useNeg;
             return this;
         }
 
@@ -826,7 +846,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         }
 
         public Scamp5SuperPixelConfig build() {
-            return new Scamp5SuperPixelConfig(useMovbx, useAdd, useAddSelf, useSub, useDiv, useRes, scratchRegisters, selectReg, maskReg, maskedReg, northReg, eastReg, southReg, westReg, width, height, banks, bitOrder, outputFormatter);
+            return new Scamp5SuperPixelConfig(useMovbx, useAdd, useAddSelf, useSub, useDiv, useRes, useNeg, scratchRegisters, selectReg, maskReg, maskedReg, northReg, eastReg, southReg, westReg, width, height, banks, bitOrder, outputFormatter);
         }
     }
 }

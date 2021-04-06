@@ -83,4 +83,7 @@ public interface Scamp5OutputFormatter {
 
   String select_pattern(byte r, byte c, byte rx, byte cx);
 
+  String kernel_begin();
+  String kernel_end();
+
 }

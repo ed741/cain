@@ -182,4 +182,14 @@ public class Scamp5JssOutputFormatter implements Scamp5OutputFormatter {
   public String select_pattern(byte r, byte c, byte rx, byte cx) {
     return String.format("%1$s.scamp5_select_pattern(0x%2$02x, 0x%3$02x, 0x%4$02x, 0x%5$02x); ", simulatorName, r, c, rx, cx);
   }
+
+  @Override
+  public String kernel_begin() {
+    return "/*Kernel Begin*/";
+  }
+
+  @Override
+  public String kernel_end() {
+    return "/*Kernel End*/";
+  }
 }

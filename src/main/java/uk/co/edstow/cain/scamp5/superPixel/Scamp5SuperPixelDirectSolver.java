@@ -8,6 +8,7 @@ import uk.co.edstow.cain.pairgen.PairGen;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.regAlloc.BRegister;
 import uk.co.edstow.cain.regAlloc.Register;
+import uk.co.edstow.cain.scamp5.analogue.Scamp5AnalogueTransformation;
 import uk.co.edstow.cain.scamp5.digital.Scamp5DigitalTransformation;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
@@ -63,6 +64,14 @@ public class Scamp5SuperPixelDirectSolver<G extends BankedKernel3DGoal<G>> exten
             Scamp5SuperPixelTransformation.Res<G> res = new Scamp5SuperPixelTransformation.Res<>(Collections.singletonList(goal), scamp5SuperPixelConfig);
             list.add(new Tuple<>(Collections.singletonList((new GoalPair<>(goal, Collections.emptyList(), res))), context.initialGoals.get(0)));
             return list;
+        }
+
+        //Negate
+        if(scamp5SuperPixelConfig.useNeg) {
+            Scamp5SuperPixelTransformation.Negate<G> neg = new Scamp5SuperPixelTransformation.Negate<>(goal.negated(), goal, scamp5SuperPixelConfig);
+            if (context.initialGoals.contains(neg.a)) {
+                list.add(new Tuple<>(Collections.singletonList(new GoalPair<>(goal, neg.a, neg)), neg.a));
+            }
         }
 
         //Divide

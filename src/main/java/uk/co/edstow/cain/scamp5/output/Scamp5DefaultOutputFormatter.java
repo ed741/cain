@@ -153,4 +153,14 @@ public class Scamp5DefaultOutputFormatter implements Scamp5OutputFormatter {
   public String select_pattern(byte r, byte c, byte rx, byte cx) {
     return String.format("select_pattern(0x%02x, 0x%02x, 0x%02x, 0x%02x); ", r, c, rx, cx);
   }
+
+  @Override
+  public String kernel_begin() {
+    return "scamp5_kernel_begin(); ";
+  }
+
+  @Override
+  public String kernel_end() {
+    return "scamp5_kernel_end(); ";
+  }
 }

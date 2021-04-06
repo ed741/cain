@@ -226,6 +226,82 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
         }
     }
 
+    public static class Negate<G extends BankedKernel3DGoal<G>> extends Scamp5SuperPixelTransformation<G> {
+        // a := -neg
+        final G neg; //upper
+        final G a;   //lower
+        protected Negate(G a, G neg, Scamp5SuperPixelConfig scamp5SuperPixelConfig) {
+            super(scamp5SuperPixelConfig);
+            this.neg = neg;
+            this.a = a;
+            assert a.getBank() == neg.getBank();
+        }
+
+        @Override
+        public String toString() {
+            return String.format("SP Neg(%s)", a);
+        }
+
+        @Override
+        public boolean[] inputRegisterOutputInterference(int u) {
+            return new boolean[1];
+        }
+
+        @Override
+        public int ExtraRegisterCount(int bank) {
+            return 0;
+        }
+
+        @Override
+        public String code(List<BRegister> uppers, List<BRegister> lowers, List<BRegister> trash) {
+            assert uppers.size() == 1;
+            assert lowers.size() == 1;
+            assert uppers.get(0).bank == lowers.get(0).bank;
+            int bank = uppers.get(0).bank;
+            StringBuilder sb = new StringBuilder(String.format("/*SP Neg(%s, %s)*/ ", uppers.get(0), lowers.get(0)));
+            String outputReg = uppers.get(0).name;
+            String inputAReg = lowers.get(0).name;
+
+            for (int i = 1; i <= config.getBits(bank); i++) {
+                sb.append(String.format("\n/* Bit %d */", i));
+                // Copy in Carry in from correct PE
+                config.setDirLessSignificantAndSelectBit(sb, bank, i, config.maskReg, Collections.emptyList());
+                if (i == 1) { // If least significant bit set carry in directly based on if we're doing a sub or add
+                    sb.append(config.outputFormatter.SET(config.maskedReg));
+                } else {// for the other bits read in from less significant bit
+                    sb.append(config.outputFormatter.DNEWS0(config.maskedReg, config.scratchRegisters.get(0)));
+                }
+                // maskedReg := Carry in bit
+
+                // Use dir registers as scratch registers
+                sb.append(config.outputFormatter.NOT(config.northReg, inputAReg));   // vn(!a) = !a
+                sb.append(config.outputFormatter.NOT(config.eastReg, config.maskedReg));   // ve(!c_in) = !vM(c_in)
+                sb.append(config.outputFormatter.NOR(config.scratchRegisters.get(0), inputAReg, config.eastReg)); // s0(c_out) = !(!!a + ve(!c_in))
+                sb.append(config.outputFormatter.NOR(config.southReg, config.northReg, config.maskedReg)); // vs(!(!a+c_in)) = !(vn(!a) + vM(c_in))
+                sb.append(config.outputFormatter.NOR(config.maskedReg, config.scratchRegisters.get(0), config.southReg)); // vM(sum) = !(s0(c_out) + vs(!(!a+c_in)))
+                // scratch[0] := Carry out bit
+                sb.append(config.outputFormatter.MOV(outputReg, config.maskedReg));
+
+            }
+            return sb.toString();
+        }
+
+        @Override
+        public int[] inputRegisterIntraInterference() {
+            return new int[1];
+        }
+
+        @Override
+        public boolean clobbersInput(int i) {
+            return false;
+        }
+
+        @Override
+        public double cost() {
+            return 8*config.getBits(a.getBank());
+        }
+    }
+
     public static abstract class AddSub_2<G extends BankedKernel3DGoal<G>> extends Scamp5SuperPixelTransformation<G> {
         // u := a + b
 
