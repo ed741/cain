@@ -62,7 +62,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
         public String code(List<BRegister> uppers, List<BRegister> lowers, List<BRegister> trash) {
             assert uppers.size() == outputCount;
             assert lowers.size() == inputCount;
-            return String.format("/* Null Instruction: %s <- %s */", uppers, lowers);
+            return this.config.outputFormatter.comment(String.format("Null Instruction: %s <- %s", uppers, lowers));
         }
 
         @Override

@@ -51,7 +51,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
 
         @Override
         public String code(List<Register> uppers, List<Register> lowers, List<Register> trash) {
-            return String.format("//Null Instruction: %s <- %s", uppers, lowers);
+            return this.config.outputFormatter.comment(String.format("Null Instruction: %s <- %s", uppers, lowers));
         }
 
         @Override

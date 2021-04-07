@@ -13,14 +13,17 @@ import uk.co.edstow.cain.pairgen.Generator;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.pairgen.ThresholdPairGen;
 import uk.co.edstow.cain.regAlloc.Register;
+import uk.co.edstow.cain.regAlloc.RegisterAllocator;
 import uk.co.edstow.cain.scamp5.*;
 import uk.co.edstow.cain.scamp5.emulator.Scamp5AnalogueVerifier;
 import uk.co.edstow.cain.scamp5.output.Scamp5DefaultOutputFormatter;
 import uk.co.edstow.cain.scamp5.output.Scamp5JssOutputFormatter;
 import uk.co.edstow.cain.scamp5.output.Scamp5OutputFormatter;
+import uk.co.edstow.cain.structures.Plan;
 
 public abstract class Scamp5AnalogueFileRun<G extends Kernel3DGoal<G>> extends Kernel3DStdTransFileRun<G, Scamp5AnalogueTransformation<G>> {
 
+    private Scamp5AnalogueConfig scamp5AnalogueConfig;
 
     public Scamp5AnalogueFileRun(JSONObject config) {
         super(config);
@@ -60,8 +63,8 @@ public abstract class Scamp5AnalogueFileRun<G extends Kernel3DGoal<G>> extends K
         if(!json.has(factory)) {throw new IllegalArgumentException("you need to define " + factory + " inside pairGen");}
         JSONObject strategy = json.getJSONObject(factory);
         PairGenFactory<G, Scamp5AnalogueTransformation<G>, Register> pairGenFactory = buildPairGenFactory(strategy, configBuilder);
-
-        return new Generator<>(new Scamp5AnalogueDirectSolver<>(configBuilder.build()),pairGenFactory);
+        scamp5AnalogueConfig = configBuilder.build();
+        return new Generator<>(new Scamp5AnalogueDirectSolver<>(scamp5AnalogueConfig),pairGenFactory);
 
     }
 
@@ -170,6 +173,22 @@ public abstract class Scamp5AnalogueFileRun<G extends Kernel3DGoal<G>> extends K
             default:
                 throw new IllegalArgumentException("Verifier Unknown");
         }
+    }
+
+    @Override
+    protected String generateCode(Plan<G, Scamp5AnalogueTransformation<G>, Register> p){
+        RegisterAllocator.Mapping<G,Register> mapping = registerAllocator.solve(p);
+        StringBuilder sb = new StringBuilder();
+        sb.append(scamp5AnalogueConfig.outputFormatter.comment("Kernel Code!"));
+        sb.append(scamp5AnalogueConfig.outputFormatter.newLine());
+        sb.append(scamp5AnalogueConfig.outputFormatter.comment("Inputs in: " + mapping.initRegisters().toString()));
+        sb.append(scamp5AnalogueConfig.outputFormatter.newLine());
+        sb.append(scamp5AnalogueConfig.outputFormatter.kernel_begin());
+        sb.append(scamp5AnalogueConfig.outputFormatter.newLine());
+        sb.append(p.produceCode(mapping));
+        sb.append(scamp5AnalogueConfig.outputFormatter.kernel_end());
+        sb.append(scamp5AnalogueConfig.outputFormatter.newLine());
+        return sb.toString();
     }
 
 

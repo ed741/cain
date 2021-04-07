@@ -79,8 +79,7 @@ public class Plan<G extends Goal<G>, T extends Transformation<R>, R extends Regi
 
     public String produceCode(RegisterAllocator.Mapping<G, R> registerMap) {
         List<Step<G,T,R>> all = getAll();
-        StringBuilder sb = new StringBuilder("//Kernel Code!\n");
-        sb.append("//Inputs in: ").append(registerMap.initRegisters().toString()).append("\n");
+        StringBuilder sb = new StringBuilder();
         for (int i = all.size()-1; i >= 0; i--) {
             Step<G,T,R> step = all.get(i);
             List<R> uppers = new ArrayList<>();
@@ -94,8 +93,6 @@ public class Plan<G extends Goal<G>, T extends Transformation<R>, R extends Regi
                 lowers.add(registerMap.get(lowerGoal));
             }
             sb.append(step.code(uppers, lowers, registerMap.getTrash(i)));
-//            sb.append("//").append(registerMap.getTrash(i));
-            sb.append("\n");
         }
         return sb.toString();
     }

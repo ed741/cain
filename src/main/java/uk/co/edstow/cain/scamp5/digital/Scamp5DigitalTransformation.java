@@ -52,7 +52,8 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
 
         @Override
         public String code(List<Register> uppers, List<Register> lowers, List<Register> trash) {
-            return String.format("//Null Instruction: %s <- %s", uppers, lowers);
+            return this.config.outputFormatter.comment(String.format("Null Instruction: %s <- %s", uppers, lowers)) +
+                    this.config.outputFormatter.newLine();
         }
 
         @Override
@@ -95,7 +96,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
         @Override
         public String code(List<Register> uppers, List<Register> lowers, List<Register> trash) {
             if (uppers.size() == 1) {
-                return code(uppers.get(0), lowers);
+                return code(uppers.get(0), lowers) + this.config.outputFormatter.newLine();
             } else {
                 throw new IllegalArgumentException("This Transformation only accepts one Upper register");
             }
@@ -192,7 +193,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
             assert lowers.size() == inputCount();
             List<String> regs = config.registerMapping.get(upper);
             assert regs.size() == config.bits;
-            StringBuilder sb = new StringBuilder(String.format("/*Dres(%s)*/", upper));
+            StringBuilder sb = new StringBuilder(config.outputFormatter.comment(String.format("Dres(%s)", upper)));
             int i = config.bits;
             for(; i>=4; i -=4){
                 sb.append(config.outputFormatter.CLR(regs.get(i - 1), regs.get(i - 2), regs.get(i - 3), regs.get(i - 4)));
@@ -265,7 +266,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
             regs.addAll(config.registerMapping.get(upper.get(0)));
             regs.addAll(config.registerMapping.get(upper.get(1)));
             assert regs.size() == config.bits;
-            StringBuilder sb = new StringBuilder(String.format("/*Dres2(%s, %s)*/", upper.get(0), upper.get(1)));
+            StringBuilder sb = new StringBuilder(config.outputFormatter.comment(String.format("Dres2(%s, %s)", upper.get(0), upper.get(1))));
             int i = config.bits;
             for(; i>=4; i -=4){
                 sb.append(config.outputFormatter.CLR(regs.get(i - 1), regs.get(i - 2), regs.get(i - 3), regs.get(i - 4)));
@@ -277,6 +278,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
             }else if (i == 1) {
                 sb.append(config.outputFormatter.CLR(regs.get(i - 1)));
             }
+            sb.append(this.config.outputFormatter.newLine());
             return sb.toString();
         }
 
@@ -355,12 +357,13 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
         @Override
         public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
-            StringBuilder sb = new StringBuilder(String.format("/*Dmov(%s, %s)*/", upper, lowers.get(0)));
+            StringBuilder sb = new StringBuilder(config.outputFormatter.comment(String.format("Dmov(%s, %s)", upper, lowers.get(0))));
             List<String> outputs = config.registerMapping.get(upper);
             List<String> inputs = config.registerMapping.get(lowers.get(0));
             for(int i = 0; i<config.bits; i++){
                 sb.append(config.outputFormatter.MOV(outputs.get(i), inputs.get(i)));
             }
+            sb.append(this.config.outputFormatter.newLine());
             return sb.toString();
         }
 
@@ -426,17 +429,17 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
         @Override
         public String code(List<Register> uppers, List<Register> lowers, List<Register> trash) {
             assert lowers.size() == inputCount();
-            assert lowers.size() == inputCount();
-            StringBuilder sb = new StringBuilder(String.format("/*Dadd(%s, %s, %s)*/\n", uppers.get(0), lowers.get(0), lowers.get(1)));
+            assert uppers.size() == outputCount();
+            StringBuilder sb = new StringBuilder(this.config.outputFormatter.comment(String.format("Dadd(%s, %s, %s)", uppers.get(0), lowers.get(0), lowers.get(1))));
             List<String> outputs = config.registerMapping.get(uppers.get(0));
             List<String> inputAs = config.registerMapping.get(lowers.get(0));
             List<String> inputBs = config.registerMapping.get(lowers.get(1));
             List<String> scratch = config.scratchRegisters;
             // scratch[0] := Carry bit
             sb.append(config.outputFormatter.CLR(scratch.get(0)));
-            sb.append("\n");
             for (int i = 0; i < config.bits; i++) {
-                sb.append(String.format("/* Bit %d */\n", i));
+                sb.append(config.outputFormatter.newLine());
+                sb.append(this.config.outputFormatter.comment(String.format("Bit %d", i)));
                 sb.append(config.outputFormatter.NOR(outputs.get(i), inputAs.get(i), inputBs.get(i))); //vs(1) = !(a+b)
                 sb.append(config.outputFormatter.NOR(scratch.get(2), inputAs.get(i), outputs.get(i))); //v2(2) = !(a+vs(1))
                 sb.append(config.outputFormatter.NOR(scratch.get(3), inputBs.get(i), outputs.get(i))); //v3(3) = !(b+vs(1))
@@ -446,8 +449,8 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
                 sb.append(config.outputFormatter.NOR(scratch.get(1), scratch.get(0), scratch.get(2))); //v1(7) = !(v0(C)+v2(5))
                 sb.append(config.outputFormatter.NOR(scratch.get(0), scratch.get(2), outputs.get(i))); //v0(C) = !(v2(5)+vs(1))
                 sb.append(config.outputFormatter.NOR(outputs.get(i), scratch.get(3), scratch.get(1))); //vs(S) = !(v3(6)+v1(7))
-                sb.append("\n");
             }
+            sb.append(config.outputFormatter.newLine());
             return sb.toString();
         }
 
@@ -557,14 +560,14 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
         public String code(List<Register> uppers, List<Register> lowers, List<Register> trash) {
             assert lowers.size() == inputCount();
             assert lowers.size() == inputCount();
-            StringBuilder sb = new StringBuilder(String.format("/*DaddSelf(%s, %s)*/\n", uppers.get(0), lowers.get(0)));
+            StringBuilder sb = new StringBuilder(config.outputFormatter.comment(String.format("DaddSelf(%s, %s)", uppers.get(0), lowers.get(0))));
             List<String> outputs = config.registerMapping.get(uppers.get(0));
             List<String> inputAs = config.registerMapping.get(lowers.get(0));
             for (int i = config.bits - 1; i > 0; i--) {
                 sb.append(config.outputFormatter.MOV(outputs.get(i), inputAs.get(i - 1)));
             }
             sb.append(config.outputFormatter.CLR(outputs.get(0)));
-            sb.append("\n");
+            sb.append(config.outputFormatter.newLine());
             return sb.toString();
         }
 
@@ -661,14 +664,14 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
         public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
             assert lowers.size() == inputCount();
-            StringBuilder sb = new StringBuilder(String.format("/*DDiv(%s, %s)*/\n", upper, lowers.get(0)));
+            StringBuilder sb = new StringBuilder(config.outputFormatter.comment(String.format("DDiv(%s, %s)", upper, lowers.get(0))));
             List<String> outputs = config.registerMapping.get(upper);
             List<String> inputAs = config.registerMapping.get(lowers.get(0));
             for (int i = 0; i < config.bits - 1; i++) {
                 sb.append(config.outputFormatter.MOV(outputs.get(i), inputAs.get(i + 1)));
             }
             sb.append(config.outputFormatter.CLR(outputs.get(config.bits - 1)));
-            sb.append("\n");
+            sb.append(config.outputFormatter.newLine());
             return sb.toString();
         }
 
@@ -746,7 +749,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
         @Override
         public String code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
-            StringBuilder sb = new StringBuilder(String.format("/*Dmovx(%s, %s, %s)*/", upper, lowers.get(0), dir.toString()));
+            StringBuilder sb = new StringBuilder(config.outputFormatter.comment(String.format("Dmovx(%s, %s, %s)", upper, lowers.get(0), dir.toString())));
             List<String> outputs = config.registerMapping.get(upper);
             List<String> inputs = config.registerMapping.get(lowers.get(0));
             sb.append(config.outputFormatter.CLR(Dir.values()[0].code, Dir.values()[1].code, Dir.values()[2].code, Dir.values()[3].code));

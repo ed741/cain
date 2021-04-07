@@ -86,4 +86,11 @@ public interface Scamp5OutputFormatter {
   String kernel_begin();
   String kernel_end();
 
+  default String comment(String comment){
+    return "/*"+comment+"*/";
+  }
+  default String newLine(){
+    return "\n";
+  }
+
 }

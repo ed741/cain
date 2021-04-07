@@ -16,11 +16,14 @@ import uk.co.edstow.cain.scamp5.*;
 import uk.co.edstow.cain.scamp5.output.Scamp5DefaultOutputFormatter;
 import uk.co.edstow.cain.scamp5.output.Scamp5JssOutputFormatter;
 import uk.co.edstow.cain.scamp5.output.Scamp5OutputFormatter;
+import uk.co.edstow.cain.structures.Plan;
 
 
 import java.util.*;
 
 public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> extends Kernel3DBankedFileRun<G, Scamp5SuperPixelTransformation<G>> {
+
+    private Scamp5SuperPixelConfig scamp5SuperPixelConfig;
 
     public Scamp5SuperPixelFileRun(JSONObject config) {
         super(config);
@@ -121,8 +124,8 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
         if(!json.has(factory)) {throw new IllegalArgumentException("you need to define " + factory + " inside pairGen");}
         JSONObject strategy = json.getJSONObject(factory);
         PairGenFactory<G, Scamp5SuperPixelTransformation<G>, BRegister> pairGenFactory = buildPairGenFactory(strategy, configBuilder);
-
-        return new Generator<>(new Scamp5SuperPixelDirectSolver<>(configBuilder.build()), pairGenFactory);
+        scamp5SuperPixelConfig = configBuilder.build();
+        return new Generator<>(new Scamp5SuperPixelDirectSolver<>(scamp5SuperPixelConfig), pairGenFactory);
 
     }
 
@@ -207,6 +210,23 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
                 return new PatternHeuristic<>(initialGoals);
         }
     }
+
+    @Override
+    protected String generateCode(Plan<G, Scamp5SuperPixelTransformation<G>, BRegister> p){
+        RegisterAllocator.Mapping<G,BRegister> mapping = registerAllocator.solve(p);
+        StringBuilder sb = new StringBuilder();
+        sb.append(scamp5SuperPixelConfig.outputFormatter.comment("Kernel Code!"));
+        sb.append(scamp5SuperPixelConfig.outputFormatter.newLine());
+        sb.append(scamp5SuperPixelConfig.outputFormatter.comment("Inputs in: " + mapping.initRegisters().toString()));
+        sb.append(scamp5SuperPixelConfig.outputFormatter.newLine());
+        sb.append(scamp5SuperPixelConfig.outputFormatter.kernel_begin());
+        sb.append(scamp5SuperPixelConfig.outputFormatter.newLine());
+        sb.append(p.produceCode(mapping));
+        sb.append(scamp5SuperPixelConfig.outputFormatter.kernel_end());
+        sb.append(scamp5SuperPixelConfig.outputFormatter.newLine());
+        return sb.toString();
+    }
+
 
 
     public static class ArrayGoalFileRun extends Scamp5SuperPixelFileRun<BankedArrayGoal> {
