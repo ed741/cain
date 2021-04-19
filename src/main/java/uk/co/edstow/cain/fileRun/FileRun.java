@@ -335,11 +335,14 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
     }
 
     public List<Result<G,T,R>> getResults() {
+        printLnVerbose("Getting Results");
         List<Result<G,T,R>> results = new ArrayList<>();
         List<Plan<G,T,R>> plans = reverseSearch.getPlans();
         for (int i = 0; i < plans.size(); i++) {
+            printLnVerbose("Getting Result %d", i);
             Plan<G,T,R> plan = plans.get(i);
             String code = this.generateCode(plan);
+            printLnVerbose("Result %d code Generated", i);
             Verifier.VerificationResult verf = verifier.verify(code, initialGoals, finalGoals, plan, registerAllocator);
             results.add(new Result<>(this,
                     plans.get(i),
@@ -348,6 +351,7 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
                     code,
                     verf));
         }
+        printLnVerbose("%d Results produced", plans.size());
         return results;
     }
 

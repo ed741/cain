@@ -93,4 +93,10 @@ public interface Scamp5OutputFormatter {
     return "\n";
   }
 
+  String all();
+  String ALL();
+  String where(Register a);
+  String WHERE(String x);
+
+  String in(Register a, int value);
 }

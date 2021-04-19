@@ -50,7 +50,8 @@ public abstract class Scamp5AnalogueFileRun<G extends Kernel3DGoal<G>> extends K
             default:
                 throw new IllegalArgumentException("Unknown Scamp5 outputFormat : " + outputFormatConfig.getString("name"));
             case "defaultFormat":
-                outputFormatter = new Scamp5DefaultOutputFormatter();
+                boolean refreshDNEWS = outputFormatConfig.optBoolean("refreshDNEWS", false);
+                outputFormatter = new Scamp5DefaultOutputFormatter(refreshDNEWS);
                 break;
             case "jssFormat":
                 String jssSimulatorName = outputFormatConfig.getString("simulatorName");

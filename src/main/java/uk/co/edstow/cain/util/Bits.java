@@ -22,4 +22,22 @@ public class Bits {
         }
         return new String(chars);
     }
+
+    public static String booleanArrayToString(boolean[][] arr){
+        StringBuilder sb = new StringBuilder("[");
+        for (int x = 0; x < arr.length; x++) {
+            sb.append("[");
+            for (int y = 0; y < arr[x].length; y++) {
+                sb.append(arr[x][y]?"1":"0");
+                if(y < arr[x].length-1){
+                    sb.append(",");
+                }
+            }
+            sb.append("]");
+            if(x < arr.length-1){
+                sb.append(",");
+            }
+        }
+        return sb.toString();
+    }
 }

@@ -9,6 +9,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static uk.co.edstow.cain.fileRun.FileRun.printLnVerbose;
+
 public class Plan<G extends Goal<G>, T extends Transformation<R>, R extends Register> {
 
     private final Step<G,T,R> step;
@@ -81,6 +83,7 @@ public class Plan<G extends Goal<G>, T extends Transformation<R>, R extends Regi
         List<Step<G,T,R>> all = getAll();
         StringBuilder sb = new StringBuilder();
         for (int i = all.size()-1; i >= 0; i--) {
+            printLnVerbose("ProduceCode Step: %d", i);
             Step<G,T,R> step = all.get(i);
             List<R> uppers = new ArrayList<>();
             for (int j = 0; j < step.getUppers().size(); j++) {

@@ -505,7 +505,7 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation<R>, R ext
             PairGen<G,T,R> goalPairs = s.pairGen;
 
 
-
+//            System.out.println(GoalBag.toGoalsString(goals.asList()));
             this.workerMinDepth = Math.min(this.workerMinDepth, depth);
             this.workerMaxDepth = Math.max(this.workerMaxDepth, depth);
             int currentMaxDepth = maxDepth.get();

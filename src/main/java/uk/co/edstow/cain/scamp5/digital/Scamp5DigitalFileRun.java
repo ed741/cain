@@ -14,7 +14,6 @@ import uk.co.edstow.cain.pairgen.CostHeuristic;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.regAlloc.RegisterAllocator;
 import uk.co.edstow.cain.scamp5.*;
-import uk.co.edstow.cain.scamp5.analogue.Scamp5AnalogueTransformation;
 import uk.co.edstow.cain.scamp5.output.Scamp5DefaultOutputFormatter;
 import uk.co.edstow.cain.scamp5.output.Scamp5JssOutputFormatter;
 import uk.co.edstow.cain.scamp5.output.Scamp5OutputFormatter;
@@ -80,7 +79,8 @@ public abstract class Scamp5DigitalFileRun<G extends Kernel3DGoal<G>> extends Ke
             default:
                 throw new IllegalArgumentException("Unknown Scamp5 outputFormat : " + outputFormatConfig.getString("name"));
             case "defaultFormat":
-                outputFormatter = new Scamp5DefaultOutputFormatter();
+                boolean refreshDNEWS = outputFormatConfig.optBoolean("refreshDNEWS", false);
+                outputFormatter = new Scamp5DefaultOutputFormatter(refreshDNEWS);
                 break;
             case "jssFormat":
                 String jssSimulatorName = outputFormatConfig.getString("simulatorName");

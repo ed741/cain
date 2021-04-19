@@ -7,7 +7,6 @@ import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.goals.atomGoal.pairGen.SimpleTransformation;
 import uk.co.edstow.cain.structures.Bounds;
-import uk.co.edstow.cain.util.Bits;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
@@ -62,7 +61,8 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
         public String code(List<BRegister> uppers, List<BRegister> lowers, List<BRegister> trash) {
             assert uppers.size() == outputCount;
             assert lowers.size() == inputCount;
-            return this.config.outputFormatter.comment(String.format("Null Instruction: %s <- %s", uppers, lowers));
+            return this.config.outputFormatter.comment(String.format("Null Instruction: %s <- %s", uppers, lowers)) +
+                    this.config.outputFormatter.newLine();
         }
 
         @Override
@@ -85,7 +85,8 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
         @Override
         public String code(List<BRegister> uppers, List<BRegister> lowers, List<BRegister> trash) {
             if (uppers.size() == 1) {
-                return code(uppers.get(0), lowers);
+                return code(uppers.get(0), lowers) +
+                        this.config.outputFormatter.newLine();
             } else {
                 throw new IllegalArgumentException("This Transformation only accepts one Upper register");
             }
@@ -186,6 +187,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
                     }
                 }
             }
+            sb.append(config.outputFormatter.newLine());
             return sb.toString();
         }
 
@@ -283,6 +285,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
                 sb.append(config.outputFormatter.MOV(outputReg, config.maskedReg));
 
             }
+            sb.append(config.outputFormatter.newLine());
             return sb.toString();
         }
 
@@ -316,7 +319,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
             this.b = b;
         }
 
-        protected String longAddCode(List<BRegister> uppers, List<BRegister> lowers, List<BRegister> trash) {
+        protected static String longAddCode(Scamp5SuperPixelConfig config, List<BRegister> uppers, List<BRegister> lowers) {
             assert uppers.size() == 1;
             assert lowers.size() == 2;
             assert uppers.get(0).bank == lowers.get(0).bank && uppers.get(0).bank == lowers.get(1).bank;
@@ -355,18 +358,19 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
                 sb.append(config.outputFormatter.MOV(outputReg, config.maskedReg));
 
             }
+            sb.append(config.outputFormatter.newLine());
             return sb.toString();
         }
 
-        protected String shortCode(List<BRegister> uppers, List<BRegister> lowers, List<BRegister> trash, boolean sub) {
-            assert uppers.size() == 1;
-            assert lowers.size() == 2;
-            assert uppers.get(0).bank == lowers.get(0).bank && uppers.get(0).bank == lowers.get(1).bank;
-            int bank = uppers.get(0).bank;
-            StringBuilder sb = new StringBuilder(String.format("/*SP %s(%s, %s, %s)*/ ", sub?"Sub":"Add", uppers.get(0), lowers.get(0), lowers.get(1)));
-            String outputReg = uppers.get(0).name;
-            String inputAReg = lowers.get(0).name;
-            String inputBReg = lowers.get(1).name;
+        protected static String shortCode(Scamp5SuperPixelConfig config, BRegister upper, BRegister lowerA, BRegister lowerB, boolean sub) {
+            assert upper.bank == lowerA.bank && upper.bank == lowerB.bank;
+            assert !upper.equals(lowerA);
+            assert !upper.equals(lowerB);
+            int bank = upper.bank;
+            StringBuilder sb = new StringBuilder(String.format("/*SP %s(%s, %s, %s)*/ ", sub?"Sub":"Add", upper, lowerA, lowerB));
+            String outputReg = upper.name;
+            String inputAReg = lowerA.name;
+            String inputBReg = lowerB.name;
 
             // Multiplex to only store half sum if we're in the correct bank.
             sb.append(config.outputFormatter.SET(config.maskReg));
@@ -402,7 +406,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
 
                 // Use dir registers as scratch registers
                 if (sub) { // invert b if we want to subtract
-                    sb.append(config.outputFormatter.NOT(config.westReg, lowers.get(1).name));   // vw(!b) = !b (for subtraction)
+                    sb.append(config.outputFormatter.NOT(config.westReg, lowerB.name));   // vw(!b) = !b (for subtraction)
                 }
                 sb.append(config.outputFormatter.NOR(config.northReg, inputAReg, inputBReg));           //vn(1) = !(a+b)
                 sb.append(config.outputFormatter.NOR(config.eastReg, config.maskedReg, outputReg)); //ve(5) = !(vM(C)+vO(4))
@@ -415,6 +419,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
                 sb.append(config.outputFormatter.MOV(outputReg, config.maskedReg));
 
             }
+            sb.append(config.outputFormatter.newLine());
             return sb.toString();
         }
 
@@ -455,7 +460,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
 
         @Override
         public String code(List<BRegister> uppers, List<BRegister> lowers, List<BRegister> trash) {
-            return shortCode(uppers, lowers, trash, false);
+            return shortCode(config, uppers.get(0), lowers.get(0), lowers.get(1), false);
         }
 
         @Override
@@ -478,7 +483,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
 
         @Override
         public String code(List<BRegister> uppers, List<BRegister> lowers, List<BRegister> trash) {
-            return shortCode(uppers, lowers, trash, true);
+            return shortCode(config, uppers.get(0), lowers.get(0), lowers.get(1), true);
         }
 
         @Override
@@ -562,7 +567,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
             sb.append(config.outputFormatter.DNEWS0(config.maskedReg, inputReg));
             sb.append(config.outputFormatter.MOV(outputReg, config.maskedReg));
 
-
+            sb.append(config.outputFormatter.newLine());
             return sb.toString();
         }
 
@@ -669,7 +674,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
             //      write answer into outputReg
             sb.append(config.outputFormatter.MOV(outputReg, config.maskedReg));
 
-
+            sb.append(config.outputFormatter.newLine());
             return sb.toString();
         }
 
@@ -825,7 +830,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
             }
 
             sb.append(config.outputFormatter.MOV(output, config.maskedReg)); // copy result into outputReg
-
+            sb.append(config.outputFormatter.newLine());
             return sb.toString();
         }
 

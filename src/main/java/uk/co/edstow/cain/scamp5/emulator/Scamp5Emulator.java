@@ -217,7 +217,7 @@ public class Scamp5Emulator {
             }
         }
 
-        this.instructionPatten = Pattern.compile("([a-z0-9]*)\\(([^)]*)\\)\\s*");
+        this.instructionPatten = Pattern.compile("([a-zA-Z0-9_]*)\\(([^)]*)\\)\\s*");
         this.argPattern = Pattern.compile("([^\\s,]+)\\s*(?:,|$)");
         this.dirPattern = Pattern.compile("north|east|south|west");
 
@@ -226,6 +226,9 @@ public class Scamp5Emulator {
 
         instructionSet = new HashMap<>();
         instructionBuffer = new ArrayDeque<>();
+
+        instructionSet.put(new InstructionSignature("scamp5_kernel_begin", new int[]{}), args -> {});
+        instructionSet.put(new InstructionSignature("scamp5_kernel_end", new int[]{}), args -> {});
 
         instructionSet.put(new InstructionSignature("input", new int[]{0,2}), args ->
                 instructionBuffer.add(pe -> pe.input(regValueOf(args[0]), Integer.parseInt(args[1])))
@@ -470,6 +473,7 @@ public class Scamp5Emulator {
 
     public void pushCode(String code){
         code = code.replaceAll("//.*(\n|$)", "");
+        code = code.replaceAll("/\\*([^*]|[\\r\\n]|(\\*+([^*/]|[\\r\\n])))*\\*+/", "");
         String[] split = code.split(";");
         for (String s : split) {
             s = s.trim();
@@ -481,6 +485,7 @@ public class Scamp5Emulator {
 
     public void runCode(String code){
         code = code.replaceAll("//.*(\n|$)", "");
+        code = code.replaceAll("/\\*([^*]|[\\r\\n]|(\\*+([^*/]|[\\r\\n])))*\\*+/", "");
         String[] split = code.split(";");
         for (String s : split) {
             s = s.trim();

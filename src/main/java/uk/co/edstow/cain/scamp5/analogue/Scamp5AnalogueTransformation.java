@@ -51,7 +51,8 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
 
         @Override
         public String code(List<Register> uppers, List<Register> lowers, List<Register> trash) {
-            return this.config.outputFormatter.comment(String.format("Null Instruction: %s <- %s", uppers, lowers));
+            return this.config.outputFormatter.comment(String.format("Null Instruction: %s <- %s", uppers, lowers)) +
+                    this.config.outputFormatter.newLine();
         }
 
         @Override
@@ -94,7 +95,8 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         @Override
         public String code(List<Register> uppers, List<Register> lowers, List<Register> trash) {
             if (uppers.size() == 1) {
-                return code(uppers.get(0), lowers);
+                return code(uppers.get(0), lowers) +
+                        this.config.outputFormatter.newLine();
             } else {
                 throw new IllegalArgumentException("This Transformation only accepts one Upper register");
             }
@@ -248,7 +250,8 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         @Override
         public String code(List<Register> upper, List<Register> lowers, List<Register> trash) {
             assert lowers.size() == inputCount();
-            return super.config.outputFormatter.res(upper.get(0), upper.get(1));
+            return super.config.outputFormatter.res(upper.get(0), upper.get(1)) +
+                    this.config.outputFormatter.newLine();
         }
 
         @Override
@@ -980,14 +983,17 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
             assert uppers.size() == outputCount();
             if(uppers.get(0).equals(lowers.get(0))){
                 assert trash.size()>=2;
-                return super.config.outputFormatter.diva(uppers.get(0), trash.get(0), trash.get(1));
+                return super.config.outputFormatter.diva(uppers.get(0), trash.get(0), trash.get(1)) +
+                        this.config.outputFormatter.newLine();
             }
             if(this.clobber) {
                 assert trash.size() >= 1;
-                return super.config.outputFormatter.div(uppers.get(0), trash.get(0), lowers.get(0));
+                return super.config.outputFormatter.div(uppers.get(0), trash.get(0), lowers.get(0)) +
+                        this.config.outputFormatter.newLine();
             }else{
                 assert trash.size() >= 2;
-                return super.config.outputFormatter.div(uppers.get(0), trash.get(0), trash.get(1), lowers.get(0));
+                return super.config.outputFormatter.div(uppers.get(0), trash.get(0), trash.get(1), lowers.get(0)) +
+                        this.config.outputFormatter.newLine();
             }
 
         }

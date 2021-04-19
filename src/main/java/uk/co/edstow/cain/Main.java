@@ -14,6 +14,10 @@ class Main {
 
             String code = fileRun.getBest();
             List<? extends Result> results = fileRun.getResults();
+            if(results.isEmpty()){
+                System.out.println("No Solutions Found!");
+                System.exit(-1);
+            }
             results.sort(Comparator.comparingInt(result -> result.cost));
             System.out.println(results.get(0).plan.toGoalsString());
 
