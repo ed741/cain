@@ -21,7 +21,7 @@ class RTTest {
     }
 
     @Test
-    void testSOTFactory() {
+    void testCGDSFactory() {
         Supplier<? extends TraversalSystem<Temp>> s = RT.RTFactory();
         rt1 = s.get();
         rt2 = s.get();
@@ -30,7 +30,7 @@ class RTTest {
 
     @Test
     void testAdd() {
-        testSOTFactory();
+        testCGDSFactory();
         Temp a = new Temp();
         Temp b = new Temp();
         rt1.add(a, b);
@@ -39,14 +39,14 @@ class RTTest {
 
     @Test
     void testAdd1() {
-        testSOTFactory();
+        testCGDSFactory();
         Temp a = new Temp();
         rt1.add(a);
     }
 
     @Test
     void testPoll() {
-        testSOTFactory();
+        testCGDSFactory();
         Temp a = new Temp();
         Temp poll = rt1.poll();
         assertTrue(poll==null);
@@ -57,7 +57,7 @@ class RTTest {
 
     @Test
     void testSteal() throws InterruptedException {
-        testSOTFactory();
+        testCGDSFactory();
         Temp a = new Temp();
         rt1.add(a);
         Temp b = rt2.steal(rt1);

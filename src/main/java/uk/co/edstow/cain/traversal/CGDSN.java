@@ -6,13 +6,13 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
-public class SOTN<T> implements TraversalSystem<T> {
-    public SOTN(int n) {
+public class CGDSN<T> implements TraversalSystem<T> {
+    public CGDSN(int n) {
         this.n = n;
         this.cn = n;
     }
 
-    public static <E> Supplier<SOTN<E>> SOTNFactory(int n){return ()->new SOTN<>(n);}
+    public static <E> Supplier<CGDSN<E>> CGDSNFactory(int n){return ()->new CGDSN<>(n);}
 
     private final LinkedBlockingDeque<T> workQueue = new LinkedBlockingDeque<>();
     private final List<T> wait = new ArrayList<>();
@@ -57,8 +57,8 @@ public class SOTN<T> implements TraversalSystem<T> {
 
     @Override
     public T steal(TraversalSystem<T> system) throws InterruptedException {
-        if(system instanceof SOTN) {
-            return ((SOTN<T>) system).workQueue.pollLast(100, TimeUnit.MILLISECONDS);
+        if(system instanceof CGDSN) {
+            return ((CGDSN<T>) system).workQueue.pollLast(100, TimeUnit.MILLISECONDS);
         }
         return null;
     }

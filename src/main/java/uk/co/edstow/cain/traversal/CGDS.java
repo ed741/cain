@@ -4,8 +4,8 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
-public class SOT<T> implements TraversalSystem<T> {
-    public static <E> Supplier<SOT<E>> SOTFactory(){return SOT::new;}
+public class CGDS<T> implements TraversalSystem<T> {
+    public static <E> Supplier<CGDS<E>> CGDSFactory(){return CGDS::new;}
 
     private final LinkedBlockingDeque<T> workQueue = new LinkedBlockingDeque<>();
     @Override
@@ -26,8 +26,8 @@ public class SOT<T> implements TraversalSystem<T> {
 
     @Override
     public T steal(TraversalSystem<T> system) throws InterruptedException {
-        if(system instanceof SOT) {
-            return ((SOT<T>) system).workQueue.pollLast(100, TimeUnit.MILLISECONDS);
+        if(system instanceof CGDS) {
+            return ((CGDS<T>) system).workQueue.pollLast(100, TimeUnit.MILLISECONDS);
         }
         return null;
     }

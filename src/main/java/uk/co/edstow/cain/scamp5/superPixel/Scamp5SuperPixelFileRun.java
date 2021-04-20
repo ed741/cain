@@ -232,29 +232,30 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
         }
         JSONArray biass = jBias.getJSONArray("weights");
         String biasDRegister = jBias.getString("biasReg");
-        JSONArray registers = jBias.getJSONArray("registers");
-        if(biass.length() != finalGoals.size() || biass.length() != registers.length()) {
-            throw new IllegalArgumentException("Weights[] and registers[] must be the same length as the number of finaGoals");
+        JSONArray inRegisters = jBias.getJSONArray("inRegisters");
+        JSONArray outRegisters = jBias.getJSONArray("outRegisters");
+        if(biass.length() != outRegisters.length() || biass.length() != inRegisters.length()) {
+            throw new IllegalArgumentException("Weights[], outRegisters[] and inRegisters[] must be the same length");
         }
         sb.append(spConfig.outputFormatter.comment("Adding Bias:"));
         sb.append(spConfig.outputFormatter.newLine());
         for (int i = 0; i < biass.length(); i++) {
-            int bank = finalGoals.get(i).getBank();
-            BRegister inReg = this.getOutputRegisters().get(i);
+            BRegister inReg = BRegister.makeBRegister(inRegisters.getString(i));
+            BRegister outReg = BRegister.makeBRegister(outRegisters.getString(i));
+            if (outReg.bank != inReg.bank)
+                throw new IllegalArgumentException(String.format("Specified output Register '%s' must be in the same bank as input register '%s", outReg, inReg));
+            if (outReg.equals(inReg))
+                throw new IllegalArgumentException(String.format("Specified output Register '%s' must not be the same as input register '%s", outReg, this.getOutputRegisters().get(i)));
+            int bank = inReg.bank;
             BigDecimal biasI = biass.getBigDecimal(i);
             BigInteger shiftedBiasI = biasI.multiply(new BigDecimal(2).pow(unitBit - 1)).toBigInteger();
             boolean[] value = new boolean[spConfig.getBits(0)];
-            boolean allZero = true;
             boolean fill = shiftedBiasI.signum()<0;
             for (int bit = 0; bit < value.length; bit++) {
                 boolean v =  bit < shiftedBiasI.bitLength() ? shiftedBiasI.testBit(bit) : fill;
                 value[bit] = v;
-                allZero &= !v;
             }
-            if(allZero){
-                sb.append(spConfig.outputFormatter.comment("Skipping " + biasI + " to: "+ inReg));
-                sb.append(spConfig.outputFormatter.newLine());
-            } else {
+            if(jBias.optBoolean("enabled", true)) {
                 sb.append(spConfig.outputFormatter.comment("Adding " + biasI + " to: " + inReg));
                 sb.append(spConfig.outputFormatter.newLine());
                 List<String> scratchRegs = new ArrayList<>(spConfig.scratchRegisters);
@@ -265,12 +266,12 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
                 spConfig.setValue(sb, bank, value, biasDRegister, scratchRegs);
                 sb.append(spConfig.outputFormatter.newLine());
                 BRegister biasReg = new BRegister(bank, biasDRegister);
-                BRegister outputReg = BRegister.makeBRegister(registers.getString(i));
-                if (outputReg.bank != bank)
-                    throw new IllegalArgumentException(String.format("Specified output Register '%s' must be in the same bank as final Goal in '%s", outputReg, inReg));
-                if (outputReg.equals(inReg))
-                    throw new IllegalArgumentException(String.format("Specified output Register '%s' must not me the same register as final Goal in '%s", outputReg, this.getOutputRegisters().get(i)));
-                sb.append(Scamp5SuperPixelTransformation.AddSub_2.shortCode(spConfig, outputReg, inReg, biasReg, false));
+
+
+                sb.append(Scamp5SuperPixelTransformation.AddSub_2.shortCode(spConfig, outReg, inReg, biasReg, false));
+            } else {
+                sb.append(spConfig.outputFormatter.comment("Skipping " + biasI + " to: "+ inReg));
+                sb.append(spConfig.outputFormatter.newLine());
             }
         }
         sb.append(spConfig.outputFormatter.comment("Done - Adding Bias"));
@@ -281,6 +282,10 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
         JSONObject json = config.getJSONObject("pairGen");
         if(!json.has("activation")) return;
         JSONObject jActivation = json.getJSONObject("activation");
+        if (!jActivation.optBoolean("enabled", true)) {
+            printLnVerbose("Skipping Activation");
+            return;
+        }
         String activation = jActivation.getString("name");
         printLn("applying activation: '%s' to output", activation);
         if(!activation.equals("relu")) {

@@ -45,7 +45,7 @@ class FileRunTest {
                 "    \"searchTime\":3000,\n" +
                 "    \"timeOut\":true,\n" +
                 "    \"workers\":4,\n" +
-                "    \"traversalAlgorithm\":\"SOT\",\n" +
+                "    \"traversalAlgorithm\":\"CGDS\",\n" +
                 "    \"costFunction\":\"CircuitDepthThenLength\",\n" +
                 "    \"liveCounter\":false,\n" +
                 "    \"quiet\":true,\n" +
@@ -118,7 +118,7 @@ class FileRunTest {
                         "    \"searchTime\":3000,\n" +
                         "    \"timeOut\":true,\n" +
                         "    \"workers\":4,\n" +
-                        "    \"traversalAlgorithm\":\"SOT\",\n" +
+                        "    \"traversalAlgorithm\":\"CGDS\",\n" +
                         "    \"costFunction\":\"CircuitDepthThenLength\",\n" +
                         "    \"liveCounter\":false,\n" +
                         "    \"quiet\":true,\n" +
@@ -195,7 +195,7 @@ class FileRunTest {
                         "    \"searchTime\":3000,\n" +
                         "    \"timeOut\":true,\n" +
                         "    \"workers\":4,\n" +
-                        "    \"traversalAlgorithm\":\"SOT\",\n" +
+                        "    \"traversalAlgorithm\":\"CGDS\",\n" +
                         "    \"costFunction\":\"InstructionCost\",\n" +
                         "    \"liveCounter\":false,\n" +
                         "    \"quiet\":true,\n" +

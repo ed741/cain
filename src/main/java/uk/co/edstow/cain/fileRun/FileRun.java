@@ -228,14 +228,14 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
         switch (json.getString("traversalAlgorithm")) {
             default:
                 throw new IllegalArgumentException("Unknown Traversal Algorithm");
-            case "SOT":
-                printLn("Traversal Algorithm         : Stow-Optimised-Traversal");
-                runConfig.setTraversalAlgorithm(SOT.SOTFactory());
+            case "CGDS":
+                printLn("Traversal Algorithm         : Child-Generator-Deque-Search");
+                runConfig.setTraversalAlgorithm(CGDS.CGDSFactory());
                 break;
-            case "SOTN":
-                int n = json.getInt("SOTN");
-                printLn("Traversal Algorithm         : Stow-Optimised-Traversal-N:" + n);
-                runConfig.setTraversalAlgorithm(SOTN.SOTNFactory(n));
+            case "CGDSN":
+                int n = json.getInt("CGDSN");
+                printLn("Traversal Algorithm         : Child-Generator-Deque-Search-N:" + n);
+                runConfig.setTraversalAlgorithm(CGDSN.CGDSNFactory(n));
                 break;
             case "BFS":
                 printLn("Traversal Algorithm         : Breadth-First-Search");

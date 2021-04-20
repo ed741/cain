@@ -23,10 +23,10 @@
   },
 
   "runConfig":{
-    "searchTime":60000,
+    "searchTime":6000,
     "timeOut":true,
     "workers":4,
-    "traversalAlgorithm":"SOT",
+    "traversalAlgorithm":"CGDS",
     "costFunction":"InstructionCost",
     "liveCounter":true,
     "livePrintPlans":100,

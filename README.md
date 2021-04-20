@@ -37,7 +37,7 @@ This is the [sobel example](examples/sobel.json)
     "searchTime":1000,
     "timeOut":true,
     "workers":4,
-    "traversalAlgorithm":"SOT",
+    "traversalAlgorithm":"CGDS",
     "costFunction":"CircuitDepthThenLength",
     "liveCounter":true,
     "livePrintPlans":2,
@@ -104,8 +104,8 @@ The RunConfig defines the behaviour of the Reverse Search Algorithm, but not any
 | searchTime    | Integer       | The timeout for searching|
 | timeOut       | Boolean       | Whether or not Cain should timeout when searching. If Cain is set to use more than 1 worker it will never stop by itself, even if all nodes have been explored |
 | workers       | Integer       | The number for worker threads to use (worker threads search semi-independently using different instances of the same traversal algorithm). This does not effect multi-threading performed within the pairGeneration invocation of a worker thread |
-| traversalAlgorithm |  | The traversal Algorithm to use. SOT is recommended. |
-| .             | "SOT"         | Child-Generator-Deque-Search - The recommended algorithm |
+| traversalAlgorithm |  | The traversal Algorithm to use. CGDS is recommended. |
+| .             | "CGDS"         | Child-Generator-Deque-Search - The recommended algorithm |
 | .             | "BFS"         | Breadth-First-Search |
 | .             | "DFS"         | Depth-First-Search |
 | .             | "HOS"         | Heir-Ordered-Search (a priority queue of children are stored such that all 1st children are visited before 2nd children, 2nd before 3rd, and so on
