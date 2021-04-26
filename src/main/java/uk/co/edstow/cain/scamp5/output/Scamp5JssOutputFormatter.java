@@ -182,4 +182,39 @@ public class Scamp5JssOutputFormatter implements Scamp5OutputFormatter {
   public String select_pattern(byte r, byte c, byte rx, byte cx) {
     return String.format("%1$s.scamp5_select_pattern(0x%2$02x, 0x%3$02x, 0x%4$02x, 0x%5$02x); ", simulatorName, r, c, rx, cx);
   }
+
+  @Override
+  public String kernel_begin() {
+    return "/*Kernel Begin*/";
+  }
+
+  @Override
+  public String kernel_end() {
+    return "/*Kernel End*/";
+  }
+
+  @Override
+  public String all() {
+    return String.format("%1$s.all(); ", simulatorName);
+  }
+
+  @Override
+  public String ALL() {
+    return String.format("%1$s.ALL(); ", simulatorName);
+  }
+
+  @Override
+  public String where(Register a) {
+    return String.format("%1$s.where(%1$s.%2$s); ", simulatorName, a);
+  }
+
+  @Override
+  public String WHERE(String x) {
+    return String.format("%1$s.WHERE(%1$s.%2$s); ", simulatorName, x);
+  }
+
+  @Override
+  public String in(Register a, int value) {
+    return String.format("%1$s.scamp5_in(%1$s.%2$s, %3$s); ", simulatorName, a, value);
+  }
 }

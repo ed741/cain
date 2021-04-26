@@ -175,6 +175,11 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
 
     protected abstract Generator<G,T,R> makeGenerator();
 
+    protected String generateCode(Plan<G, T, R> p){
+        RegisterAllocator.Mapping<G,R> mapping = registerAllocator.solve(p);
+        return p.produceCode(mapping);
+    }
+
     protected abstract Verifier<G,T,R> makeVerifier();
 
     protected ReverseSearch.RunConfig<G,T,R> makeRunConfig(JSONObject json) {
@@ -223,14 +228,14 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
         switch (json.getString("traversalAlgorithm")) {
             default:
                 throw new IllegalArgumentException("Unknown Traversal Algorithm");
-            case "SOT":
-                printLn("Traversal Algorithm         : Stow-Optimised-Traversal");
-                runConfig.setTraversalAlgorithm(SOT.SOTFactory());
+            case "CGDS":
+                printLn("Traversal Algorithm         : Child-Generator-Deque-Search");
+                runConfig.setTraversalAlgorithm(CGDS.CGDSFactory());
                 break;
-            case "SOTN":
-                int n = json.getInt("SOTN");
-                printLn("Traversal Algorithm         : Stow-Optimised-Traversal-N:" + n);
-                runConfig.setTraversalAlgorithm(SOTN.SOTNFactory(n));
+            case "CGDSN":
+                int n = json.getInt("CGDSN");
+                printLn("Traversal Algorithm         : Child-Generator-Deque-Search-N:" + n);
+                runConfig.setTraversalAlgorithm(CGDSN.CGDSNFactory(n));
                 break;
             case "BFS":
                 printLn("Traversal Algorithm         : Breadth-First-Search");
@@ -317,8 +322,7 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
 
         printLnImportant("length: " + p.depth() + " Cost: " + reverseSearch.costFunction.apply(p));
         printLnImportant("CircuitDepths:" + Arrays.toString(p.circuitDepths()));
-        RegisterAllocator.Mapping<G,R> mapping = registerAllocator.solve(p);
-        String code = p.produceCode(mapping);
+        String code = this.generateCode(p);
         printLnCritial(code);
         Verifier.VerificationResult verf = verifier.verify(code, initialGoals, finalGoals, p, registerAllocator);
         if (!verf.passed()) {
@@ -331,12 +335,14 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
     }
 
     public List<Result<G,T,R>> getResults() {
+        printLnVerbose("Getting Results");
         List<Result<G,T,R>> results = new ArrayList<>();
         List<Plan<G,T,R>> plans = reverseSearch.getPlans();
         for (int i = 0; i < plans.size(); i++) {
+            printLnVerbose("Getting Result %d", i);
             Plan<G,T,R> plan = plans.get(i);
-            RegisterAllocator.Mapping<G,R> mapping = registerAllocator.solve(plan);
-            String code = plan.produceCode(mapping);
+            String code = this.generateCode(plan);
+            printLnVerbose("Result %d code Generated", i);
             Verifier.VerificationResult verf = verifier.verify(code, initialGoals, finalGoals, plan, registerAllocator);
             results.add(new Result<>(this,
                     plans.get(i),
@@ -345,6 +351,7 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
                     code,
                     verf));
         }
+        printLnVerbose("%d Results produced", plans.size());
         return results;
     }
 

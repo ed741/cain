@@ -8,7 +8,7 @@ import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.regAlloc.RegisterAllocator;
 import uk.co.edstow.cain.structures.*;
 import uk.co.edstow.cain.transformations.Transformation;
-import uk.co.edstow.cain.traversal.SOT;
+import uk.co.edstow.cain.traversal.CGDS;
 import uk.co.edstow.cain.traversal.TraversalSystem;
 
 import java.time.Duration;
@@ -78,7 +78,7 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation<R>, R ext
             this.searchTime = 60000;
             this.timeOut = false;
             this.maxNodes = 0;
-            this.traversalAlgorithm = SOT.SOTFactory();
+            this.traversalAlgorithm = CGDS.CGDSFactory();
             this.costFunction = p -> p.maxCircuitDepth() + 200*p.depth();
             this.initialMaxDepth = 200;
             this.forcedDepthReduction = 1;
@@ -505,7 +505,7 @@ public class ReverseSearch<G extends Goal<G>, T extends Transformation<R>, R ext
             PairGen<G,T,R> goalPairs = s.pairGen;
 
 
-
+//            System.out.println(GoalBag.toGoalsString(goals.asList()));
             this.workerMinDepth = Math.min(this.workerMinDepth, depth);
             this.workerMaxDepth = Math.max(this.workerMaxDepth, depth);
             int currentMaxDepth = maxDepth.get();

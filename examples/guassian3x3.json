@@ -1,4 +1,4 @@
-{"name":"Guassian5x5",
+{"name":"Guassian3x3",
   "target": "scamp5",
   "mode": "analogue",
   "goalSystem":"array",
@@ -19,15 +19,15 @@
   },
   "registerAllocator": {
     "name": "linearScan",
-    "availableRegisters":["A","C","F"],
-    "initialRegisters":["C"]
+    "availableRegisters":["A","C","D","E"],
+    "initialRegisters":["A"]
   },
 
   "runConfig":{
-    "searchTime":2000,
+    "searchTime":10000,
     "timeOut":true,
     "workers":1,
-    "traversalAlgorithm":"DFS",
+    "traversalAlgorithm":"CGDS",
     "costFunction":"PlanLength",
     "liveCounter":true,
     "livePrintPlans":1,
@@ -49,10 +49,11 @@
       "ops": "basic"
     },
     "outputFormat": {
-      "name": "defaultFormat"
+      "name": "jssFormat",
+      "simulatorName": "s"
     }
   },
 
-  "verifier":"Scamp5Emulator"
+  "verifier":"None"
 
 }

@@ -3,6 +3,13 @@ package uk.co.edstow.cain.scamp5.output;
 import uk.co.edstow.cain.regAlloc.Register;
 
 public class Scamp5DefaultOutputFormatter implements Scamp5OutputFormatter {
+
+  private final boolean refreshDNEWS;
+
+  public Scamp5DefaultOutputFormatter(boolean refreshDNEWS) {
+    this.refreshDNEWS = refreshDNEWS;
+  }
+
   @Override
   public String NOR(String r1, String r2, String r3) {
     return String.format("NOR(%s, %s, %s); ", r1, r2, r3);
@@ -56,7 +63,11 @@ public class Scamp5DefaultOutputFormatter implements Scamp5OutputFormatter {
 
   @Override
   public String DNEWS0(String r1, String r2) {
-    return String.format("DNEWS0(%s, %s); ", r1, r2);
+    if(refreshDNEWS){
+      return String.format("DNEWS0(%s, %s); REFRESH(%s); ", r1, r2, r1);
+    } else {
+      return String.format("DNEWS0(%s, %s); ", r1, r2);
+    }
   }
 
   @Override
@@ -146,11 +157,46 @@ public class Scamp5DefaultOutputFormatter implements Scamp5OutputFormatter {
 
   @Override
   public String load_pattern(String r1, byte r, byte c, byte rx, byte cx) {
-    return String.format("load_pattern(%s, 0x%02x, 0x%02x, 0x%02x, 0x%02x); ", r1, r, c, rx, cx);
+    return String.format("scamp5_load_pattern(%s, 0x%02x, 0x%02x, 0x%02x, 0x%02x); ", r1, r, c, rx, cx);
   }
 
   @Override
   public String select_pattern(byte r, byte c, byte rx, byte cx) {
-    return String.format("select_pattern(0x%02x, 0x%02x, 0x%02x, 0x%02x); ", r, c, rx, cx);
+    return String.format("scamp5_select_pattern(0x%02x, 0x%02x, 0x%02x, 0x%02x); ", r, c, rx, cx);
+  }
+
+  @Override
+  public String kernel_begin() {
+    return "scamp5_kernel_begin(); ";
+  }
+
+  @Override
+  public String kernel_end() {
+    return "scamp5_kernel_end(); ";
+  }
+
+  @Override
+  public String all() {
+    return "all(); ";
+  }
+
+  @Override
+  public String ALL() {
+    return "ALL(); ";
+  }
+
+  @Override
+  public String where(Register a) {
+    return String.format("where(%1$s); ", a);
+  }
+
+  @Override
+  public String WHERE(String x) {
+    return String.format("WHERE(%1$s); ", x);
+  }
+
+  @Override
+  public String in(Register a, int value) {
+    return String.format("scamp5_in(%1$s, %2$s); ", a, value);
   }
 }

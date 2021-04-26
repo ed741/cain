@@ -31,7 +31,7 @@
     "searchTime":1000,
     "timeOut":true,
     "workers":4,
-    "traversalAlgorithm":"SOT",
+    "traversalAlgorithm":"CGDS",
     "costFunction":"CircuitDepthThenLength",
     "liveCounter":true,
     "livePrintPlans":100,

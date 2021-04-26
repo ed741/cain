@@ -5,6 +5,7 @@ import uk.co.edstow.cain.goals.atomGoal.pairGen.Distance;
 import uk.co.edstow.cain.goals.atomGoal.pairGen.SimpleTransformation;
 import uk.co.edstow.cain.pairgen.*;
 import uk.co.edstow.cain.regAlloc.BRegister;
+import uk.co.edstow.cain.scamp5.analogue.Scamp5AnalogueTransformation;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
 import uk.co.edstow.cain.util.Tuple;
@@ -35,6 +36,12 @@ public class Scamp5SuperPixelPairGens {
                         pairs.add(new GoalPair<>(upper, Collections.emptyList(), res));
 
                     }
+                }
+
+                //Negate
+                if(scamp5SuperPixelConfig.useNeg) {
+                    Negate<G> neg = new Negate<>(upper.negated(), upper, scamp5SuperPixelConfig);
+                    pairs.add(new GoalPair<>(upper, neg.a, neg));
                 }
 
                 //Divide
@@ -154,6 +161,9 @@ public class Scamp5SuperPixelPairGens {
                             outList.add(newItem);
                         }
                     }
+                } else if(scamp5SuperPixelConfig.useNeg && item.negate){
+                    Item newItem = new Item(item, new GoalPair<>(item.a, item.to, new Negate<>(item.to, item.a, scamp5SuperPixelConfig)));
+                    outList.add(newItem);
                 }
             } else if (!scamp5SuperPixelConfig.onlyMov()){
                 G aWithoutTmp = item.a.without(tmp);

@@ -12,18 +12,22 @@ import uk.co.edstow.cain.goals.arrayGoal.ArrayGoal;
 import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
 import uk.co.edstow.cain.pairgen.CostHeuristic;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
+import uk.co.edstow.cain.regAlloc.RegisterAllocator;
 import uk.co.edstow.cain.scamp5.*;
-import uk.co.edstow.cain.scamp5.analogue.Scamp5AnalogueTransformation;
 import uk.co.edstow.cain.scamp5.output.Scamp5DefaultOutputFormatter;
 import uk.co.edstow.cain.scamp5.output.Scamp5JssOutputFormatter;
 import uk.co.edstow.cain.scamp5.output.Scamp5OutputFormatter;
+import uk.co.edstow.cain.structures.Plan;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public abstract class Scamp5DigitalFileRun<G extends Kernel3DGoal<G>> extends Kernel3DStdTransFileRun<G, Scamp5DigitalTransformation<G>> {
+
+    private Scamp5DigitalConfig scamp5DigitalConfig;
 
     public Scamp5DigitalFileRun(JSONObject config) {
         super(config);
@@ -75,7 +79,8 @@ public abstract class Scamp5DigitalFileRun<G extends Kernel3DGoal<G>> extends Ke
             default:
                 throw new IllegalArgumentException("Unknown Scamp5 outputFormat : " + outputFormatConfig.getString("name"));
             case "defaultFormat":
-                outputFormatter = new Scamp5DefaultOutputFormatter();
+                boolean refreshDNEWS = outputFormatConfig.optBoolean("refreshDNEWS", false);
+                outputFormatter = new Scamp5DefaultOutputFormatter(refreshDNEWS);
                 break;
             case "jssFormat":
                 String jssSimulatorName = outputFormatConfig.getString("simulatorName");
@@ -89,8 +94,8 @@ public abstract class Scamp5DigitalFileRun<G extends Kernel3DGoal<G>> extends Ke
         if(!json.has(factory)) {throw new IllegalArgumentException("you need to define " + factory + " inside pairGen");}
         JSONObject strategy = json.getJSONObject(factory);
         PairGenFactory<G, Scamp5DigitalTransformation<G>, Register> pairGenFactory = buildPairGenFactory(strategy, configBuilder);
-
-        return new Generator<>(new Scamp5DigitalDirectSolver<>(configBuilder.build()), pairGenFactory);
+        scamp5DigitalConfig = configBuilder.build();
+        return new Generator<>(new Scamp5DigitalDirectSolver<>(scamp5DigitalConfig), pairGenFactory);
 
     }
 
@@ -175,6 +180,21 @@ public abstract class Scamp5DigitalFileRun<G extends Kernel3DGoal<G>> extends Ke
         }
     }
 
+    @Override
+    protected String generateCode(Plan<G, Scamp5DigitalTransformation<G>, Register> p){
+        RegisterAllocator.Mapping<G,Register> mapping = registerAllocator.solve(p);
+        StringBuilder sb = new StringBuilder();
+        sb.append(scamp5DigitalConfig.outputFormatter.comment("Kernel Code!"));
+        sb.append(scamp5DigitalConfig.outputFormatter.newLine());
+        sb.append(scamp5DigitalConfig.outputFormatter.comment("Inputs in: " + mapping.initRegisters().stream().map(register -> register.toString() + "::" + scamp5DigitalConfig.registerMapping.get(register).toString()).collect(Collectors.joining(", "))));
+        sb.append(scamp5DigitalConfig.outputFormatter.newLine());
+        sb.append(scamp5DigitalConfig.outputFormatter.kernel_begin());
+        sb.append(scamp5DigitalConfig.outputFormatter.newLine());
+        sb.append(p.produceCode(mapping));
+        sb.append(scamp5DigitalConfig.outputFormatter.kernel_end());
+        sb.append(scamp5DigitalConfig.outputFormatter.newLine());
+        return sb.toString();
+    }
 
 
 

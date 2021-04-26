@@ -2,7 +2,6 @@ package uk.co.edstow.cain.scamp5.superPixel;
 
 import uk.co.edstow.cain.scamp5.Scamp5Config;
 import uk.co.edstow.cain.scamp5.output.Scamp5OutputFormatter;
-import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.util.Bits;
 import uk.co.edstow.cain.util.Tuple;
 
@@ -19,10 +18,12 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
     public final boolean useSub;
     public final boolean useDiv;
     public final boolean useRes;
+    public final boolean useNeg;
     private final boolean onlyMov;
 
-    final List<String> scratchRegisters;
-    final String selectReg;
+    public final List<String> scratchRegisters;
+    public final String selectReg;
+    public final String flagReg;
     public final String maskReg;
     public final String maskedReg;
     public final String northReg;
@@ -39,8 +40,9 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
     public final int[] xBankStart;
     public final int[] yBankStart;
     public final boolean[][] sameShapeLookup;
-    
-    public Scamp5SuperPixelConfig(boolean useMovbx, boolean useAdd, boolean useAddSelf, boolean useSub, boolean useDiv, boolean useRes, List<String> scratchRegisters, String selectReg, String maskReg, String maskedReg, String northReg, String eastReg, String southReg, String westReg, int width, int height, int banks, int[][][] bitOrder, Scamp5OutputFormatter outputFormatter) {
+
+
+    public Scamp5SuperPixelConfig(boolean useMovbx, boolean useAdd, boolean useAddSelf, boolean useSub, boolean useDiv, boolean useRes, boolean useNeg, List<String> scratchRegisters, String selectReg, String flagReg, String maskReg, String maskedReg, String northReg, String eastReg, String southReg, String westReg, int width, int height, int banks, int[][][] bitOrder, Scamp5OutputFormatter outputFormatter) {
         super(outputFormatter);
         this.useMovbx = useMovbx;
         this.useAdd = useAdd;
@@ -48,8 +50,9 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         this.useSub = useSub;
         this.useDiv = useDiv;
         this.useRes = useRes;
+        this.useNeg = useNeg;
 
-        this.onlyMov = !(this.useAdd || this.useDiv || this.useRes);
+        this.onlyMov = !(this.useAdd || this.useDiv || this.useRes || this.useNeg);
 
         this.width = width;
         this.height = height;
@@ -57,6 +60,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
 
         this.scratchRegisters = scratchRegisters;
         this.selectReg = selectReg;
+        this.flagReg = flagReg;
         this.maskReg = maskReg;
         this.maskedReg = maskedReg;
         this.northReg = northReg;
@@ -73,7 +77,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         generateBankInfo();
     }
 
-    public Scamp5SuperPixelConfig(Scamp5SuperPixelConfig proto, List<String> scratchRegisters, String selectReg, String maskReg, String maskedReg, String northReg, String eastReg, String southReg, String westReg, int width, int height, int banks, int[][][] bitOrder) {
+    public Scamp5SuperPixelConfig(Scamp5SuperPixelConfig proto, List<String> scratchRegisters, String selectReg, String flagReg, String maskReg, String maskedReg, String northReg, String eastReg, String southReg, String westReg, int width, int height, int banks, int[][][] bitOrder) {
         super(proto.outputFormatter);
         this.useMovbx = proto.useMovbx;
         this.useAdd = proto.useAdd;
@@ -81,8 +85,9 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         this.useSub = proto.useSub;
         this.useDiv = proto.useDiv;
         this.useRes = proto.useRes;
+        this.useNeg = proto.useNeg;
 
-        this.onlyMov = !(this.useAdd || this.useAddSelf || this.useDiv || this.useRes);
+        this.onlyMov = !(this.useAdd || this.useAddSelf || this.useDiv || this.useRes || this.useNeg);
 
 
         this.width = width;
@@ -91,6 +96,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
 
         this.scratchRegisters = scratchRegisters;
         this.selectReg = selectReg;
+        this.flagReg = flagReg;
         this.maskReg = maskReg;
         this.maskedReg = maskedReg;
         this.northReg = northReg;
@@ -115,6 +121,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         this.useSub = proto.useSub && (!onlyMov);
         this.useDiv = proto.useDiv && (!onlyMov);
         this.useRes = proto.useRes && (!onlyMov);
+        this.useNeg = proto.useNeg && (!onlyMov);
 
         this.onlyMov = !(this.useAdd || this.useDiv || this.useRes);
 
@@ -124,6 +131,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
 
         this.scratchRegisters = proto.scratchRegisters;
         this.selectReg = proto.selectReg;
+        this.flagReg = proto.flagReg;
         this.maskReg = proto.maskReg;
         this.maskedReg = proto.maskedReg;
         this.northReg = proto.northReg;
@@ -183,9 +191,67 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
     public boolean isBankSameShape(int bank1, int bank2){
         return this.sameShapeLookup[bank1][bank2];
     }
+    public boolean allSameShape() {
+        for(boolean b: this.sameShapeLookup[0]) if(!b) return false;
+        return true;
+    }
+
 
     public Tuple<Integer, Integer> getBankTranslation(int fromBank, int toBank) {
         return new Tuple<>(xBankStart[toBank] - xBankStart[fromBank], yBankStart[toBank] - yBankStart[fromBank]);
+    }
+
+    public String getDirLessSignificant(int bank, int bit){
+        return this.getDirSignificant(bank, bit, true);
+    }
+    public String getDirMoreSignificant(int bank, int bit){
+        return this.getDirSignificant(bank, bit, false);
+    }
+
+    private String getDirSignificant(int bank, int bit, boolean lessSignificant){
+        int x = -1;
+        int y = -1;
+        Dir direction = null;
+        {
+            bitSearch:
+            for (int xPos = 0; xPos < this.width; xPos++) {
+                for (int yPos = 0; yPos < this.height; yPos++) {
+                    if (this.bitOrder[bank][xPos][yPos] == bit) {
+                        x = xPos;
+                        y = yPos;
+                        break bitSearch;
+                    }
+                }
+            }
+        }
+        assert x >= 0;
+        for (int d = 0; d < Dir.values().length; d++) {
+            Dir dir = Dir.values()[d];
+            if (0 <= x + dir.x && x + dir.x < this.width &&
+                    0 <= y + dir.y && y + dir.y < this.height &&
+                    this.bitOrder[bank][x + dir.x][y + dir.y] == bit + (lessSignificant?-1:1) &&
+                    bit + (lessSignificant?-1:1)>0
+            ) {
+                direction = dir;
+                break;
+            }
+        }
+        if(direction == null){
+            throw new IllegalArgumentException("Cannot find next significant Direction");
+        }
+        switch (direction){
+
+            case N:
+                return "north";
+            case E:
+                return "east";
+            case S:
+                return "south";
+            case W:
+                return "west";
+            default:
+                throw new IllegalArgumentException("Unknown Direction!");
+        }
     }
 
     @Override
@@ -193,7 +259,40 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         return new Builder(this);
     }
 
-    private enum Dir{
+    private interface Marker {
+        char u();
+        char l();
+        String getReg(Scamp5SuperPixelConfig config);
+    }
+
+    private static class SimpleMarker implements Marker {
+        final char u;
+        final char l;
+        final String reg;
+
+        private SimpleMarker(char u, char l, String reg) {
+            this.u = u;
+            this.l = l;
+            this.reg = reg;
+        }
+
+        @Override
+        public char u() {
+            return u;
+        }
+
+        @Override
+        public char l() {
+            return l;
+        }
+
+        @Override
+        public String getReg(Scamp5SuperPixelConfig config) {
+            return reg;
+        }
+    }
+
+    private enum Dir implements Marker {
         N(0,'N','n', 0,1, c->c.northReg),
         E(1,'E','e',1,0, c->c.eastReg),
         S(2,'S','s',0,-1, c->c.southReg),
@@ -212,7 +311,9 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
             this.y = y;
             this.getReg = getReg;
         }
-        String getReg(Scamp5SuperPixelConfig config){
+
+        @Override
+        public String getReg(Scamp5SuperPixelConfig config){
             return this.getReg.apply(config);
         }
         int get(int[] arr){
@@ -275,6 +376,15 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
             throw new IllegalArgumentException("char isn't a Dir");
         }
 
+        @Override
+        public char u() {
+            return u;
+        }
+
+        @Override
+        public char l() {
+            return l;
+        }
     }
 
     private static class Pattern {
@@ -293,6 +403,18 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
             this.yVal = (byte) yVal;
             this.count = count;
             this.set = set;
+        }
+
+        @Override
+        public String toString() {
+            return "Pattern{" +
+                    "xMask=" + xMask +
+                    ", yMask=" + yMask +
+                    ", xVal=" + xVal +
+                    ", yVal=" + yVal +
+                    ", count=" + count +
+                    ", set=" + Bits.booleanArrayToString(this.set) +
+                    '}';
         }
     }
 //    void printBitCharMask(char[][] dirs, int w, int h){
@@ -318,54 +440,175 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
 //        }
 //    }
 
+    void selectBit(StringBuilder sb, int bank, int bit, String reg, boolean inKernelMode) {
+        int x = -1;
+        int y = -1;
+        {
+            bitSearch:
+            for (int xPos = 0; xPos < this.width; xPos++) {
+                for (int yPos = 0; yPos < this.height; yPos++) {
+                    if (this.bitOrder[bank][xPos][yPos] == bit) {
+                        x = xPos;
+                        y = yPos;
+                        break bitSearch;
+                    }
+                }
+            }
+            if(x<0) throw new IllegalArgumentException("Bit " + bit + " Not found in Bank "+ bank);
+        }
+        byte xMask = (byte) (256-this.width); // mask set to like this since only 1 PE in the SuperPixel can be set at
+        byte yMask = (byte) (256-this.height);// a time using this method.
+        byte xVal = (byte) (this.width - 1 - x);
+        byte yVal = (byte) (this.height - 1 - y);
+        if(inKernelMode) {
+            sb.append(outputFormatter.kernel_end());
+        }
+        if(reg.equals(this.selectReg)) {
+            sb.append(outputFormatter.select_pattern(yVal, xVal, yMask, xMask));
+        } else {
+            sb.append(outputFormatter.load_pattern(reg, yVal, xVal, yMask, xMask));
+        }
+        if(inKernelMode) {
+            sb.append(outputFormatter.kernel_begin());
+        }
+
+    }
+
     void selectBank(StringBuilder sb, int bank, String reg, List<String> scratchRegisters) {
         char[][] mask = new char[this.width][this.height];
+        Marker marker = new SimpleMarker('O', 'o', reg);
         for (int x = 0; x < this.width; x++) {
             for (int y = 0; y < this.height; y++) {
-                mask[x][y] = this.bitOrder[bank][x][y] > 0? 'O':'#';
+                mask[x][y] = this.bitOrder[bank][x][y] > 0? marker.u():'#';
             }
         }
 //        printBitCharMask(mask, this.width, this.height);
-        List<Pattern> patternList = generateBitPatterns(mask, this.getBits(bank));
-        List<String> toClear = new ArrayList<>();
-        sb.append(String.format("/*SetSelectBank %s -> %s*/", bank, reg));
-        List<String> availableRegs = new ArrayList<>(scratchRegisters);
-        if(!availableRegs.contains(reg)) availableRegs.add(reg);
-        generateCodeForPatternsReg(sb, availableRegs, toClear, reg, patternList);
-        sb.append("/*done - SetSelectBank*/");
+        Map<Marker, List<Pattern>> patternList = generateBitMarkerPatterns(mask, Collections.singletonMap(marker, this.getBits(bank)));
+        sb.append(outputFormatter.comment(String.format("SetSelectBank %s -> %s", bank, reg)));
+        generateCodeForPatterns(sb, scratchRegisters, patternList);
+        sb.append(outputFormatter.comment("done - SetSelectBank"));
     }
 
+    void setValue(StringBuilder sb, int bank, boolean[] value, String reg, List<String> scratchRegisters) {
+        Marker marker = new SimpleMarker('O', 'o', reg);
+        assert value.length == getBits(bank);
+        int count = 0;
+        char[][] mask = new char[this.width][this.height];
+        for (int x = 0; x < this.width; x++) {
+            for (int y = 0; y < this.height; y++) {
+                if (this.bitOrder[bank][x][y]>0 && value[this.bitOrder[bank][x][y] - 1]) {
+                    count++;
+                    mask[x][y] = marker.u();
+                } else {
+                    mask[x][y] = '#';
+                }
+            }
+        }
+//        printBitCharMask(mask, this.width, this.height);
+        Map<Marker, List<Pattern>> patternList = generateBitMarkerPatterns(mask, Collections.singletonMap(marker, count));
+        sb.append(outputFormatter.comment(String.format("SetValue %s:%s -> %s", bank, reg, Arrays.toString(value))));
+        generateCodeForPatterns(sb, scratchRegisters, patternList);
+        sb.append(outputFormatter.comment("done - SetValue"));
+    }
+    int selectFlood(StringBuilder sb, int bank, int bit, String reg, List<String> scratchRegisters) {
+        return selectFlood(sb, bank, bit, reg, scratchRegisters, false, true);
+    }
+    int selectFlood(StringBuilder sb, int bank, int bit, String reg, List<String> scratchRegisters, boolean allBanks, boolean inKernelMode) {
+        assert bit <= getBits(bank);
+        Marker origin = new SimpleMarker('O', 'o', reg);
+        Map<Marker, Integer> counts = new HashMap<>();
+        if (reg != null) counts.put(origin, 1);
+        Arrays.stream(Dir.values()).forEach(d-> counts.put(d, 0));
 
+        int count = 0;
+        final int maxBounds = this.width * this.height;
+        char[][] mask = new char[this.width][this.height];
+        int[][] distanceMap = new int[this.width][this.height];
+
+        for (int x = 0; x < this.width; x++) {
+            for (int y = 0; y < this.height; y++) {
+                if(this.bitOrder[bank][x][y] == bit){
+                    mask[x][y] = origin.u();
+                    distanceMap[x][y] = maxBounds;
+
+                } else if(!allBanks && this.bitOrder[bank][x][y] == 0){
+                    mask[x][y] = '#';
+                } else {
+                    mask[x][y] = '~';
+                    count++;
+                }
+            }
+        }
+
+        final int totalCount = count+1;
+        int bounds = maxBounds;
+
+        while (count>0 && bounds>0) {
+            for (int x = 0; x < this.width; x++) {
+                for (int y = 0; y < this.height; y++) {
+                    if (mask[x][y] == '~') {
+                        List<Dir> options = new ArrayList<>(Dir.values().length);
+                        dirLoop: for (Dir d: Dir.values()) {
+                            if (x + d.x >= 0 && x + d.x < this.width && y + d.y >= 0 && y + d.y < this.height) {
+                                switch (mask[x + d.x][y + d.y]) {
+                                    case '#':
+                                    case '~':
+                                        continue dirLoop;
+                                    default:
+                                        if(distanceMap[x + d.x][y + d.y] == bounds) {
+                                            options.add(d);
+                                        }
+                                }
+                            }
+                        }
+                        options.sort(Comparator.comparingInt((Dir d) -> d.x).thenComparingInt(d -> d.y));
+                        if (!options.isEmpty()) {
+                            mask[x][y] = options.get(0).u;
+                            counts.computeIfPresent(options.get(0), (d, i) -> i+1);
+                            distanceMap[x][y] = bounds-1;
+                            count--;
+                        }
+                    }
+                }
+            }
+            bounds--;
+        }
+        int maxDistance = maxBounds-bounds;
+        assert count == 0;
+        Map<Marker, List<Pattern>> patterns = generateBitMarkerPatterns(mask, counts);
+        generateCodeForPatterns(sb, scratchRegisters, patterns, inKernelMode);
+        return maxDistance;
+    }
 
     void setDirLessSignificant(StringBuilder sb, int bank) {
         char[][] bitDir = new char[this.width][this.height];
-        int[] count = generateBitDirectionArray(bank, bitDir, true);
-        Map<Dir, List<Pattern>> patterns = generateBitDirectionPatterns(bitDir, count);
-        sb.append("/*SetDirLessSignificant*/");
-        generateCodeForDirectionPatterns(sb, patterns);
-        sb.append("/*done - SetDirLessSignificant*/");
+        Map<Dir, Integer> count = generateBitDirectionArray(bank, bitDir, true, Arrays.asList(Dir.values()));
+        Map<Dir, List<Pattern>> patterns = generateBitMarkerPatterns(bitDir, count);
+        sb.append(outputFormatter.comment("SetDirLessSignificant"));
+        generateCodeForPatterns(sb, Collections.singletonList(this.maskReg), patterns);
+        sb.append(outputFormatter.comment("done - SetDirLessSignificant"));
 
     }
 
     void setDirMoreSignificant(StringBuilder sb, int bank) {
         char[][] bitDir = new char[this.width][this.height];
-        int[] count = generateBitDirectionArray(bank, bitDir, false);
-        Map<Dir, List<Pattern>> patterns = generateBitDirectionPatterns(bitDir, count);
-        sb.append("/*SetDirMoreSignificant*/");
-        generateCodeForDirectionPatterns(sb, patterns);
+        Map<Dir, Integer> count = generateBitDirectionArray(bank, bitDir, false, Arrays.asList(Dir.values()));
+        Map<Dir, List<Pattern>> patterns = generateBitMarkerPatterns(bitDir, count);
+        sb.append(outputFormatter.comment("SetDirMoreSignificant"));
+        generateCodeForPatterns(sb, Collections.singletonList(this.maskReg), patterns);
         sb.append("/*done - SetDirMoreSignificant*/");
     }
 
     public void setDirLessSignificantAndSelectBit(StringBuilder sb, int bank, int place, String reg, List<String> availableRegs) {
-        sb.append("/*SetDirLessSignificantAndSelect*/");
+        sb.append(outputFormatter.comment("SetDirLessSignificantAndSelect"));
         setDirSignificantAndSelectBit(sb, bank, place, reg, true, availableRegs);
-        sb.append("/*done - SetDirLessSignificantAndSelect*/");
+        sb.append(outputFormatter.comment("done - SetDirLessSignificantAndSelect"));
     }
 
     public void setDirMoreSignificantAndSelectBit(StringBuilder sb, int bank, int place, String reg, List<String> availableRegs) {
-        sb.append("/*SetDirMoreSignificantAndSelect*/");
+        sb.append(outputFormatter.comment("SetDirMoreSignificantAndSelect"));
         setDirSignificantAndSelectBit(sb, bank, place, reg, false, availableRegs);
-        sb.append("/*done - SetDirMoreSignificantAndSelect*/");
+        sb.append(outputFormatter.comment("done - SetDirMoreSignificantAndSelect"));
     }
 
     private void setDirSignificantAndSelectBit(StringBuilder sb, int bank, int place, String reg, boolean lessSignificant, List<String> availableRegs) {
@@ -379,73 +622,87 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
                     if (this.bitOrder[bank][xPos][yPos] == place) {
                         x = xPos;
                         y = yPos;
-                        for (int d = 0; d < Dir.values().length; d++) {
-                            Dir dir = Dir.values()[d];
-                            if (0 <= xPos + dir.x && xPos + dir.x < this.width &&
-                                    0 <= yPos + dir.y && yPos + dir.y < this.height &&
-                                    this.bitOrder[bank][xPos + dir.x][yPos + dir.y] == place + (lessSignificant?-1:1) &&
-                                    place + (lessSignificant?1:-1)>0) {
-                                direction = dir;
-                                break;
-                            }
-                        }
-
                         break bitSearch;
                     }
                 }
             }
             if(x<0) throw new IllegalArgumentException("Bit " + place + " Not found in Bank "+ bank);
+            for (int d = 0; d < Dir.values().length; d++) {
+                Dir dir = Dir.values()[d];
+                if (0 <= x + dir.x && x + dir.x < this.width &&
+                        0 <= y + dir.y && y + dir.y < this.height &&
+                        this.bitOrder[bank][x + dir.x][y + dir.y] == place + (lessSignificant?-1:1) &&
+                        place + (lessSignificant?-1:1)>0) {
+                    direction = dir;
+                    break;
+                }
+            }
         }
         byte xMask = (byte) (256-this.width); // mask set to like this since only 1 PE in the SuperPixel can be set at
         byte yMask = (byte) (256-this.height);// a time using this method.
-        byte xVal = (byte) x;
+        byte xVal = (byte) (this.width - 1 - x);
         byte yVal = (byte) (this.height - 1 - y);
 
-        sb.append(outputFormatter.CLR(this.northReg, this.southReg, this.eastReg, this.westReg));
+        sb.append(outputFormatter.kernel_end());
         if(reg.equals(this.selectReg)) {
             sb.append(outputFormatter.select_pattern(yVal, xVal, yMask, xMask));
         } else {
             sb.append(outputFormatter.load_pattern(reg, yVal, xVal, yMask, xMask));
         }
+        sb.append(outputFormatter.kernel_begin());
+        sb.append(outputFormatter.CLR(this.northReg, this.southReg, this.eastReg, this.westReg));
         if(direction != null){
                 sb.append(outputFormatter.MOV(direction.getReg.apply(this), reg));
         }
 
     }
 
-
-    private void generateCodeForDirectionPatterns(StringBuilder sb, Map<Dir, List<Pattern>> patterns) {
-        List<Map.Entry<Dir, List<Pattern>>> patternList = patterns.entrySet().stream().sorted(Comparator.comparingInt(e -> -e.getValue().size())).collect(Collectors.toList());
-        List<String> availableRegs = new ArrayList<>(Arrays.asList(this.northReg, this.southReg, this.eastReg, this.westReg, this.maskReg));
+    private <M extends Marker> void generateCodeForPatterns(StringBuilder sb, List<String> scratchRegs, Map<M, List<Pattern>> patterns) {
+        generateCodeForPatterns(sb, scratchRegs, patterns, true);
+    }
+    private <M extends Marker> void generateCodeForPatterns(StringBuilder sb, List<String> scratchRegs, Map<M, List<Pattern>> patterns, boolean inKernelMode) {
+        List<Map.Entry<M, List<Pattern>>> patternList = patterns.entrySet().stream().sorted(Comparator.comparingInt(e -> -e.getValue().size())).collect(Collectors.toList());
+        List<String> availableRegs = new ArrayList<>(scratchRegs);
+        patterns.keySet().forEach(m -> {if (!availableRegs.contains(m.getReg(this))){availableRegs.add(m.getReg(this));}});
         List<String> toClear = new ArrayList<>();
-        for (Map.Entry<Dir, List<Pattern>> entry : patternList) {
-            Dir dir = entry.getKey();
+        boolean leaveInKernelMode = inKernelMode;
+        for (Map.Entry<M, List<Pattern>> entry : patternList) {
+            M dir = entry.getKey();
             List<Pattern> list = entry.getValue();
             String reg = dir.getReg(this);
-            sb.append(String.format("/* loading Dir: %s into %s */", dir.u, reg));
-            generateCodeForPatternsReg(sb, availableRegs, toClear, reg, list);
+            sb.append(outputFormatter.comment(String.format("loading Dir: %s into %s", dir.u(), reg)));
+            inKernelMode = generateCodeForPatternsReg(sb, availableRegs, toClear, reg, list, inKernelMode);
         }
+
         if(!toClear.isEmpty()){
+            if(!inKernelMode) {sb.append(outputFormatter.kernel_begin()); inKernelMode = true;}
             sb.append(outputFormatter.CLR(toClear.toArray(new String[0])));
         }
+        if(leaveInKernelMode && !inKernelMode) {
+            sb.append(outputFormatter.kernel_begin());
+        } else if (!leaveInKernelMode && inKernelMode) {
+            sb.append(outputFormatter.kernel_end());
+        }
+
     }
 
-    private void generateCodeForPatternsReg(StringBuilder sb, List<String> availableRegs, List<String> toClear, String reg, List<Pattern> list) {
+    private boolean generateCodeForPatternsReg(StringBuilder sb, List<String> availableRegs, List<String> toClear, String reg, List<Pattern> list, boolean inKernelMode) {
         availableRegs.remove(reg);
         if (list.isEmpty()){
             toClear.add(reg);
         } else if (list.size()==1){
+            if(inKernelMode) {sb.append(outputFormatter.kernel_end()); inKernelMode = false;}
             Pattern pattern = list.get(0);
             if(reg.equals(this.selectReg)) {
-                // x and y may need to be swapped in these pattern calls
                 sb.append(outputFormatter.select_pattern(pattern.yVal, pattern.xVal, pattern.yMask, pattern.xMask));
             } else {
                 sb.append(outputFormatter.load_pattern(reg, pattern.yVal, pattern.xVal, pattern.yMask, pattern.xMask));
             }
         } else if (list.size() <= 4 && list.size() <= availableRegs.size()+1) {
             if(reg.equals(this.selectReg)) {
-                throw new IllegalArgumentException("Scamp5 cannot have multiple patterns together in select register: "+this.selectReg);
+                throw new IllegalArgumentException("Scamp5 cannot have multiple patterns together in select register: "+this.selectReg + " Patterns: " + list.toString());
             }
+            if(inKernelMode) {sb.append(outputFormatter.kernel_end()); inKernelMode = false;}
             Pattern pattern;
             for (int i = 0; i < list.size() - 1; i++) {
                 pattern = list.get(i);
@@ -459,88 +716,17 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
                 regs.add(availableRegs.get(i));
             }
             regs.add(this.selectReg);
+            {sb.append(outputFormatter.kernel_begin()); inKernelMode = true;}
             sb.append(outputFormatter.OR(reg, regs.toArray(new String[0])));
 
         } else {
             throw new IllegalArgumentException("More complex Direction-Pattern loading not supported. Ask a developer for support");
         }
+        return inKernelMode;
     }
 
 
-    private Map<Dir, List<Pattern>> generateBitDirectionPatterns(char[][] bitDir, int[] count) {
-
-
-        Map<Dir, List<Pattern>> patterns = Dir.makeMap(ArrayList::new);
-
-
-        List<Tuple<Integer, Integer>> masks = getMaskList();
-
-        while(Arrays.stream(count).sum()>0){
-
-            Map<Dir, List<Pattern>> nextPatterns = Dir.makeMap(ArrayList::new);
-
-            for (Tuple<Integer, Integer> mask : masks) {
-                int xMask = mask.getA();
-                int yMask = mask.getB();
-                for (int xVal = 0; xVal < this.width; xVal++) {
-                    for (int yVal = 0; yVal < this.height; yVal++) {
-                        if ((xMask & xVal) > 0 || (yMask & yVal) > 0) continue;
-
-                        boolean[][] set = getPatternSetArray(xMask, yMask, xVal, yVal);
-//                        System.out.println("xMask: " + Bits.Str(xMask, 2) + " xVal: " + Bits.Str(xVal, 2) + " yMask: " + Bits.Str(yMask, 2) + " yVal: " + Bits.Str(yVal, 2));
-//                        printBitSet(set, this.width, this.height);
-
-                        boolean[] match = Dir.makeArray(true);
-                        int[] newCount = Dir.makeArray(0);
-                        for (int x = 0; x < this.width; x++) {
-                            for (int y = 0; y < this.height; y++) {
-                                if (set[x][y]) {
-                                    for (Dir dir : Dir.values()) {
-                                        dir.and(match, bitDir[x][y] == dir.u || bitDir[x][y] == dir.l || bitDir[x][y] == 0);
-                                        dir.add(newCount, bitDir[x][y] == dir.u ? 1 : 0);
-                                    }
-                                }
-                            }
-                        }
-//                        for (Dir dir : Dir.values()) {
-//                            System.out.print(dir.u+":" + (dir.get(match) ? "T " : "F ") + dir.get(newCount) + ",  ");
-//                        } System.out.println();
-
-
-                        for (Dir dir : Dir.values()) {
-                            if(dir.get(match) && dir.get(newCount)>0){
-                                nextPatterns.get(dir).add(new Pattern(xMask, yMask, xVal, yVal, dir.get(newCount), set));
-                                break;
-                            }
-                        }
-
-                    }
-                }
-            }
-            nextPatterns.forEach((dir, ps) -> ps.sort(Comparator.comparingInt(pattern -> -pattern.count)));
-            for (Dir dir : Dir.values()) {
-                List<Pattern> patternList = nextPatterns.get(dir);
-                if(!patternList.isEmpty()){
-                    Pattern pattern = patternList.get(0);
-                    patterns.get(dir).add(pattern);
-                    dir.add(count, -pattern.count);
-                    for (int x = 0; x < this.width; x++) {
-                        for (int y = 0; y < this.height; y++) {
-                            if (pattern.set[x][y] && bitDir[x][y] != 0) {
-                                bitDir[x][y] = dir.l;
-                            }
-                        }
-                    }
-                }
-            }
-//            printBitCharMask(bitDir, this.width, this.height);
-
-        }
-        if (Arrays.stream(count).sum()!=0) throw new IllegalArgumentException("Cannot find patterns to match bank");
-        return patterns;
-    }
-
-    private int[] generateBitDirectionArray(int bank, char[][] bitDir, boolean lessSignificant) {
+    private  Map<Dir, Integer> generateBitDirectionArray(int bank, char[][] bitDir, boolean lessSignificant, List<Dir> dirs) {
         int bits = this.getBits(bank);
         int xPos = -1;
         int yPos = -1;
@@ -564,18 +750,18 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         }
         int place;
 
-        int[] count = Dir.makeArray(0);
+        Map<Dir, Integer> count = new HashMap<>();
+        dirs.forEach(d -> count.put(d, 0));
         bitDir[xPos][yPos] = 'O';// origin (least or most significant bit depending on 'lessSignificant')
         do {
             place = this.bitOrder[bank][xPos][yPos];
-            for (int i = 0; i < Dir.values().length; i++) {
-                Dir dir = Dir.values()[i];
+            for (Dir dir : dirs) {
                 if (0 <= xPos - dir.x && xPos - dir.x < this.width &&
                         0 <= yPos - dir.y && yPos - dir.y < this.height &&
-                        this.bitOrder[bank][xPos - dir.x][yPos - dir.y] == place + (lessSignificant?1:-1) &&
-                        place + (lessSignificant?1:-1)>0) {
+                        this.bitOrder[bank][xPos - dir.x][yPos - dir.y] == place + (lessSignificant ? 1 : -1) &&
+                        place + (lessSignificant ? 1 : -1) > 0) {
                     bitDir[xPos - dir.x][yPos - dir.y] = dir.u;
-                    dir.inc(count);
+                    count.computeIfPresent(dir, (d, c) -> c + 1);
                     xPos = xPos - dir.x;
                     yPos = yPos - dir.y;
                     break;
@@ -588,16 +774,21 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
     }
 
 
+    private <M extends Marker> Map<M, List<Pattern>> generateBitMarkerPatterns(char[][] bitDir, Map<M, Integer> countIn) {
+        Map<M, Integer> count = new HashMap<>();
+        countIn.forEach(count::put);
 
-    private List<Pattern> generateBitPatterns(char[][] bitMask, int count) {
+        Map<M, List<Pattern>> patterns = new HashMap<>();
+        count.keySet().forEach(d -> patterns.put(d, new ArrayList<>()));
 
-        List<Pattern> patterns = new ArrayList<>();
 
         List<Tuple<Integer, Integer>> masks = getMaskList();
 
-        while(count>0){
+        while(count.values().stream().mapToInt(i -> i).sum()>0){
 
-            List<Pattern> nextPattern = new ArrayList<>();
+            Map<M, List<Pattern>> nextPatterns = new HashMap<>();
+            count.keySet().forEach(d -> nextPatterns.put(d, new ArrayList<>()));
+
 
             for (Tuple<Integer, Integer> mask : masks) {
                 int xMask = mask.getA();
@@ -610,44 +801,64 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
 //                        System.out.println("xMask: " + Bits.Str(xMask, 2) + " xVal: " + Bits.Str(xVal, 2) + " yMask: " + Bits.Str(yMask, 2) + " yVal: " + Bits.Str(yVal, 2));
 //                        printBitSet(set, this.width, this.height);
 
-                        boolean match = true;
-                        int newCount = 0;
-                        for (int x = 0; x < this.width; x++) {
+                        Map<M, Boolean> match = new HashMap<>();
+                        count.keySet().forEach(d -> match.put(d, true));
+
+                        Map<M, Integer> newCount = new HashMap<>();
+                        count.keySet().forEach(d -> newCount.put(d, 0));
+
+                        checkMatch: for (int x = 0; x < this.width; x++) {
                             for (int y = 0; y < this.height; y++) {
                                 if (set[x][y]) {
-                                    match &= bitMask[x][y] == 'O' || bitMask[x][y] == 'o' || bitMask[x][y] == 0;
-                                    newCount += bitMask[x][y] == 'O'?1:0;
+                                    for (M dir : count.keySet()) {
+                                        boolean m = match.get(dir);
+                                        match.put(dir, m && (bitDir[x][y] == dir.u() || bitDir[x][y] == dir.l() || bitDir[x][y] == 0));
+                                        int c = newCount.get(dir);
+                                        newCount.put(dir, c+(bitDir[x][y] == dir.u() ? 1 : 0));
+                                    }
+                                    if(match.values().stream().noneMatch(b->b)) {
+                                       break checkMatch;
+                                    }
                                 }
                             }
                         }
-//                        System.out.println("O:" + (match ? "T " : "F ") + newCount);
+//                        for (Dir dir : Dir.values()) {
+//                            System.out.print(dir.u+":" + (dir.get(match) ? "T " : "F ") + dir.get(newCount) + ",  ");
+//                        } System.out.println();
 
-                        if(match && newCount>0){
-                            nextPattern.add(new Pattern(xMask, yMask, xVal, yVal, newCount, set));
+
+                        for (M dir : count.keySet()) {
+                            if(match.get(dir) && newCount.get(dir)>0){
+                                nextPatterns.get(dir).add(new Pattern(xMask, yMask, xVal, yVal, newCount.get(dir), set));
+                                break;
+                            }
                         }
 
                     }
                 }
             }
-            nextPattern.sort(Comparator.comparingInt(pattern -> -pattern.count));
+            nextPatterns.forEach((dir, ps) -> ps.sort(Comparator.comparingInt(pattern -> -pattern.count)));
+            for (M dir : count.keySet()) {
+                List<Pattern> patternList = nextPatterns.get(dir);
+                if(!patternList.isEmpty()){
+                    Pattern pattern = patternList.get(0);
+                    patterns.get(dir).add(pattern);
+                    count.computeIfPresent(dir, (d, i) -> i-pattern.count);
 
-            if(!nextPattern.isEmpty()){
-                Pattern pattern = nextPattern.get(0);
-                patterns.add(pattern);
-                count -= pattern.count;
-                for (int x = 0; x < this.width; x++) {
-                    for (int y = 0; y < this.height; y++) {
-                        if (pattern.set[x][y] && bitMask[x][y] != 0) {
-                            bitMask[x][y] = 'o';
+                    for (int x = 0; x < this.width; x++) {
+                        for (int y = 0; y < this.height; y++) {
+                            if (pattern.set[x][y] && bitDir[x][y] != 0) {
+                                assert bitDir[x][y] == dir.u() || bitDir[x][y] == dir.l();
+                                bitDir[x][y] = dir.l();
+                            }
                         }
                     }
                 }
             }
-
-//            printBitCharMask(bitMask, this.width, this.height);
+//            printBitCharMask(bitDir, this.width, this.height);
 
         }
-        if (count!=0) throw new IllegalArgumentException("Cannot find patterns to match bank");
+        if (count.values().stream().mapToInt(i -> i).sum()!=0) throw new IllegalArgumentException("Cannot find patterns to match bank");
         return patterns;
     }
 
@@ -683,7 +894,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
                             break;
                         }
                     }
-                    set[x][this.height-1-y] = ySet;
+                    set[this.width-1-x][this.height-1-y] = ySet;
                 }
             }
         }
@@ -698,6 +909,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         public boolean useSub;
         public boolean useDiv;
         public boolean useRes;
+        public boolean useNeg;
         public String maskReg;
         public String maskedReg;
         public String northReg;
@@ -708,8 +920,9 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         public int height;
         public int banks;
         public int[][][] bitOrder;
-        List<String> scratchRegisters;
-        String selectReg;
+        public List<String> scratchRegisters;
+        public String selectReg;
+        public String flagReg;
 
         public Builder() {
         }
@@ -721,6 +934,9 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
             this.useSub = src.useSub;
             this.useDiv = src.useDiv;
             this.useRes = src.useRes;
+            this.useNeg = src.useNeg;
+            this.selectReg = src.selectReg;
+            this.flagReg = src.flagReg;
             this.maskReg = src.maskReg;
             this.maskedReg = src.maskedReg;
             this.northReg = src.northReg;
@@ -765,6 +981,11 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
             return this;
         }
 
+        public Builder useNeg(boolean useNeg) {
+            this.useNeg = useNeg;
+            return this;
+        }
+
         public Builder scratchRegisters(List<String> scratchRegisters) {
             this.scratchRegisters = scratchRegisters;
             return this;
@@ -772,6 +993,11 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
 
         public Builder selectReg(String selectReg) {
             this.selectReg = selectReg;
+            return this;
+        }
+
+        public Builder flagReg(String flagReg) {
+            this.flagReg = flagReg;
             return this;
         }
 
@@ -826,7 +1052,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         }
 
         public Scamp5SuperPixelConfig build() {
-            return new Scamp5SuperPixelConfig(useMovbx, useAdd, useAddSelf, useSub, useDiv, useRes, scratchRegisters, selectReg, maskReg, maskedReg, northReg, eastReg, southReg, westReg, width, height, banks, bitOrder, outputFormatter);
+            return new Scamp5SuperPixelConfig(useMovbx, useAdd, useAddSelf, useSub, useDiv, useRes, useNeg, scratchRegisters, selectReg, flagReg, maskReg, maskedReg, northReg, eastReg, southReg, westReg, width, height, banks, bitOrder, outputFormatter);
         }
     }
 }
