@@ -496,7 +496,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         char[][] mask = new char[this.width][this.height];
         for (int x = 0; x < this.width; x++) {
             for (int y = 0; y < this.height; y++) {
-                if (value[this.bitOrder[bank][x][y] - 1]) {
+                if (this.bitOrder[bank][x][y]>0 && value[this.bitOrder[bank][x][y] - 1]) {
                     count++;
                     mask[x][y] = marker.u();
                 } else {

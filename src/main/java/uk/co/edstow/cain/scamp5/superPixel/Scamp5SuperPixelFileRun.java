@@ -37,6 +37,15 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
     }
 
     @Override
+    protected int getBanks() {
+        if(spConfig != null){
+            return spConfig.banks;
+        } else {
+            return config.getJSONObject("pairGen").getJSONArray("bitOrder").length();
+        }
+    }
+
+    @Override
     protected Generator<G,Scamp5SuperPixelTransformation<G>, BRegister> makeGenerator() {
         JSONObject json = config.getJSONObject("pairGen");
         printLn("\t Making Pair Generation Factory:");
@@ -292,7 +301,7 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
             throw new UnsupportedOperationException("'relu' is the only supported activation function");
         }
         JSONArray registers = jActivation.getJSONArray("registers");
-        for (int goal = 0; goal < finalGoals.size(); goal++) {
+        for (int goal = 0; goal < registers.length(); goal++) {
             BRegister reg = BRegister.makeBRegister(registers.getString(goal));
             sb.append(spConfig.outputFormatter.comment("Applying Relu to "+reg));
             sb.append(spConfig.outputFormatter.newLine());
@@ -334,6 +343,10 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
         for (int i = 0; i < jADCs.length(); i++) {
             printLnVerbose("Starting ADC %s", i);
             JSONObject jADC = jADCs.getJSONObject(i);
+            if(!jADC.optBoolean("enabled", true)){
+                printLnVerbose("Skipping ADC %s", i);
+                continue;
+            }
             final int bitDepth = jADC.getInt("bitDepth");
             printLnVerbose("Bit Depth: %d", bitDepth);
             final int unitBit = jADC.getInt("unitBit");
@@ -403,18 +416,22 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
         for (int i = 0; i < jDACs.length(); i++) {
 
             printLnVerbose("Starting DAC %s", i);
-            JSONObject jADC = jDACs.getJSONObject(i);
-            final int bitDepth = jADC.getInt("bitDepth");
+            JSONObject jDAC = jDACs.getJSONObject(i);
+            if(!jDAC.optBoolean("enabled", true)){
+                printLnVerbose("Skipping DACC %s", i);
+                continue;
+            }
+            final int bitDepth = jDAC.getInt("bitDepth");
             printLnVerbose("Bit Depth: %d", bitDepth);
-            final int unitBit = jADC.getInt("unitBit");
+            final int unitBit = jDAC.getInt("unitBit");
             printLnVerbose("unit Bit: %d", unitBit);
             if(unitBit < 0 || unitBit > this.spConfig.getBits(this.initialGoals.get(0).getBank())) {
                 throw new IllegalArgumentException("UnitBits must be between 1 and the number of bits in each bank (inclusive)");
             }
 
-            final BRegister digitalIn = BRegister.makeBRegister(jADC.getString("digitalReg"));
+            final BRegister digitalIn = BRegister.makeBRegister(jDAC.getString("digitalReg"));
             printLnVerbose("DigitalReg = %s", digitalIn);
-            final Register analogueOut = new Register(jADC.getString("analogueReg"));
+            final Register analogueOut = new Register(jDAC.getString("analogueReg"));
             printLnVerbose("AnalogueReg = %s", analogueOut);
             final int startBit = unitBit + bitDepth - 1;
             if(startBit == spConfig.getBits(digitalIn.bank)){

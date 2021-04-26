@@ -443,7 +443,7 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
 
         @Override
         public int ExtraRegisterCount(int bank) {
-            return 1;
+            return a.getBank()==bank?1:0;
         }
     }
 

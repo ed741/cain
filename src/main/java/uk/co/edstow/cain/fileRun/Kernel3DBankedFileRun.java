@@ -60,6 +60,8 @@ public abstract class Kernel3DBankedFileRun<G extends BankedKernel3DGoal<G>, T e
         return getRegisterArray(config.getJSONObject("registerAllocator").getJSONArray("initialRegisters"));
     }
 
+    protected abstract int getBanks();
+
     @Override
     protected BankedRegisterAllocator<G, T, BRegister> makeRegisterAllocator() {
         JSONObject regAllocConf = config.getJSONObject("registerAllocator");
@@ -77,7 +79,7 @@ public abstract class Kernel3DBankedFileRun<G extends BankedKernel3DGoal<G>, T e
                 }
                 List<BRegister> initRegisters = new ArrayList<>(getInputRegisters());
                 printLn("Initial registers    : " + initRegisters.toString());
-                return new BankedLinearScanRegisterAllocator<>(available.stream().mapToInt(bRegister -> bRegister.bank).max().orElse(0) + 1, initRegisters, initialGoals, available);
+                return new BankedLinearScanRegisterAllocator<>(getBanks(), initRegisters, initialGoals, available);
             default:
                 throw new IllegalArgumentException("Register Allocator Unknown");
         }

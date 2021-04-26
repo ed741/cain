@@ -10,7 +10,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class Approximater<G extends Kernel3DGoal<G>> {
-    private class Vector {
+    private static class Vector {
         final int[] val;
         private Vector(int... val) {
             this.val = val;
