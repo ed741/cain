@@ -11,6 +11,7 @@ import uk.co.edstow.cain.transformations.Transformation;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public abstract class AtomDistancePairGen<G extends Kernel3DGoal<G>, T extends Transformation<R>, R extends Register> implements PairGen<G, T, R> {
     protected final Context<G, T, R> context;
@@ -61,7 +62,7 @@ public abstract class AtomDistancePairGen<G extends Kernel3DGoal<G>, T extends T
             List<Item> outList = new ArrayList<>();
             inList.sort(atomDistanceComparator);
             addPairs(a, diagonal, inList, outList);
-            outList.forEach(item -> currentList.add(item.pair));
+            currentList = outList.stream().map((Item i) -> i.pair).collect(Collectors.toList());
 
         }
     }
