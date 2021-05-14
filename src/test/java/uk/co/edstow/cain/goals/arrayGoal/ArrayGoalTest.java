@@ -275,6 +275,18 @@ class ArrayGoalTest {
                                                             ).get()), g4.without(g1));
         assertFalse(g1.equivalent(g1.without(new ArrayGoal())));
 
+        {
+            ArrayGoal.Factory f1 = new ArrayGoal.Factory();
+            f1.add(0, 0, 0, 12);
+            ArrayGoal t1 = f1.get();
+            ArrayGoal.Factory f2 = new ArrayGoal.Factory();
+            f2.add(0, 0, 0, 17);
+            ArrayGoal t2 = f2.get();
+            ArrayGoal.Factory f3 = new ArrayGoal.Factory();
+            ArrayGoal t3 = f3.get();
+            assertEquals(t3, t1.without(t2));
+        }
+
     }
 
     @Test

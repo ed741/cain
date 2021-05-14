@@ -445,8 +445,18 @@ public final class ArrayGoal implements Kernel3DGoal<ArrayGoal> {
                     int idx = (xPos*(ySize) + yPos)*(zSize) + zPos;
                     int theirC = goal.get(x, y, z);
                     int thisC = narr[idx];
-                    if ((theirC < 0 && thisC < 0) || (theirC > 0 && thisC > 0)) {
-                        narr[idx] = thisC - theirC;
+                    if(theirC < 0 && thisC < 0) {
+                        if(theirC < thisC){
+                            narr[idx]= 0;
+                        } else {
+                            narr[idx] = thisC - theirC;
+                        }
+                    } else if (theirC > 0 && thisC > 0) {
+                        if(theirC > thisC){
+                            narr[idx]= 0;
+                        } else {
+                            narr[idx] = thisC - theirC;
+                        }
                     }
                 }
             }
