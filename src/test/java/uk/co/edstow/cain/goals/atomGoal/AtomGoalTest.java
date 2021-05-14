@@ -23,6 +23,18 @@ class AtomGoalTest {
         AtomGoal ga = g1.without(new AtomGoal(new Atom(0,0,0, true)));
 
         assertEquals(ge, ga);
+
+        {
+            AtomGoal.Factory f1 = new AtomGoal.Factory();
+            f1.add(0, 0, 0, 12);
+            AtomGoal t1 = f1.get();
+            AtomGoal.Factory f2 = new AtomGoal.Factory();
+            f2.add(0, 0, 0, 17);
+            AtomGoal t2 = f2.get();
+            AtomGoal.Factory f3 = new AtomGoal.Factory();
+            AtomGoal t3 = f3.get();
+            assertEquals(t3, t1.without(t2));
+        }
     }
 
     @Test
