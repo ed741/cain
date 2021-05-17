@@ -134,7 +134,7 @@ If target is "scamp5" then the "mode" tag must be present:
 | ---------- |:-------------:|:-------:| ------------ |
 | mode       |               |         | Specifies the paradigms and features to use, to produce code for the scamp5 device |
 | .          | "analogue"    |         | Use the scamp5's analogue functionality to compute a convolutional filter |
-| .          | "digital"     |         | Use the scamp5's digital functionality to compute a convolutional filter |
+| .          | "digital"     |         | Use the scamp5's digital functionality to compute a convolutional filter (doesn't support negative numbers) |
 | .          | "superpixel"  |         | Use the scamp5's digital functionality, where multiple Processing element form a single 'super pixel' to compute a convolutional filter |
 | registerAllocator | RegisterAllocator (see below) | | The registerAllocator to use.
 | filter     | Filter (see below) |    | The mapping from Registers to the kernels to be compiled. |
