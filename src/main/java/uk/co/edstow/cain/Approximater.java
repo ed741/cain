@@ -44,7 +44,7 @@ public class Approximater<G extends Kernel3DGoal<G>> {
     public List<G> solve(Function<Integer, Kernel3DGoal.Kernel3DGoalFactory<G>> factoryfactory){
         depth = maxDepth;
         double totalError = 0;
-        for (int i = -10; i <= maxDepth; i++) {
+        for (int i = 0; i <= maxDepth; i++) {
             totalError = 0;
             for (int g = 0; g < this.input.size(); g++) {
                 Map<Vector, Double> vecDoubleMap = input.get(g);
