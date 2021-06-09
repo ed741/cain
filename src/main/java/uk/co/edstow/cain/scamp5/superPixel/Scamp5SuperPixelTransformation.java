@@ -754,8 +754,8 @@ public abstract class Scamp5SuperPixelTransformation<G extends BankedKernel3DGoa
             this.xPETranslation = this.xTranslation * scamp5SuperPixelConfig.width + peTranslation.getA();
             this.yPETranslation = this.yTranslation * scamp5SuperPixelConfig.height + peTranslation.getB();
             this.cost =
-                    (this.xPETranslation!=0?2+this.xPETranslation:0) +
-                    (this.yPETranslation!=0?2+this.yPETranslation:0) +
+                    (this.xPETranslation!=0?2+Math.abs(this.xPETranslation):0) +
+                    (this.yPETranslation!=0?2+Math.abs(this.yPETranslation):0) +
                     (this.xPETranslation==0&&this.yPETranslation==0?1:0)+
                     4;
 
