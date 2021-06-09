@@ -223,6 +223,8 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
                 throw new IllegalArgumentException("Unknown Heuristic option " + json.getString("name"));
             case "Pattern":
                 return new PatternHeuristic<>(initialGoals);
+            case "Pattern2":
+                return new PatternHeuristic2<>(initialGoals);
         }
     }
 

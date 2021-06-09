@@ -158,6 +158,8 @@ public abstract class Scamp5AnalogueFileRun<G extends Kernel3DGoal<G>> extends K
                 throw new IllegalArgumentException("Unknown Heuristic option " + json.getString("name"));
             case "Pattern":
                 return new PatternHeuristic<>(initialGoals);
+            case "Pattern2":
+                return new PatternHeuristic2<>(initialGoals);
         }
     }
 

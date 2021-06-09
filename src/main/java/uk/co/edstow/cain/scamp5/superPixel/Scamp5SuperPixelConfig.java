@@ -719,6 +719,30 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
             {sb.append(outputFormatter.kernel_begin()); inKernelMode = true;}
             sb.append(outputFormatter.OR(reg, regs.toArray(new String[0])));
 
+        } else if (availableRegs.size() >= 1) {
+            if(reg.equals(this.selectReg)) {
+                throw new IllegalArgumentException("Scamp5 cannot have multiple patterns together in select register: "+this.selectReg + " Patterns: " + list.toString());
+            }
+            String regA = reg;
+            String regB = availableRegs.get(0);
+            String currentReg = regA;
+            String altReg = regB;
+            if(inKernelMode) {sb.append(outputFormatter.kernel_end()); inKernelMode = false;}
+            Pattern pattern = list.get(0);
+            sb.append(outputFormatter.load_pattern(currentReg, pattern.yVal, pattern.xVal, pattern.yMask, pattern.xMask));
+            for (int i = 1; i < list.size(); i++) {
+                pattern = list.get(i);
+                if(inKernelMode) {sb.append(outputFormatter.kernel_end()); inKernelMode = false;}
+                sb.append(outputFormatter.select_pattern(pattern.yVal, pattern.xVal, pattern.yMask, pattern.xMask));
+                sb.append(outputFormatter.kernel_begin()); inKernelMode = true;
+                sb.append(outputFormatter.OR(altReg, currentReg, this.selectReg));
+                altReg = altReg.equals(regA) ?regB:regA;
+                currentReg = currentReg.equals(regA) ?regB:regA;
+            }
+            if(!currentReg.equals(reg)) {
+                if(!inKernelMode) {sb.append(outputFormatter.kernel_begin()); inKernelMode = true;}
+                sb.append(outputFormatter.MOV(reg, currentReg));
+            }
         } else {
             throw new IllegalArgumentException("More complex Direction-Pattern loading not supported. Ask a developer for support");
         }
