@@ -27,14 +27,18 @@ public interface Bounds {
     }
 
     default int largestMagnitude(){
-        int max = 0;
-        if(getXMax()>max) max = getXMax();
-        if(getYMax()>max) max = getYMax();
-        if(getZMax()>max) max = getZMax();
+        return largestMagnitude(true, true, true);
+    }
 
-        if(Math.abs(getXMin())>max) max = Math.abs(getXMin());
-        if(Math.abs(getYMin())>max) max = Math.abs(getYMin());
-        if(Math.abs(getZMin())>max) max = Math.abs(getZMin());
+    default int largestMagnitude(boolean x, boolean y, boolean z){
+        int max = 0;
+        if(x && getXMax()>max) max = getXMax();
+        if(y && getYMax()>max) max = getYMax();
+        if(z && getZMax()>max) max = getZMax();
+
+        if(x && Math.abs(getXMin())>max) max = Math.abs(getXMin());
+        if(y && Math.abs(getYMin())>max) max = Math.abs(getYMin());
+        if(z && Math.abs(getZMin())>max) max = Math.abs(getZMin());
         return max;
     }
 

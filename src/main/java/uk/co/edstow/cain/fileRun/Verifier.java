@@ -9,6 +9,13 @@ import uk.co.edstow.cain.transformations.Transformation;
 import java.util.List;
 
 public interface Verifier<G extends Goal<G>, T extends Transformation<R>, R extends Register> {
+
+    class VerificationError extends RuntimeException{
+        public VerificationError(String s) {
+            super(s);
+        }
+    }
+
     static <G extends Goal<G>, T extends Transformation<R>, R extends Register> Verifier<G,T,R> SkipVerify(){
         return (code, initialGoals, finalGoals, plan, registerAllocator) -> new VerificationResult() {
             @Override
@@ -25,4 +32,16 @@ public interface Verifier<G extends Goal<G>, T extends Transformation<R>, R exte
         boolean passed();
         String getInfo();
     }
+
+    VerificationResult GenericFail = new VerificationResult(){
+        @Override
+        public boolean passed() {
+            return false;
+        }
+
+        @Override
+        public String getInfo() {
+            return "Failed, Check logs for more information";
+        }
+    };
 }

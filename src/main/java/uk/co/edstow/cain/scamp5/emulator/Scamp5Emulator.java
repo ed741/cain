@@ -1,5 +1,6 @@
 package uk.co.edstow.cain.scamp5.emulator;
 
+import uk.co.edstow.cain.fileRun.Verifier;
 import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
 import uk.co.edstow.cain.structures.Bounds;
@@ -32,8 +33,13 @@ public class Scamp5Emulator {
     private final Reg[] realRegisters;
 
 
-    private static class UndefinedInstructionBehaviour extends RuntimeException{
+    private static class UndefinedInstructionBehaviour extends Verifier.VerificationError {
         UndefinedInstructionBehaviour(String s) {
+            super(s);
+        }
+    }
+    private static class InstructionParseError extends Verifier.VerificationError {
+        InstructionParseError(String s) {
             super(s);
         }
     }
@@ -555,7 +561,7 @@ public class Scamp5Emulator {
     private Tuple<InstructionSignature, String[]> parseInput(String instruction) {
         Matcher matcher = this.instructionPatten.matcher(instruction);
         if (!matcher.matches() || matcher.groupCount() != 2) {
-            throw new IllegalArgumentException("Cannot parse \"" + instruction + "\"");
+            throw new InstructionParseError("Cannot parse \"" + instruction + "\"");
         }
         String name = matcher.group(1);
         List<String> argList = new ArrayList<>();
@@ -577,13 +583,13 @@ public class Scamp5Emulator {
                     int integer = Integer.parseInt(arg);
                     argType[i] = 2;
                 } catch (NumberFormatException e){
-                    throw new IllegalArgumentException(String.format("Cannot parse Instruction \"%s\", Argument %d (\"%s\")is not Register or Direction or Integer", instruction, i, arg));
+                    throw new InstructionParseError(String.format("Cannot parse Instruction \"%s\", Argument %d (\"%s\")is not Register or Direction or Integer", instruction, i, arg));
                 }
             }
         }
         InstructionSignature in = new InstructionSignature(name, argType);
         if(!this.instructionSet.containsKey(in)){
-            throw new IllegalArgumentException(String.format("Cannot parse Instruction \"%s\", No instruction signature matching %s found", instruction, in.toString()));
+            throw new InstructionParseError(String.format("Cannot parse Instruction \"%s\", No instruction signature matching %s found", instruction, in.toString()));
         }
         return new Tuple<>(in, args);
     }
