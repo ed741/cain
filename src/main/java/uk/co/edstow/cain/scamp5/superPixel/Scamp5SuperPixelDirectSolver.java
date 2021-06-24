@@ -1,15 +1,10 @@
 package uk.co.edstow.cain.scamp5.superPixel;
 
 import uk.co.edstow.cain.goals.BankedKernel3DGoal;
-import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.pairgen.Context;
 import uk.co.edstow.cain.pairgen.DirectSolver;
-import uk.co.edstow.cain.pairgen.PairGen;
-import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.regAlloc.BRegister;
-import uk.co.edstow.cain.regAlloc.Register;
-import uk.co.edstow.cain.scamp5.analogue.Scamp5AnalogueTransformation;
-import uk.co.edstow.cain.scamp5.digital.Scamp5DigitalTransformation;
+import uk.co.edstow.cain.structures.Bounds;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
 import uk.co.edstow.cain.transformations.Transformation;
@@ -28,8 +23,8 @@ public class Scamp5SuperPixelDirectSolver<G extends BankedKernel3DGoal<G>> exten
     }
 
     @Override
-    public List<GoalPair<G, Scamp5SuperPixelTransformation<G>, BRegister>> solveDirectly(Context<G, Scamp5SuperPixelTransformation<G>, BRegister> context, GoalBag<G> goals){
-        goals = new GoalBag<>(goals);
+    public List<GoalPair<G, Scamp5SuperPixelTransformation<G>, BRegister>> solveDirectly(Context<G, Scamp5SuperPixelTransformation<G>, BRegister> context, GoalBag<G> goalsIn){
+        GoalBag<G> goals = new GoalBag<>(goalsIn);
         List<GoalPair<G, Scamp5SuperPixelTransformation<G>, BRegister>> allPairs = new ArrayList<>();
         List<G> empties = new ArrayList<>();
         for (int i = goals.size() - 1; i >= 0; i--) {
@@ -40,6 +35,16 @@ public class Scamp5SuperPixelDirectSolver<G extends BankedKernel3DGoal<G>> exten
         if(!scamp5SuperPixelConfig.onlyMov()) {
             if(scamp5SuperPixelConfig.useRes && !empties.isEmpty()) {
                 allPairs.add(new GoalPair<>(empties, Collections.emptyList(), new Scamp5SuperPixelTransformation.Res<>(empties, scamp5SuperPixelConfig)));
+            }
+        }
+        for (int i = goals.size() - 1; i >= 0; i--) {
+            G goal = goals.get(i);
+            for (int j = 0; j < i; j++) {
+                G g = goals.get(j);
+                if(goal.same(g)){
+                    goals.remove(i);
+                    allPairs.add(new GoalPair<>(goal, g, new Scamp5SuperPixelTransformation.Movxb<>(goal,0,0,0, scamp5SuperPixelConfig)));
+                }
             }
         }
         List<GoalPair<G,Scamp5SuperPixelTransformation<G>, BRegister>> pairList = super.solveDirectly(context, goals);
@@ -77,8 +82,9 @@ public class Scamp5SuperPixelDirectSolver<G extends BankedKernel3DGoal<G>> exten
         //Divide
         if(scamp5SuperPixelConfig.useDiv) {
             try {
-                if (goal.total() == 1d && goal.get(0, 0 ,goal.bounds().getZMax())==1) {
-                    int z = goal.bounds().getZMax();
+                Bounds goalBounds = goal.bounds();
+                if (goalBounds.largestMagnitude(true, true, false) == 0 && goalBounds.getZMax() - goalBounds.getZMin() == 0) {
+                    int z = goalBounds.getZMax();
                     G ic = null;
                     for (G i : context.initialGoals) {
                         if (i.get(0,0,z)>0) {

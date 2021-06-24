@@ -3,8 +3,8 @@ package uk.co.edstow.cain.scamp5.digital;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.pairgen.Context;
 import uk.co.edstow.cain.pairgen.DirectSolver;
-import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.regAlloc.Register;
+import uk.co.edstow.cain.structures.Bounds;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
 import uk.co.edstow.cain.transformations.Transformation;
@@ -21,8 +21,8 @@ public class Scamp5DigitalDirectSolver<G extends Kernel3DGoal<G>> extends Direct
 
 
     @Override
-    public List<GoalPair<G, Scamp5DigitalTransformation<G>, Register>> solveDirectly(Context<G, Scamp5DigitalTransformation<G>, Register> context, GoalBag<G> goals){
-        goals = new GoalBag<>(goals);
+    public List<GoalPair<G, Scamp5DigitalTransformation<G>, Register>> solveDirectly(Context<G, Scamp5DigitalTransformation<G>, Register> context, GoalBag<G> goalsIn){
+        GoalBag<G> goals = new GoalBag<>(goalsIn);
         List<GoalPair<G, Scamp5DigitalTransformation<G>, Register>> allPairs = new ArrayList<>();
         GoalBag<G> empties = new GoalBag<>();
         for (int i = goals.size() - 1; i >= 0; i--) {
@@ -40,6 +40,18 @@ public class Scamp5DigitalDirectSolver<G extends Kernel3DGoal<G>> extends Direct
                 }
             }
         }
+
+        for (int i = goals.size() - 1; i >= 0; i--) {
+            G goal = goals.get(i);
+            for (int j = 0; j < i; j++) {
+                G g = goals.get(j);
+                if(goal.same(g)){
+                    goals.remove(i);
+                    allPairs.add(new GoalPair<>(goal, g, new Scamp5DigitalTransformation.Mov<>(goal,  scamp5DigitalConfig)));
+                }
+            }
+        }
+
         List<GoalPair<G, Scamp5DigitalTransformation<G>, Register>> pairList = super.solveDirectly(context, goals);
         if(pairList==null){
             return null;
@@ -67,8 +79,9 @@ public class Scamp5DigitalDirectSolver<G extends Kernel3DGoal<G>> extends Direct
         //Divide
         if(scamp5DigitalConfig.useDiv) {
             try {
-                if (goal.total() == 1d && goal.get(0, 0 ,goal.bounds().getZMax())==1) {
-                    int z = goal.bounds().getZMax();
+                Bounds goalBounds = goal.bounds();
+                if (goalBounds.largestMagnitude(true, true, false) == 0 && goalBounds.getZMax() - goalBounds.getZMin() == 0) {
+                    int z = goalBounds.getZMax();
                     G ic = null;
                     for (G i : context.initialGoals) {
                         if (i.get(0,0,z)>0) {

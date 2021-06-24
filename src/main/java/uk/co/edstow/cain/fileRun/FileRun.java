@@ -343,7 +343,19 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
             Plan<G,T,R> plan = plans.get(i);
             String code = this.generateCode(plan);
             printLnVerbose("Result %d code Generated", i);
-            Verifier.VerificationResult verf = verifier.verify(code, initialGoals, finalGoals, plan, registerAllocator);
+            Verifier.VerificationResult verf = Verifier.GenericFail;
+            try {
+                verf = verifier.verify(code, initialGoals, finalGoals, plan, registerAllocator);
+            } catch (Verifier.VerificationError error){
+                printLnCritial("Verification Error ===============================");
+                printLnCritial("Plan %s", i);
+                printLnCritial(error.toString());
+                printLn(code);
+                printLn(plan.toString());
+                printLn(plan.toGoalsString());
+                printLnCritial("Plan %s", i);
+                printLnCritial("==================================================");
+            }
             results.add(new Result<>(this,
                     plans.get(i),
                     reverseSearch.getPlanNodesExplored().get(i),
