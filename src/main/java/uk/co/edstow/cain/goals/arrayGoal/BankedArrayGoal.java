@@ -129,7 +129,7 @@ public final class BankedArrayGoal implements BankedKernel3DGoal<BankedArrayGoal
         this.ySize = b.getYMax() - b.getYMin()+1;
         this.zSize = b.getZMax() - b.getZMin()+1;
         this.arr = new int[this.xSize*this.ySize*this.zSize];
-        Iterator<Tuple<Atom, Integer>> tupleIterator = atoms.uniqueCountIterator();
+        Iterator<Tuple<Atom, Integer>> tupleIterator = atoms.uniqueAtomCountIterator();
         int t = 0;
         while (tupleIterator.hasNext()){
             Tuple<Atom, Integer> next = tupleIterator.next();
@@ -582,8 +582,34 @@ public final class BankedArrayGoal implements BankedKernel3DGoal<BankedArrayGoal
         }
     }
 
+
     @Override
-    public Iterator<Tuple<Atom, Integer>> uniqueCountIterator() {
+    public Iterator<Tuple<Coord, Integer>> uniqueCountIterator() {
+        return new Iterator<Tuple<Coord, Integer>>() {
+            int i = 0;
+
+            @Override
+            public boolean hasNext() {
+                while ( this.i < arr.length && arr[i] == 0) {
+                    this.i += 1;
+                }
+                return this.i != arr.length;
+            }
+
+            @Override
+            public Tuple<Coord, Integer> next() {
+                if (!hasNext()){return null;}
+                int z = (i % zSize) - centerZ;
+                int y = ((i / zSize) % ySize) - centerY;
+                int x = (i /(ySize*zSize)) - centerX;
+                Tuple<Coord, Integer> tuple = new Tuple<>(new Coord(x, y, z), arr[i]);
+                i += 1;
+                return tuple;
+            }
+        };
+    }
+
+    public Iterator<Tuple<Atom, Integer>> uniqueAtomCountIterator() {
         return new Iterator<Tuple<Atom, Integer>>() {
             int i = 0;
 

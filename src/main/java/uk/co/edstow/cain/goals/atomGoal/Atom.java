@@ -1,5 +1,7 @@
 package uk.co.edstow.cain.goals.atomGoal;
 
+import uk.co.edstow.cain.goals.Kernel3DGoal;
+
 import java.util.Comparator;
 
 public class Atom implements Comparable<Atom> {
@@ -12,6 +14,14 @@ public class Atom implements Comparable<Atom> {
         this.x = x;
         this.y = y;
         this.z = z;
+        this.positive = positive;
+    }
+
+
+    public Atom(Kernel3DGoal.Coord coord, boolean positive) {
+        this.x = coord.x;
+        this.y = coord.y;
+        this.z = coord.z;
         this.positive = positive;
     }
 
@@ -81,5 +91,9 @@ public class Atom implements Comparable<Atom> {
         }
     }
     public static AtomComparator comparator = new AtomComparator();
+
+    public Kernel3DGoal.Coord coord(){
+        return new Kernel3DGoal.Coord(x, y, z);
+    }
 
 }

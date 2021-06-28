@@ -141,7 +141,7 @@ public class Plan<G extends Goal<G>, T extends Transformation<R>, R extends Regi
         }
 
         private String toStringN() {
-            return "Step:" + goalPair.toString() +
+            return "Step<"+child+">:" + goalPair.toString() +
                     "\n";
         }
 

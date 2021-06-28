@@ -2,10 +2,7 @@ package uk.co.edstow.cain.goals.atomGoal.pairGen;
 
 import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
-import uk.co.edstow.cain.pairgen.Context;
-import uk.co.edstow.cain.pairgen.DirectSolver;
-import uk.co.edstow.cain.pairgen.PairGen;
-import uk.co.edstow.cain.pairgen.PairGenFactory;
+import uk.co.edstow.cain.pairgen.*;
 import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
@@ -138,14 +135,14 @@ public class V2PairGenFactory extends DirectSolver<AtomGoal, SimpleTransformatio
 
     static List<Tuple<Distance, AtomGoal>> getAtomDistanceList(AtomGoal a, AtomGoal b, boolean diagonal) {
         Map<Distance, AtomGoal.Factory> distanceMap = new HashMap<>();
-        for (Iterator<Tuple<Atom, Integer>> ita = a.uniqueCountIterator(); ita.hasNext(); ) {
+        for (Iterator<Tuple<Atom, Integer>> ita = a.uniqueAtomCountIterator(); ita.hasNext(); ) {
             Tuple<Atom, Integer> ta = ita.next();
             Atom atomA = ta.getA();
-            for (Iterator<Tuple<Atom, Integer>> itb = b.uniqueCountIterator(); itb.hasNext(); ) {
+            for (Iterator<Tuple<Atom, Integer>> itb = b.uniqueAtomCountIterator(); itb.hasNext(); ) {
                 Tuple<Atom, Integer> tb = itb.next();
                 Atom atomB = tb.getA();
 
-                Distance d = new Distance(atomA, atomB);
+                Distance d = new Distance(atomA.coord(), atomB.coord());
                 AtomGoal.Factory goalFactory = distanceMap.getOrDefault(d, new AtomGoal.Factory());
                 int count = Math.min(ta.getB(), tb.getB());
                 if (diagonal && d.isZero()){

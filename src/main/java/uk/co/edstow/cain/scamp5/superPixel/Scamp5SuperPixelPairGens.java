@@ -1,11 +1,9 @@
 package uk.co.edstow.cain.scamp5.superPixel;
 
 import uk.co.edstow.cain.goals.BankedKernel3DGoal;
-import uk.co.edstow.cain.goals.atomGoal.pairGen.Distance;
-import uk.co.edstow.cain.goals.atomGoal.pairGen.SimpleTransformation;
+import uk.co.edstow.cain.pairgen.Distance;
 import uk.co.edstow.cain.pairgen.*;
 import uk.co.edstow.cain.regAlloc.BRegister;
-import uk.co.edstow.cain.scamp5.analogue.Scamp5AnalogueTransformation;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
 import uk.co.edstow.cain.util.Tuple;
@@ -152,7 +150,7 @@ public class Scamp5SuperPixelPairGens {
             if(tmp.same(item.a)){
                 if (scamp5SuperPixelConfig.useMovbx && item.distance.manhattanXY() > 0){
                     //movx
-                    SimpleTransformation.Direction d1 = item.distance.majorXYDirection();
+                    Distance.Direction d1 = item.distance.majorXYDirection();
                     Dir dir1 = Dir.fromDirection(d1);
                     for (int bank = 0; bank < scamp5SuperPixelConfig.banks; bank++) {
                         if (scamp5SuperPixelConfig.isBankSameShape(item.a.getBank(), bank)) {
@@ -207,7 +205,7 @@ public class Scamp5SuperPixelPairGens {
         protected void addDirectTransformation(G a, List<AtomDistancePairGen<G, Scamp5SuperPixelTransformation<G>, BRegister>.Item> outList) {
             Distance centre = new Distance(a.getAveragePos());
             if(scamp5SuperPixelConfig.useMovbx && centre.manhattanXY()>0){
-                SimpleTransformation.Direction d1 = centre.majorXYDirection();
+                Distance.Direction d1 = centre.majorXYDirection();
                 if(d1!= null) {
                     Dir dir1 = Dir.fromDirection(d1).opposite();
                     for (int bank = 0; bank < scamp5SuperPixelConfig.banks; bank++) {

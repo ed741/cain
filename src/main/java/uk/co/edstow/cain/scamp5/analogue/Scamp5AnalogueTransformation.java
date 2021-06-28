@@ -1,10 +1,9 @@
 package uk.co.edstow.cain.scamp5.analogue;
 
+import uk.co.edstow.cain.pairgen.Distance;
 import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.transformations.StandardTransformation;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
-import uk.co.edstow.cain.goals.atomGoal.Atom;
-import uk.co.edstow.cain.goals.atomGoal.pairGen.SimpleTransformation;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
@@ -168,7 +167,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
             return code;
         }
 
-        public static Dir fromDirection(SimpleTransformation.Direction direction) {
+        public static Dir fromDirection(Distance.Direction direction) {
             switch (direction){
                 case N: return North;
                 case E: return East;
@@ -660,10 +659,10 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         }
 
         public boolean isPossible(){
-            Iterator<Tuple<Atom, Integer>> it = a.uniqueCountIterator();
+            Iterator<Tuple<Kernel3DGoal.Coord, Integer>> it = a.uniqueCountIterator();
             while(it.hasNext()){
-                Tuple<Atom, Integer> t = it.next();
-                int count = t.getB();
+                Tuple<Kernel3DGoal.Coord, Integer> t = it.next();
+                int count = Math.abs(t.getB());
                 if(count < 2 || count % 2 != 0){
                     return false;
                 }
@@ -687,14 +686,14 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         public G applyForwards() throws TransformationApplicationException {
             if(this.div == null){
                 Kernel3DGoal.Kernel3DGoalFactory<G> factory = a.newFactory();
-                Iterator<Tuple<Atom, Integer>> it = a.uniqueCountIterator();
+                Iterator<Tuple<Kernel3DGoal.Coord, Integer>> it = a.uniqueCountIterator();
                 while(it.hasNext()){
-                    Tuple<Atom, Integer> t = it.next();
-                    int count = t.getB();
+                    Tuple<Kernel3DGoal.Coord, Integer> t = it.next();
+                    int count = Math.abs(t.getB());
                     if(count < 2 || count % 2 != 0){
                         throw new TransformationApplicationException("Cannot divide uneven number of atoms!");
                     }
-                    factory.add(t.getA().x, t.getA().y, t.getA().z, t.getA().positive?count/2:(-count/2));
+                    factory.add(t.getA().x, t.getA().y, t.getA().z, t.getB()>0?count/2:(-count/2));
                 }
                 this.div = factory.get();
             }
@@ -966,10 +965,10 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         }
 
         public boolean isPossible(){
-            Iterator<Tuple<Atom, Integer>> it = a.uniqueCountIterator();
+            Iterator<Tuple<Kernel3DGoal.Coord, Integer>> it = a.uniqueCountIterator();
             while(it.hasNext()){
-                Tuple<Atom, Integer> t = it.next();
-                int count = t.getB();
+                Tuple<Kernel3DGoal.Coord, Integer> t = it.next();
+                int count = Math.abs(t.getB());
                 if(count < 2 || count % 2 != 0){
                     return false;
                 }
@@ -1042,14 +1041,14 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
 
         private G applyDiv(G in) throws TransformationApplicationException {
             Kernel3DGoal.Kernel3DGoalFactory<G> factory = a.newFactory();
-            Iterator<Tuple<Atom, Integer>> it = a.uniqueCountIterator();
+            Iterator<Tuple<Kernel3DGoal.Coord, Integer>> it = a.uniqueCountIterator();
             while(it.hasNext()){
-                Tuple<Atom, Integer> t = it.next();
-                int count = t.getB();
+                Tuple<Kernel3DGoal.Coord, Integer> t = it.next();
+                int count = Math.abs(t.getB());
                 if(count < 2 || count % 2 != 0){
                     throw new TransformationApplicationException("Cannot divide uneven number of atoms!");
                 }
-                factory.add(t.getA().x, t.getA().y, t.getA().z, t.getA().positive?count/2:(-count/2));
+                factory.add(t.getA().x, t.getA().y, t.getA().z, t.getB()>0?count/2:(-count/2));
             }
             return factory.get();
         }

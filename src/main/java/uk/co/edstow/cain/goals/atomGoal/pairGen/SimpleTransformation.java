@@ -1,5 +1,6 @@
 package uk.co.edstow.cain.goals.atomGoal.pairGen;
 
+import uk.co.edstow.cain.pairgen.Distance;
 import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.transformations.StandardTransformation;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
@@ -53,7 +54,7 @@ public abstract class SimpleTransformation implements StandardTransformation {
 
     public static Collection<Tuple<? extends SimpleTransformation, AtomGoal>> applyAllUnaryOpBackwards(AtomGoal goal){
         ArrayList<Tuple<? extends SimpleTransformation, AtomGoal>> list = new ArrayList<>();
-        for (Direction d: Direction.values()){
+        for (Distance.Direction d: Distance.Direction.values()){
             for (int i = 1; i < 2; i++){
                 AtomGoal input = Move.getBackwardsApplication(i, d, goal);
                 SimpleTransformation t = new Move(i, d, input);
@@ -66,31 +67,6 @@ public abstract class SimpleTransformation implements StandardTransformation {
             list.add(new Tuple<>(t, input));
         }
         return list;
-    }
-
-    public enum Direction {
-        N(0,-1,0), E(-1,0,0), S(0,1,0), W(1,0,0), U(1,0,-1), D(1,0,1);
-
-        public final int x, y, z;
-        Direction(int x, int y, int z) {
-            this.x = x;
-            this.y = y;
-            this.z = z;
-        }
-
-        public Direction opposite(){
-            switch (this){
-                case N: return S;
-                case E: return W;
-                case S: return N;
-                case W: return E;
-                case U: return D;
-                case D: return U;
-            }
-            assert false;
-            System.exit(-1);
-            return null;
-        }
     }
 
 
@@ -240,10 +216,10 @@ public abstract class SimpleTransformation implements StandardTransformation {
 
     public static class Move extends SimpleTransformation{
         private final int steps;
-        private final Direction dir;
+        private final Distance.Direction dir;
         private final AtomGoal in;
 
-        private static AtomGoal getForwardsApplication(int steps, Direction dir, AtomGoal goal){
+        private static AtomGoal getForwardsApplication(int steps, Distance.Direction dir, AtomGoal goal){
             AtomGoal.Factory factory = new AtomGoal.Factory();
             int rx = steps * dir.x;
             int ry = steps * dir.y;
@@ -253,7 +229,7 @@ public abstract class SimpleTransformation implements StandardTransformation {
             return factory.get();
         }
 
-        private static AtomGoal getBackwardsApplication(int steps, Direction dir, AtomGoal goal){
+        private static AtomGoal getBackwardsApplication(int steps, Distance.Direction dir, AtomGoal goal){
             AtomGoal.Factory factory = new AtomGoal.Factory();
             int rx = steps * dir.x;
             int ry = steps * dir.y;
@@ -263,7 +239,7 @@ public abstract class SimpleTransformation implements StandardTransformation {
             return factory.get();
         }
 
-        public Move(int steps, Direction dir, AtomGoal in) {
+        public Move(int steps, Distance.Direction dir, AtomGoal in) {
             this.steps = steps;
             this.dir = dir;
             this.in = in;

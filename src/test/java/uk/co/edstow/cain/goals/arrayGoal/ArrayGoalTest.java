@@ -1,12 +1,13 @@
 package uk.co.edstow.cain.goals.arrayGoal;
 
 import org.junit.jupiter.api.Test;
+import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
 import uk.co.edstow.cain.structures.Bounds;
+import uk.co.edstow.cain.util.Tuple;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -461,5 +462,21 @@ class ArrayGoalTest {
         }
     }
 
+    @Test
+    void testUniqueCountIterator() {
+        ArrayGoal g1 = new ArrayGoal(new AtomGoal(
+                new Atom(1,-1,0, true),
+                new Atom(1,-1,0, true),
+                new Atom(1,1,0, false)));
+        Iterator<Tuple<Kernel3DGoal.Coord, Integer>> it = g1.uniqueCountIterator();
+        Map<Atom, Integer> map = new HashMap<>();
+        while(it.hasNext()){
+            Tuple<Kernel3DGoal.Coord, Integer> t = it.next();
+            map.put(new Atom(t.getA(), t.getB()>0), Math.abs(t.getB()));
+        }
 
+        assertEquals(2, (int) map.get(new Atom(1,-1,0, true)));
+        assertEquals(1, (int) map.get(new Atom(1,1,0, false)));
+        assertEquals(2, map.size());
+    }
 }
