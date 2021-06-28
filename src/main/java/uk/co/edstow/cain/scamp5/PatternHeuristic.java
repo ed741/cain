@@ -1,11 +1,9 @@
 package uk.co.edstow.cain.scamp5;
 
 import uk.co.edstow.cain.regAlloc.Register;
-import uk.co.edstow.cain.transformations.StandardTransformation;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.pairgen.Context;
 import uk.co.edstow.cain.pairgen.CostHeuristic;
-import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
 import uk.co.edstow.cain.transformations.Transformation;
@@ -65,13 +63,12 @@ public class PatternHeuristic<G extends Kernel3DGoal<G>, T extends Transformatio
                 }
             }
             double atomDistanceCost = 0;
-            for (Iterator<Tuple<Atom, Integer>> it = g.uniqueCountIterator(); it.hasNext(); ) {
-                Tuple<Atom, Integer> t = it.next();
-                Atom a = t.getA();
-                for (int i = 0; i < t.getB(); i++) {
-                    atomDistanceCost += Math.abs(a.x) + Math.abs(a.y) + Math.abs(a.z) + (a.positive?0:1);
-                    cost +=1;
-                }
+            for (Iterator<Tuple<Kernel3DGoal.Coord, Integer>> it = g.uniqueCountIterator(); it.hasNext(); ) {
+                Tuple<Kernel3DGoal.Coord, Integer> t = it.next();
+                Kernel3DGoal.Coord a = t.getA();
+                int count = Math.abs(t.getB());
+                atomDistanceCost += count * (Math.abs(a.x) + Math.abs(a.y) + Math.abs(a.z) + (t.getB()>0?0:1));
+                cost += count;
             }
             cost += atomDistanceCost/subset;
         }

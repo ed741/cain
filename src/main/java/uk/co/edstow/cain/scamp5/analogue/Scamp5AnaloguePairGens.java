@@ -1,10 +1,8 @@
 package uk.co.edstow.cain.scamp5.analogue;
 
 import uk.co.edstow.cain.goals.Kernel3DGoal;
-import uk.co.edstow.cain.goals.atomGoal.pairGen.Distance;
-import uk.co.edstow.cain.goals.atomGoal.pairGen.SimpleTransformation;
+import uk.co.edstow.cain.pairgen.Distance;
 import uk.co.edstow.cain.pairgen.*;
-import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
@@ -107,19 +105,29 @@ public class Scamp5AnaloguePairGens {
             List<G> splits = upper.allSplits();
             splits.remove(0);
             int normal = splits.size();
-            if(scamp5AnalogueConfig.subPowerOf2){
-                Kernel3DGoal.Kernel3DGoalFactory<G> sub1 = upper.newFactory();
-                Kernel3DGoal.Kernel3DGoalFactory<G> sub2 = upper.newFactory();
+            if(scamp5AnalogueConfig.subPowerOf2){ // upper = sub1 + sub2
+                Kernel3DGoal.Kernel3DGoalFactory<G> sub1 = upper.newFactory();  // sub1 will have 1 or 2 to alter the powers of 2 as well as the rest of the values
+                Kernel3DGoal.Kernel3DGoalFactory<G> sub2 = upper.newFactory();  // sub2 will have the powers of 2
                 boolean tryPower = false;
-                Iterator<Tuple<Atom, Integer>> it = upper.uniqueCountIterator();
+                Iterator<Tuple<Kernel3DGoal.Coord, Integer>> it = upper.uniqueCountIterator();
                 while(it.hasNext()){
-                    Tuple<Atom, Integer> t = it.next();
-                    if(t.getB() == 7 || t.getB() == 14 || t.getB() == 15){
+                    Tuple<Kernel3DGoal.Coord, Integer> t = it.next();
+                    int count = Math.abs(t.getB());
+                    boolean positive = t.getB()>0;
+                    if(count == 7) {
                         tryPower = true;
-                        sub1.sub(t.getA().x,t.getA().y,t.getA().z, 2-(t.getB() & 1));
-                        sub2.add(t.getA().x,t.getA().y,t.getA().z, t.getB()<<1 & ~t.getB());
+                        sub1.add(t.getA(), positive?-1:1);
+                        sub2.add(t.getA(), positive?8:-8);
+                    } else if(count == 14) {
+                        tryPower = true;
+                        sub1.add(t.getA(), positive?-2:2);
+                        sub2.add(t.getA(), positive?16:-16);
+                    } else if(count == 15) {
+                        tryPower = true;
+                        sub1.add(t.getA(), positive?-1:1);
+                        sub2.add(t.getA(), positive?16:-16);
                     } else {
-                        sub1.add(t.getA().x,t.getA().y,t.getA().z,t.getA().positive?t.getB():-t.getB());
+                        sub1.add(t.getA(), t.getB());
                     }
                 }
                 if(tryPower){
@@ -247,8 +255,8 @@ public class Scamp5AnaloguePairGens {
             if(tmp.same(item.a)){
                 if(scamp5AnalogueConfig.useMov2x && item.distance.manhattanXY()>1){
                     //mov2x
-                    SimpleTransformation.Direction d1 = item.distance.majorXYDirection();
-                    SimpleTransformation.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
+                    Distance.Direction d1 = item.distance.majorXYDirection();
+                    Distance.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
                     Dir dir1 = Dir.fromDirection(d1).opposite();
                     Dir dir2 = Dir.fromDirection(d2).opposite();
                     Mov2x<G> mov2x = new Mov2x<>(item.a, dir1, dir2, true, scamp5AnalogueConfig);
@@ -257,7 +265,7 @@ public class Scamp5AnaloguePairGens {
                 }
                 if (scamp5AnalogueConfig.useMovx && item.distance.manhattanXY() > 0){
                     //movx
-                    SimpleTransformation.Direction d1 = item.distance.majorXYDirection();
+                    Distance.Direction d1 = item.distance.majorXYDirection();
                     Dir dir1 = Dir.fromDirection(d1).opposite();
                     Movx<G> movx = new Movx<>(item.a, dir1, true, scamp5AnalogueConfig);
                     Item newItem = new Item(item, new GoalPair<>(item.a, movx.a, movx));
@@ -298,8 +306,8 @@ public class Scamp5AnaloguePairGens {
 
                 //add2x
                 if(scamp5AnalogueConfig.useAdd2x && item.distance.manhattanXY()>1){
-                    SimpleTransformation.Direction d1 = item.distance.majorXYDirection();
-                    SimpleTransformation.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
+                    Distance.Direction d1 = item.distance.majorXYDirection();
+                    Distance.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
                     Dir dir1 = Dir.fromDirection(d1).opposite();
                     Dir dir2 = Dir.fromDirection(d2).opposite();
                     G split1 = aWithoutTmp.translated(-dir1.x -dir2.x, -dir1.y-dir2.y, 0);
@@ -322,8 +330,8 @@ public class Scamp5AnaloguePairGens {
 
                 //Sub2x
                 if(scamp5AnalogueConfig.useSub2x && item.distance.manhattanXY()>1){
-                    SimpleTransformation.Direction d1 = item.distance.majorXYDirection();
-                    SimpleTransformation.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
+                    Distance.Direction d1 = item.distance.majorXYDirection();
+                    Distance.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
                     Dir dir1 = Dir.fromDirection(d1).opposite();
                     Dir dir2 = Dir.fromDirection(d2).opposite();
                     G split1 = tmp.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0);
@@ -386,8 +394,8 @@ public class Scamp5AnaloguePairGens {
 
             //add2x
             if(scamp5AnalogueConfig.useAdd2x && centre.manhattanXY()>1){
-                SimpleTransformation.Direction d1 = centre.majorXYDirection();
-                SimpleTransformation.Direction d2 = centre.then(d1.opposite()).majorXYDirection();
+                Distance.Direction d1 = centre.majorXYDirection();
+                Distance.Direction d2 = centre.then(d1.opposite()).majorXYDirection();
                 Dir dir1 = Dir.fromDirection(d1);
                 Dir dir2 = Dir.fromDirection(d2);
                 G split1 = aWithoutTo.translated(-dir1.x -dir2.x, -dir1.y-dir2.y, 0);
@@ -406,8 +414,8 @@ public class Scamp5AnaloguePairGens {
             }
 
             if(scamp5AnalogueConfig.useSub2x && item.distance.manhattanXY()>1){
-                SimpleTransformation.Direction d1 = item.distance.majorXYDirection();
-                SimpleTransformation.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
+                Distance.Direction d1 = item.distance.majorXYDirection();
+                Distance.Direction d2 = item.distance.then(d1.opposite()).majorXYDirection();
                 Dir dir1 = Dir.fromDirection(d1).opposite();
                 Dir dir2 = Dir.fromDirection(d2).opposite();
                 G split1 = aWithoutTo.translated(-dir1.x-dir2.x, -dir1.y-dir2.y, 0);
@@ -421,7 +429,7 @@ public class Scamp5AnaloguePairGens {
         protected void addDirectTransformation(G a, List<Item> outList) {
             Distance centre = new Distance(a.getAveragePos());
             if(scamp5AnalogueConfig.useMovx && centre.manhattanXY()>0){
-                SimpleTransformation.Direction d1 = centre.majorXYDirection();
+                Distance.Direction d1 = centre.majorXYDirection();
                 if(d1!= null) {
                     Dir dir1 = Dir.fromDirection(d1);
                     Movx<G> movx = new Movx<>(a, dir1, true, scamp5AnalogueConfig);
@@ -430,9 +438,9 @@ public class Scamp5AnaloguePairGens {
                 }
             }
             if(scamp5AnalogueConfig.useMov2x && centre.manhattanXY()>1){
-                SimpleTransformation.Direction d1 = centre.majorXYDirection();
+                Distance.Direction d1 = centre.majorXYDirection();
                 if(d1 != null) {
-                    SimpleTransformation.Direction d2 = centre.then(d1.opposite()).majorXYDirection();
+                    Distance.Direction d2 = centre.then(d1.opposite()).majorXYDirection();
                     if (d2 != null) {
                         Dir dir1 = Dir.fromDirection(d1).opposite();
                         Dir dir2 = Dir.fromDirection(d2).opposite();

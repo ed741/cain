@@ -2,10 +2,7 @@ package uk.co.edstow.cain.goals.atomGoal.pairGen;
 
 import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
-import uk.co.edstow.cain.pairgen.Context;
-import uk.co.edstow.cain.pairgen.DirectSolver;
-import uk.co.edstow.cain.pairgen.PairGen;
-import uk.co.edstow.cain.pairgen.PairGenFactory;
+import uk.co.edstow.cain.pairgen.*;
 import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.structures.GoalBag;
 import uk.co.edstow.cain.structures.GoalPair;
@@ -25,7 +22,7 @@ public class SimplePairGenFactory extends DirectSolver<AtomGoal, SimpleTransform
 
     public static Collection<Tuple<List<GoalPair<AtomGoal, SimpleTransformation, Register>>, AtomGoal>> applyAllUnaryOps(AtomGoal goal, AtomGoal upper){
         ArrayList<Tuple<List<GoalPair<AtomGoal, SimpleTransformation, Register>>, AtomGoal>> list = new ArrayList<>();
-        for (SimpleTransformation.Direction d: SimpleTransformation.Direction.values()){
+        for (Distance.Direction d: Distance.Direction.values()){
             for (int i = 0; i < 4; i++){
                 SimpleTransformation t = new SimpleTransformation.Move(i, d, goal);
                 try {

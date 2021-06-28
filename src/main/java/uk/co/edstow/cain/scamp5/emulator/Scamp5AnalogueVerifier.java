@@ -4,7 +4,6 @@ import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.regAlloc.RegisterAllocator;
 import uk.co.edstow.cain.fileRun.Verifier;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
-import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.scamp5.analogue.Scamp5AnalogueTransformation;
 import uk.co.edstow.cain.structures.Bounds;
 import uk.co.edstow.cain.structures.Goal;
@@ -54,12 +53,12 @@ public class Scamp5AnalogueVerifier<G extends Kernel3DGoal<G>> implements Verifi
             Map<Tuple<Integer, Tuple<Integer, String>>, Double> testMap = emulator.getRawProcessingElementContains(0, 0, reg);
             noise += emulator.readNoise(0, 0, reg);
 
-            Iterator<Tuple<Atom, Integer>> iterator = finalGoals.get(i).uniqueCountIterator();
+            Iterator<Tuple<Kernel3DGoal.Coord, Integer>> iterator = finalGoals.get(i).uniqueCountIterator();
             while (iterator.hasNext()) {
-                Tuple<Atom, Integer> t = iterator.next();
+                Tuple<Kernel3DGoal.Coord, Integer> t = iterator.next();
                 Tuple<Integer, Tuple<Integer, String>> coordinate = Tuple.triple(t.getA().x, t.getA().y, registerAllocator.getInitRegisters().get(t.getA().z).toString());
                 Double d = testMap.get(coordinate);
-                int expected = t.getA().positive ? t.getB() : -t.getB();
+                int expected = t.getB();
                 if (d == null || Double.compare(expected, d) != 0) {
                     printLnCritial("INTEGRITY CHECK ERROR");
                     printLnCritial(coordinate.toString());

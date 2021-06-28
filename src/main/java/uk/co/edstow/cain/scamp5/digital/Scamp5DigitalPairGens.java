@@ -1,8 +1,7 @@
 package uk.co.edstow.cain.scamp5.digital;
 
 import uk.co.edstow.cain.goals.Kernel3DGoal;
-import uk.co.edstow.cain.goals.atomGoal.pairGen.Distance;
-import uk.co.edstow.cain.goals.atomGoal.pairGen.SimpleTransformation;
+import uk.co.edstow.cain.pairgen.Distance;
 import uk.co.edstow.cain.pairgen.Context;
 import uk.co.edstow.cain.pairgen.CostHeuristic;
 import uk.co.edstow.cain.regAlloc.Register;
@@ -145,7 +144,7 @@ public class Scamp5DigitalPairGens {
             if(tmp.same(item.a)){
                 if (scamp5DigitalConfig.useMovx && item.distance.manhattanXY() > 0){
                     //movx
-                    SimpleTransformation.Direction d1 = item.distance.majorXYDirection();
+                    Distance.Direction d1 = item.distance.majorXYDirection();
                     Dir dir1 = Dir.fromDirection(d1).opposite();
                     Movx<G> movx = new Movx<>(item.a, dir1, true, scamp5DigitalConfig);
                     Item newItem = new Item(item, new GoalPair<>(item.a, movx.a, movx));
@@ -187,7 +186,7 @@ public class Scamp5DigitalPairGens {
         protected void addDirectTransformation(G a, List<Item> outList) {
             Distance centre = new Distance(a.getAveragePos());
             if(scamp5DigitalConfig.useMovx && centre.manhattanXY()>0){
-                SimpleTransformation.Direction d1 = centre.majorXYDirection();
+                Distance.Direction d1 = centre.majorXYDirection();
                 if(d1!= null) {
                     Dir dir1 = Dir.fromDirection(d1);
                     Movx<G> movx = new Movx<>(a, dir1, true, scamp5DigitalConfig);

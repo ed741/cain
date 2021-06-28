@@ -1,8 +1,6 @@
 package uk.co.edstow.cain.pairgen;
 
 import uk.co.edstow.cain.goals.Kernel3DGoal;
-import uk.co.edstow.cain.goals.atomGoal.Atom;
-import uk.co.edstow.cain.goals.atomGoal.pairGen.Distance;
 import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.structures.Bounds;
 import uk.co.edstow.cain.structures.GoalBag;
@@ -117,15 +115,15 @@ public abstract class AtomDistancePairGen<G extends Kernel3DGoal<G>, T extends T
         int zSize = 1+ maxdz - mindz;
         Kernel3DGoal.Kernel3DGoalFactory<G>[][][][] distanceArray = new Kernel3DGoal.Kernel3DGoalFactory[2][xSize][ySize][zSize];
         int fillCount = 0;
-        for (Iterator<Tuple<Atom, Integer>> ita = a.uniqueCountIterator(); ita.hasNext(); ) {
-            Tuple<Atom, Integer> ta = ita.next();
-            Atom atomA = ta.getA();
-            for (Iterator<Tuple<Atom, Integer>> itb = b.uniqueCountIterator(); itb.hasNext(); ) {
-                Tuple<Atom, Integer> tb = itb.next();
-                Atom atomB = tb.getA();
+        for (Iterator<Tuple<Kernel3DGoal.Coord, Integer>> ita = a.uniqueCountIterator(); ita.hasNext(); ) {
+            Tuple<Kernel3DGoal.Coord, Integer> ta = ita.next();
+            Kernel3DGoal.Coord coordA = ta.getA();
+            for (Iterator<Tuple<Kernel3DGoal.Coord, Integer>> itb = b.uniqueCountIterator(); itb.hasNext(); ) {
+                Tuple<Kernel3DGoal.Coord, Integer> tb = itb.next();
+                Kernel3DGoal.Coord coordB = tb.getA();
 
-                Distance d = new Distance(atomA, atomB);
-                int negate = (atomA.positive ^ atomB.positive)?1:0;
+                Distance d = new Distance(coordA, coordB);
+                int negate = ((ta.getB()>0 && tb.getB()<0) || (ta.getB()<0 && tb.getB()>0))?1:0;
                 int xPos = d.x - mindx;
                 int yPos = d.y - mindy;
                 int zPos = d.z - mindz;
@@ -135,11 +133,11 @@ public abstract class AtomDistancePairGen<G extends Kernel3DGoal<G>, T extends T
                     distanceArray[negate][xPos][yPos][zPos] = goalFactory;
                     fillCount++;
                 }
-                int count = Math.min(ta.getB(), tb.getB());
+                int count = Math.min(Math.abs(ta.getB()), Math.abs(tb.getB()));
                 if (diagonal && d.isZero()){
                     count /= 2;
                 }
-                goalFactory.add(atomB.x, atomB.y, atomB.z, atomB.positive?count:-count);
+                goalFactory.add(coordB.x, coordB.y, coordB.z, ta.getB()>0?count:-count);
             }
         }
         List<Item> list = new ArrayList<>(fillCount);
@@ -177,16 +175,16 @@ public abstract class AtomDistancePairGen<G extends Kernel3DGoal<G>, T extends T
         int ySize = 1+ maxdy - mindy;
         Kernel3DGoal.Kernel3DGoalFactory<G>[][][] distanceArray = new Kernel3DGoal.Kernel3DGoalFactory[2][xSize][ySize];
         int fillCount = 0;
-        for (Iterator<Tuple<Atom, Integer>> ita = a.uniqueCountIterator(); ita.hasNext(); ) {
-            Tuple<Atom, Integer> ta = ita.next();
-            Atom atomA = ta.getA();
-            for (Iterator<Tuple<Atom, Integer>> itb = b.uniqueCountIterator(); itb.hasNext(); ) {
-                Tuple<Atom, Integer> tb = itb.next();
-                Atom atomB = tb.getA();
+        for (Iterator<Tuple<Kernel3DGoal.Coord, Integer>> ita = a.uniqueCountIterator(); ita.hasNext(); ) {
+            Tuple<Kernel3DGoal.Coord, Integer> ta = ita.next();
+            Kernel3DGoal.Coord coordA = ta.getA();
+            for (Iterator<Tuple<Kernel3DGoal.Coord, Integer>> itb = b.uniqueCountIterator(); itb.hasNext(); ) {
+                Tuple<Kernel3DGoal.Coord, Integer> tb = itb.next();
+                Kernel3DGoal.Coord coordB = tb.getA();
 
-                Distance d = new Distance(atomA, atomB);
+                Distance d = new Distance(coordA, coordB);
                 if (d.z == 0) {
-                    int negate = (atomA.positive ^ atomB.positive) ? 1 : 0;
+                    int negate = ((ta.getB()>0 && tb.getB()<0) || (ta.getB()<0 && tb.getB()>0))?1:0;
                     int xPos = d.x - mindx;
                     int yPos = d.y - mindy;
                     Kernel3DGoal.Kernel3DGoalFactory<G> goalFactory = distanceArray[negate][xPos][yPos];
@@ -199,7 +197,7 @@ public abstract class AtomDistancePairGen<G extends Kernel3DGoal<G>, T extends T
                     if (diagonal && d.isZero()) {
                         count /= 2;
                     }
-                    goalFactory.add(atomB.x, atomB.y, atomB.z, atomB.positive ? count : -count);
+                    goalFactory.add(coordB.x, coordB.y, coordB.z, tb.getB()>0? count : -count);
                 }
             }
         }

@@ -1,10 +1,9 @@
 package uk.co.edstow.cain.scamp5.digital;
 
+import uk.co.edstow.cain.pairgen.Distance;
 import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.transformations.StandardTransformation;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
-import uk.co.edstow.cain.goals.atomGoal.Atom;
-import uk.co.edstow.cain.goals.atomGoal.pairGen.SimpleTransformation;
 import uk.co.edstow.cain.util.Tuple;
 
 import java.util.*;
@@ -168,7 +167,7 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
             return code;
         }
 
-        public static Dir fromDirection(SimpleTransformation.Direction direction) {
+        public static Dir fromDirection(Distance.Direction direction) {
             switch (direction){
                 case N: return North;
                 case E: return East;
@@ -534,16 +533,16 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
                 this.sum = null;
             } else {
                 Kernel3DGoal.Kernel3DGoalFactory<G> factory = in.newFactory();
-                Iterator<Tuple<Atom, Integer>> it = in.uniqueCountIterator();
+                Iterator<Tuple<Kernel3DGoal.Coord, Integer>> it = in.uniqueCountIterator();
                 while(it.hasNext()){
-                    Tuple<Atom, Integer> t = it.next();
-                    int count = t.getB();
+                    Tuple<Kernel3DGoal.Coord, Integer> t = it.next();
+                    int count = Math.abs(t.getB());
                     if(count < 2 || count % 2 != 0){
                         this.a = null;
                         this.sum = in;
                         return;
                     }
-                    factory.add(t.getA().x, t.getA().y, t.getA().z, t.getA().positive?count/2:(-count/2));
+                    factory.add(t.getA().x, t.getA().y, t.getA().z, t.getB()>0?count/2:(-count/2));
                 }
                 this.a = factory.get();
                 this.sum = in;
@@ -649,10 +648,10 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
         }
 
         public boolean isPossible(){
-            Iterator<Tuple<Atom, Integer>> it = a.uniqueCountIterator();
+            Iterator<Tuple<Kernel3DGoal.Coord, Integer>> it = a.uniqueCountIterator();
             while(it.hasNext()){
-                Tuple<Atom, Integer> t = it.next();
-                int count = t.getB();
+                Tuple<Kernel3DGoal.Coord, Integer> t = it.next();
+                int count = Math.abs(t.getB());
                 if(count < 2 || count % 2 != 0){
                     return false;
                 }
@@ -685,14 +684,14 @@ public abstract class Scamp5DigitalTransformation<G extends Kernel3DGoal<G>> imp
         public G applyForwards() throws TransformationApplicationException {
             if(this.div == null){
                 Kernel3DGoal.Kernel3DGoalFactory<G> factory = a.newFactory();
-                Iterator<Tuple<Atom, Integer>> it = a.uniqueCountIterator();
+                Iterator<Tuple<Kernel3DGoal.Coord, Integer>> it = a.uniqueCountIterator();
                 while(it.hasNext()){
-                    Tuple<Atom, Integer> t = it.next();
-                    int count = t.getB();
+                    Tuple<Kernel3DGoal.Coord, Integer> t = it.next();
+                    int count = Math.abs(t.getB());
                     if(count < 2 || count % 2 != 0){
                         throw new TransformationApplicationException("Cannot divide uneven number of atoms!");
                     }
-                    factory.add(t.getA().x, t.getA().y, t.getA().z, t.getA().positive?count/2:(-count/2));
+                    factory.add(t.getA().x, t.getA().y, t.getA().z, t.getB()>0?count/2:(-count/2));
                 }
                 this.div = factory.get();
             }

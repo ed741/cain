@@ -1,6 +1,6 @@
 package uk.co.edstow.cain.goals.atomGoal;
 
-import uk.co.edstow.cain.goals.arrayGoal.ArrayGoal;
+import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.util.Tuple;
 import org.junit.jupiter.api.Test;
 
@@ -191,16 +191,34 @@ class AtomGoalTest {
     }
 
     @Test
+    void testUniqueAtomCountIterator() {
+        AtomGoal g1 = new AtomGoal(
+                new Atom(1,-1,0, true),
+                new Atom(1,-1,0, true),
+                new Atom(1,1,0, false));
+        Iterator<Tuple<Atom, Integer>> it = g1.uniqueAtomCountIterator();
+        Map<Atom, Integer> map = new HashMap<>();
+        while(it.hasNext()){
+            Tuple<Atom, Integer> t = it.next();
+            map.put(t.getA(), t.getB());
+        }
+
+        assertEquals(2, (int) map.get(new Atom(1,-1,0, true)));
+        assertEquals(1, (int) map.get(new Atom(1,1,0, false)));
+        assertEquals(2, map.size());
+    }
+
+    @Test
     void testUniqueCountIterator() {
         AtomGoal g1 = new AtomGoal(
                 new Atom(1,-1,0, true),
                 new Atom(1,-1,0, true),
                 new Atom(1,1,0, false));
-        Iterator<Tuple<Atom, Integer>> it = g1.uniqueCountIterator();
+        Iterator<Tuple<Kernel3DGoal.Coord, Integer>> it = g1.uniqueCountIterator();
         Map<Atom, Integer> map = new HashMap<>();
         while(it.hasNext()){
-            Tuple<Atom, Integer> t = it.next();
-            map.put(t.getA(), t.getB());
+            Tuple<Kernel3DGoal.Coord, Integer> t = it.next();
+            map.put(new Atom(t.getA(), t.getB()>0), Math.abs(t.getB()));
         }
 
         assertEquals(2, (int) map.get(new Atom(1,-1,0, true)));

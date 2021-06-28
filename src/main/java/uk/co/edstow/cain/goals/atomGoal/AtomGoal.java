@@ -1,7 +1,7 @@
 package uk.co.edstow.cain.goals.atomGoal;
 
 import uk.co.edstow.cain.goals.Kernel3DGoal;
-import uk.co.edstow.cain.goals.atomGoal.pairGen.Distance;
+import uk.co.edstow.cain.pairgen.Distance;
 import uk.co.edstow.cain.structures.Bounds;
 import uk.co.edstow.cain.util.Tuple;
 
@@ -201,7 +201,7 @@ public final class AtomGoal implements List<Atom>, Kernel3DGoal<AtomGoal> {
         try {
             List<List<Atom>> lists = new ArrayList<>();
             lists.add(new ArrayList<>());
-            for (Iterator<Tuple<Atom, Integer>> iterator = uniqueCountIterator(); iterator.hasNext(); ) {
+            for (Iterator<Tuple<Atom, Integer>> iterator = uniqueAtomCountIterator(); iterator.hasNext(); ) {
                 Tuple<Atom, Integer> tuple = iterator.next();
                 Atom atom = tuple.getA();
                 int count = tuple.getB();
@@ -235,8 +235,8 @@ public final class AtomGoal implements List<Atom>, Kernel3DGoal<AtomGoal> {
             return 0;
         }
         int div = -1;
-        Iterator<Tuple<Atom, Integer>> thisIt = this.uniqueCountIterator();
-        Iterator<Tuple<Atom, Integer>> goalIt = goal.uniqueCountIterator();
+        Iterator<Tuple<Atom, Integer>> thisIt = this.uniqueAtomCountIterator();
+        Iterator<Tuple<Atom, Integer>> goalIt = goal.uniqueAtomCountIterator();
         while(thisIt.hasNext() && goalIt.hasNext()){
             Tuple<Atom, Integer> ta = thisIt.next();
             Tuple<Atom, Integer> tb = goalIt.next();
@@ -319,10 +319,10 @@ public final class AtomGoal implements List<Atom>, Kernel3DGoal<AtomGoal> {
     @Override
     public boolean isTranslation(AtomGoal pattern) {
         if (pattern.get(0).positive == this.get(0).positive) {
-            Distance d = new Distance(pattern.get(0), this.get(0));
+            Distance d = new Distance(pattern.get(0).coord(), this.get(0).coord());
             int i = 0;
             for (; i < pattern.size(); i++) {
-                if (pattern.get(i).positive != this.get(i).positive || !d.same(pattern.get(i), this.get(i))) {
+                if (pattern.get(i).positive != this.get(i).positive || !d.same(pattern.get(i).coord(), this.get(i).coord())) {
                     break;
                 }
             }
@@ -381,7 +381,7 @@ public final class AtomGoal implements List<Atom>, Kernel3DGoal<AtomGoal> {
         {
 
 
-            Iterator<Tuple<Atom, Integer>> it = this.uniqueCountIterator();
+            Iterator<Tuple<Atom, Integer>> it = this.uniqueAtomCountIterator();
             while (it.hasNext()) {
                 Tuple<Atom, Integer> t = it.next();
                 int x = ixZero + t.getA().x;
@@ -665,8 +665,28 @@ public final class AtomGoal implements List<Atom>, Kernel3DGoal<AtomGoal> {
             }
         };
     }
+    public Iterator<Tuple<Coord, Integer>> uniqueCountIterator() {
+        return new Iterator<Tuple<Coord, Integer>>() {
+            int cursor = 0;
+            @Override
+            public boolean hasNext() {
+                return cursor < list.size();
+            }
 
-    public Iterator<Tuple<Atom, Integer>> uniqueCountIterator() {
+            @Override
+            public Tuple<Coord, Integer> next() {
+                Atom a = list.get(cursor++);
+                int count = 1;
+                while(cursor < list.size() && a.equals(list.get(cursor))){
+                    cursor++;
+                    count++;
+                }
+                return new Tuple<>(a.coord(), a.positive?count:-count);
+            }
+        };
+    }
+
+    public Iterator<Tuple<Atom, Integer>> uniqueAtomCountIterator() {
         return new Iterator<Tuple<Atom, Integer>>() {
             int cursor = 0;
             @Override
