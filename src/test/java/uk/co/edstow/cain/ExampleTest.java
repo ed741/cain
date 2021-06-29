@@ -36,9 +36,12 @@ public class ExampleTest {
         try {
             FileRun<?,?,?> fileRun = FileRun.loadFromJson(path);
             fileRun.run();
-            List<? extends Result> results = fileRun.getResults();
+            List<? extends Result<?,?,?>> results = fileRun.getResults();
             OptionalInt min = results.stream().mapToInt(r -> r.depth).min();
             assertTrue(min.isPresent(), "Unable to solve: " + path);
+            for (Result<?,?,?> result : results) {
+                assertTrue(result.verificationOutput.passed(), "VerificationFailed for " + path);
+            }
         } catch (Exception e){
             e.printStackTrace();
             e.getMessage();

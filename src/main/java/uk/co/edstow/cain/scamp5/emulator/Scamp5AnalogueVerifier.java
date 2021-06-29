@@ -61,6 +61,7 @@ public class Scamp5AnalogueVerifier<G extends Kernel3DGoal<G>> implements Verifi
                 int expected = t.getB();
                 if (d == null || Double.compare(expected, d) != 0) {
                     printLnCritial("INTEGRITY CHECK ERROR");
+                    printLnCritial("In Goal: %d \n %s", i, finalGoals.get(i).getTableString(false, false, true, true));
                     printLnCritial(coordinate.toString());
                     printLnCritial("%s", d == null ? "null" : d);
                     printLnCritial("%s", expected);

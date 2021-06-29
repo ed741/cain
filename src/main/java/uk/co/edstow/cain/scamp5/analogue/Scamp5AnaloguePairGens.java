@@ -219,6 +219,11 @@ public class Scamp5AnaloguePairGens {
                         if (aa.allZero() || ab.allZero()) {
                             continue;
                         }
+//                        G t = aa.added(ab).added(b);
+//                        if(!t.same(upper)){
+//                            System.out.println("ERROR, ");
+//                            System.exit(-1);
+//                        }
                         if (!skipAdd_3) {
                             Add_3<G> add = new Add_3<>(aa, ab, b, scamp5AnalogueConfig);
                             pairs.add(new GoalPair<>(upper, Arrays.asList(aa, ab, b), add));
@@ -379,6 +384,11 @@ public class Scamp5AnaloguePairGens {
                 if(!split1.allZero() && !tmp.allZero()) {
                     G split2 = tmp;
                     G split3 = item.to;
+//                    G t = split1.added(split2).added(split3);
+//                    if(!t.same(item.a)){
+//                        System.out.println("ERRROR");
+//                        System.exit(-1);
+//                    }
                    Item newItem = new Item(item, new GoalPair<>(item.a, Arrays.asList(split1, split2, split3), new Add_3<>(split1, split2, split3, scamp5AnalogueConfig)));
                     outList.add(newItem);
                 }
