@@ -193,7 +193,7 @@ public abstract class AtomDistancePairGen<G extends Kernel3DGoal<G>, T extends T
                         distanceArray[negate][xPos][yPos] = goalFactory;
                         fillCount++;
                     }
-                    int count = Math.min(ta.getB(), tb.getB());
+                    int count = Math.min(Math.abs(ta.getB()), Math.abs(tb.getB()));
                     if (diagonal && d.isZero()) {
                         count /= 2;
                     }
