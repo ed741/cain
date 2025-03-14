@@ -11,16 +11,16 @@ class Scamp5JssOutputFormatterTest {
   @Test
   void NOR() {
     Scamp5JssOutputFormatter formatter = new Scamp5JssOutputFormatter("s");
-    String nor = formatter.NOR("A", "B", "C");
+    String nor = formatter.NOR("A", "B", "C").toString();
 
-    assertEquals("s.NOR(s.A, s.B, s.C); ", nor);
+    assertEquals("s.NOR(s.A, s.B, s.C); \n", nor);
   }
 
   @Test
   void subx() {
     Scamp5JssOutputFormatter formatter = new Scamp5JssOutputFormatter("sim");
-    String subx = formatter.subx(new Register("A"), new Register("B"), "north", new Register("C"));
+    String subx = formatter.subx(new Register("A"), new Register("B"), "north", new Register("C")).toString();
 
-    assertEquals("sim.subx(sim.A, sim.B, north, sim.C); ", subx);
+    assertEquals("sim.subx(sim.A, sim.B, north, sim.C); \n", subx);
   }
 }

@@ -14,6 +14,7 @@ import uk.co.edstow.cain.pairgen.CostHeuristic;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.regAlloc.RegisterAllocator;
 import uk.co.edstow.cain.scamp5.*;
+import uk.co.edstow.cain.scamp5.output.OutputCode;
 import uk.co.edstow.cain.scamp5.output.Scamp5DefaultOutputFormatter;
 import uk.co.edstow.cain.scamp5.output.Scamp5JssOutputFormatter;
 import uk.co.edstow.cain.scamp5.output.Scamp5OutputFormatter;
@@ -183,19 +184,20 @@ public abstract class Scamp5DigitalFileRun<G extends Kernel3DGoal<G>> extends Ke
     }
 
     @Override
-    protected String generateCode(Plan<G, Scamp5DigitalTransformation<G>, Register> p){
+    protected OutputCode generateCode(Plan<G, Scamp5DigitalTransformation<G>, Register> p){
         RegisterAllocator.Mapping<G,Register> mapping = registerAllocator.solve(p);
         StringBuilder sb = new StringBuilder();
-        sb.append(scamp5DigitalConfig.outputFormatter.comment("Kernel Code!"));
-        sb.append(scamp5DigitalConfig.outputFormatter.newLine());
-        sb.append(scamp5DigitalConfig.outputFormatter.comment("Inputs in: " + mapping.initRegisters().stream().map(register -> register.toString() + "::" + scamp5DigitalConfig.registerMapping.get(register).toString()).collect(Collectors.joining(", "))));
-        sb.append(scamp5DigitalConfig.outputFormatter.newLine());
-        sb.append(scamp5DigitalConfig.outputFormatter.kernel_begin());
-        sb.append(scamp5DigitalConfig.outputFormatter.newLine());
-        sb.append(p.produceCode(mapping));
-        sb.append(scamp5DigitalConfig.outputFormatter.kernel_end());
-        sb.append(scamp5DigitalConfig.outputFormatter.newLine());
-        return sb.toString();
+        OutputCode code = new OutputCode();
+        code.addOutput(scamp5DigitalConfig.outputFormatter.comment("Kernel Code!"));
+        code.addOutput(scamp5DigitalConfig.outputFormatter.newLine());
+        code.addOutput(scamp5DigitalConfig.outputFormatter.comment("Inputs in: " + mapping.initRegisters().stream().map(register -> register.toString() + "::" + scamp5DigitalConfig.registerMapping.get(register).toString()).collect(Collectors.joining(", "))));
+        code.addOutput(scamp5DigitalConfig.outputFormatter.newLine());
+        code.addOutput(scamp5DigitalConfig.outputFormatter.kernel_begin());
+        code.addOutput(scamp5DigitalConfig.outputFormatter.newLine());
+        code.addOutput(p.produceCode(mapping));
+        code.addOutput(scamp5DigitalConfig.outputFormatter.kernel_end());
+        code.addOutput(scamp5DigitalConfig.outputFormatter.newLine());
+        return code;
     }
 
 

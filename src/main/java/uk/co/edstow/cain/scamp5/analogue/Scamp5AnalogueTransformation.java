@@ -2,6 +2,7 @@ package uk.co.edstow.cain.scamp5.analogue;
 
 import uk.co.edstow.cain.pairgen.Distance;
 import uk.co.edstow.cain.regAlloc.Register;
+import uk.co.edstow.cain.scamp5.output.OutputCode;
 import uk.co.edstow.cain.transformations.StandardTransformation;
 import uk.co.edstow.cain.goals.Kernel3DGoal;
 import uk.co.edstow.cain.util.Tuple;
@@ -49,9 +50,10 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
 
 
         @Override
-        public String code(List<Register> uppers, List<Register> lowers, List<Register> trash) {
-            return this.config.outputFormatter.comment(String.format("Null Instruction: %s <- %s", uppers, lowers)) +
-                    this.config.outputFormatter.newLine();
+        public OutputCode code(List<Register> uppers, List<Register> lowers, List<Register> trash) {
+            return new OutputCode()
+                    .addOutput(this.config.outputFormatter.comment(String.format("Null Instruction: %s <- %s", uppers, lowers)))
+                    .addOutput(this.config.outputFormatter.newLine());
         }
 
         @Override
@@ -92,16 +94,15 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         }
 
         @Override
-        public String code(List<Register> uppers, List<Register> lowers, List<Register> trash) {
+        public OutputCode code(List<Register> uppers, List<Register> lowers, List<Register> trash) {
             if (uppers.size() == 1) {
-                return code(uppers.get(0), lowers) +
-                        this.config.outputFormatter.newLine();
+                return code(uppers.get(0), lowers);
             } else {
                 throw new IllegalArgumentException("This Transformation only accepts one Upper register");
             }
         }
 
-        abstract String code(Register upper, List<Register> lowers);
+        abstract OutputCode code(Register upper, List<Register> lowers);
 
         public abstract G applyForwards() throws TransformationApplicationException;
         public List<G> applyOpForwards() throws TransformationApplicationException{
@@ -190,7 +191,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         }
 
         @Override
-        public String code(Register upper, List<Register> lowers) {
+        public OutputCode code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
             return super.config.outputFormatter.res(upper);
         }
@@ -247,10 +248,9 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         }
 
         @Override
-        public String code(List<Register> upper, List<Register> lowers, List<Register> trash) {
+        public OutputCode code(List<Register> upper, List<Register> lowers, List<Register> trash) {
             assert lowers.size() == inputCount();
-            return super.config.outputFormatter.res(upper.get(0), upper.get(1)) +
-                    this.config.outputFormatter.newLine();
+            return super.config.outputFormatter.res(upper.get(0), upper.get(1));
         }
 
         @Override
@@ -326,7 +326,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         }
 
         @Override
-        public String code(Register upper, List<Register> lowers) {
+        public OutputCode code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
             return super.config.outputFormatter.mov(upper, lowers.get(0));
         }
@@ -389,7 +389,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
             this.sum = null;
         }
         @Override
-        public String code(Register upper, List<Register> lowers) {
+        public OutputCode code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
             return super.config.outputFormatter.add(upper, lowers.get(0), lowers.get(1));
         }
@@ -454,7 +454,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
             this.sum = null;
         }
         @Override
-        public String code(Register upper, List<Register> lowers) {
+        public OutputCode code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
             return super.config.outputFormatter.add(upper, lowers.get(0), lowers.get(1), lowers.get(2));
         }
@@ -516,7 +516,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
              this.difference = null;
          }
          @Override
-         public String code(Register upper, List<Register> lowers) {
+         public OutputCode code(Register upper, List<Register> lowers) {
              assert lowers.size() == inputCount();
              return super.config.outputFormatter.sub(upper, lowers.get(0), lowers.get(1));
          }
@@ -588,7 +588,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         }
 
         @Override
-        public String code(Register upper, List<Register> lowers) {
+        public OutputCode code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
             return super.config.outputFormatter.neg(upper, lowers.get(0));
         }
@@ -671,7 +671,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         }
 
         @Override
-        public String code(Register upper, List<Register> lowers) {
+        public OutputCode code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
             return super.config.outputFormatter.divq(upper, lowers.get(0));
         }
@@ -747,7 +747,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         }
 
         @Override
-        public String code(Register upper, List<Register> lowers) {
+        public OutputCode code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
             return super.config.outputFormatter.movx(upper, lowers.get(0), dir.toCode());
         }
@@ -787,7 +787,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         }
 
         @Override
-        public String code(Register upper, List<Register> lowers) {
+        public OutputCode code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
             return super.config.outputFormatter.mov2x(upper, lowers.get(0), dir1.toCode(), dir2.toCode());
         }
@@ -819,7 +819,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         }
 
         @Override
-        public String code(Register upper, List<Register> lowers) {
+        public OutputCode code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
             return super.config.outputFormatter.addx(upper, lowers.get(0), lowers.get(1), dir.toCode());
         }
@@ -853,7 +853,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         }
 
         @Override
-        public String code(Register upper, List<Register> lowers) {
+        public OutputCode code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
             return super.config.outputFormatter.add2x(upper, lowers.get(0), lowers.get(1), dir1.toCode(), dir2.toCode());
         }
@@ -884,7 +884,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         }
 
         @Override
-        public String code(Register upper, List<Register> lowers) {
+        public OutputCode code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
             return super.config.outputFormatter.subx(upper, lowers.get(0), dir.toCode(), lowers.get(1));
         }
@@ -917,7 +917,7 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
             this.difference = null;
         }
         @Override
-        public String code(Register upper, List<Register> lowers) {
+        public OutputCode code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
             return super.config.outputFormatter.sub2x(upper, lowers.get(0), dir1.toCode(), dir2.toCode(), lowers.get(1));
         }
@@ -977,22 +977,19 @@ public abstract class Scamp5AnalogueTransformation<G extends Kernel3DGoal<G>> im
         }
 
         @Override
-        public String code(List<Register> uppers, List<Register> lowers, List<Register> trash) {
+        public OutputCode code(List<Register> uppers, List<Register> lowers, List<Register> trash) {
             assert lowers.size() == inputCount();
             assert uppers.size() == outputCount();
             if(uppers.get(0).equals(lowers.get(0))){
                 assert trash.size()>=2;
-                return super.config.outputFormatter.diva(uppers.get(0), trash.get(0), trash.get(1)) +
-                        this.config.outputFormatter.newLine();
+                return super.config.outputFormatter.diva(uppers.get(0), trash.get(0), trash.get(1));
             }
             if(this.clobber) {
                 assert trash.size() >= 1;
-                return super.config.outputFormatter.div(uppers.get(0), trash.get(0), lowers.get(0)) +
-                        this.config.outputFormatter.newLine();
+                return super.config.outputFormatter.div(uppers.get(0), trash.get(0), lowers.get(0));
             }else{
                 assert trash.size() >= 2;
-                return super.config.outputFormatter.div(uppers.get(0), trash.get(0), trash.get(1), lowers.get(0)) +
-                        this.config.outputFormatter.newLine();
+                return super.config.outputFormatter.div(uppers.get(0), trash.get(0), trash.get(1), lowers.get(0));
             }
 
         }

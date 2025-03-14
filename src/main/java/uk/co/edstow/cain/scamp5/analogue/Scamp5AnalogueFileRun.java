@@ -16,6 +16,7 @@ import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.regAlloc.RegisterAllocator;
 import uk.co.edstow.cain.scamp5.*;
 import uk.co.edstow.cain.scamp5.emulator.Scamp5AnalogueVerifier;
+import uk.co.edstow.cain.scamp5.output.OutputCode;
 import uk.co.edstow.cain.scamp5.output.Scamp5DefaultOutputFormatter;
 import uk.co.edstow.cain.scamp5.output.Scamp5JssOutputFormatter;
 import uk.co.edstow.cain.scamp5.output.Scamp5OutputFormatter;
@@ -179,19 +180,19 @@ public abstract class Scamp5AnalogueFileRun<G extends Kernel3DGoal<G>> extends K
     }
 
     @Override
-    protected String generateCode(Plan<G, Scamp5AnalogueTransformation<G>, Register> p){
+    protected OutputCode generateCode(Plan<G, Scamp5AnalogueTransformation<G>, Register> p){
         RegisterAllocator.Mapping<G,Register> mapping = registerAllocator.solve(p);
-        StringBuilder sb = new StringBuilder();
-        sb.append(scamp5AnalogueConfig.outputFormatter.comment("Kernel Code!"));
-        sb.append(scamp5AnalogueConfig.outputFormatter.newLine());
-        sb.append(scamp5AnalogueConfig.outputFormatter.comment("Inputs in: " + mapping.initRegisters().toString()));
-        sb.append(scamp5AnalogueConfig.outputFormatter.newLine());
-        sb.append(scamp5AnalogueConfig.outputFormatter.kernel_begin());
-        sb.append(scamp5AnalogueConfig.outputFormatter.newLine());
-        sb.append(p.produceCode(mapping));
-        sb.append(scamp5AnalogueConfig.outputFormatter.kernel_end());
-        sb.append(scamp5AnalogueConfig.outputFormatter.newLine());
-        return sb.toString();
+        OutputCode code = new OutputCode();
+        code.addOutput(scamp5AnalogueConfig.outputFormatter.comment("Kernel Code!"));
+        code.addOutput(scamp5AnalogueConfig.outputFormatter.newLine());
+        code.addOutput(scamp5AnalogueConfig.outputFormatter.comment("Inputs in: " + mapping.initRegisters().toString()));
+        code.addOutput(scamp5AnalogueConfig.outputFormatter.newLine());
+        code.addOutput(scamp5AnalogueConfig.outputFormatter.kernel_begin());
+        code.addOutput(scamp5AnalogueConfig.outputFormatter.newLine());
+        code.addOutput(p.produceCode(mapping));
+        code.addOutput(scamp5AnalogueConfig.outputFormatter.kernel_end());
+        code.addOutput(scamp5AnalogueConfig.outputFormatter.newLine());
+        return code;
     }
 
 

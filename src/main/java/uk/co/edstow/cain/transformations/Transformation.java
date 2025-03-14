@@ -1,13 +1,14 @@
 package uk.co.edstow.cain.transformations;
 
 import uk.co.edstow.cain.regAlloc.Register;
+import uk.co.edstow.cain.scamp5.output.OutputCode;
 
 import java.util.*;
 
 @SuppressWarnings("CommentedOutCode")
 public interface Transformation<R extends Register> {
 
-    String code(List<R> uppers, List<R> lowers, List<R> trash);
+    OutputCode code(List<R> uppers, List<R> lowers, List<R> trash);
 
     class TransformationApplicationException extends Exception{
 

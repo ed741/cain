@@ -8,6 +8,7 @@ import org.reflections.util.ClasspathHelper;
 import uk.co.edstow.cain.ReverseSearch;
 import uk.co.edstow.cain.pairgen.Generator;
 import uk.co.edstow.cain.regAlloc.*;
+import uk.co.edstow.cain.scamp5.output.OutputCode;
 import uk.co.edstow.cain.structures.Goal;
 import uk.co.edstow.cain.structures.Plan;
 import uk.co.edstow.cain.transformations.Transformation;
@@ -175,7 +176,7 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
 
     protected abstract Generator<G,T,R> makeGenerator();
 
-    protected String generateCode(Plan<G, T, R> p){
+    protected OutputCode generateCode(Plan<G, T, R> p){
         RegisterAllocator.Mapping<G,R> mapping = registerAllocator.solve(p);
         return p.produceCode(mapping);
     }
@@ -322,7 +323,8 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
 
         printLnImportant("length: " + p.depth() + " Cost: " + reverseSearch.costFunction.apply(p));
         printLnImportant("CircuitDepths:" + Arrays.toString(p.circuitDepths()));
-        String code = this.generateCode(p);
+        OutputCode outputCode = this.generateCode(p);
+        String code = outputCode.getString();
         printLnCritial(code);
         Verifier.VerificationResult verf = verifier.verify(code, initialGoals, finalGoals, p, registerAllocator);
         if (!verf.passed()) {
@@ -341,7 +343,8 @@ public abstract class FileRun<G extends Goal<G>, T extends Transformation<R>, R 
         for (int i = 0; i < plans.size(); i++) {
             printLnVerbose("Getting Result %d", i);
             Plan<G,T,R> plan = plans.get(i);
-            String code = this.generateCode(plan);
+            OutputCode outputCode = this.generateCode(plan);
+            String code = outputCode.getString();
             printLnVerbose("Result %d code Generated", i);
             Verifier.VerificationResult verf = Verifier.GenericFail;
             try {

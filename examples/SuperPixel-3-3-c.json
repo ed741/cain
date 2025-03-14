@@ -1,0 +1,75 @@
+{"name":"SP-test-8x8-hilbert",
+  "target": "scamp5",
+  "mode": "superpixel",
+
+  "maxApproximationDepth":6,
+  "maxApproximationError":0,
+  "3d": false,
+  "filter":{
+    "0:A": {"depth":-1,
+      "array":
+      [[0, 1, 0],
+        [1, 1, 0],
+        [0, 0, 0]
+      ]
+    }
+  },
+  "registerAllocator": {
+    "name": "linearScan",
+    "availableRegisters":[["A","B","C"]],
+    "initialRegisters":["0:A"]
+  },
+  "runConfig":{
+    "searchTime":1000,
+    "timeOut":true,
+    "workers":4,
+    "traversalAlgorithm":"CGDS",
+    "costFunction":"InstructionCost",
+    "liveCounter":false,
+    "livePrintPlans":0,
+    "quiet": true,
+    "initialMaxDepth":200,
+    "forcedDepthReduction":-1,
+    "initialMaxCost":2147483647,
+    "forcedCostReduction":0,
+    "allowableAtomsCoefficient":2,
+    "goalReductionsPerStep":1,
+    "goalReductionsTolerance":1
+  },
+
+  "pairGen":{
+    "strategy": {
+      "name":"Threshold",
+      "threshold":30,
+      "heuristic": {"name":"Pattern"},
+      "ops": "all"
+    },
+    "scratchRegs": ["R[scratch1]", "R[scratch2]", "R[scratch3]"],
+    "selectReg": "R[select]",
+    "maskReg": "R[mask]",
+    "maskedReg": "R[masked]",
+    "northReg": "R[north]",
+    "eastReg": "R[east]",
+    "southReg": "R[south]",
+    "westReg": "R[west]",
+
+    "width": 8,
+    "height": 8,
+
+    "bitOrder": [[[ 1,  2, 15, 16, 17, 20, 21, 22],
+                  [ 4,  3, 14, 13, 18, 19, 24, 23],
+                  [ 5,  8,  9, 12, 31, 30, 25, 26],
+                  [ 6,  7, 10, 11, 32, 29, 28, 27],
+                  [59, 58, 55, 54, 33, 36, 37, 38],
+                  [60, 57, 56, 53, 34, 35, 40, 39],
+                  [61, 62, 51, 52, 47, 46, 41, 42],
+                  [64, 63, 50, 49, 48, 45, 44, 43]]
+              ],
+    "outputFormat": {
+      "name": "defaultFormat"
+    }
+  },
+
+  "verifier":"None"
+
+}

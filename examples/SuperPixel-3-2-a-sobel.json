@@ -1,0 +1,80 @@
+{"name":"Sobel-4x4-boustrophdonic",
+  "target": "scamp5",
+  "mode": "superpixel",
+
+  "maxApproximationDepth":6,
+  "maxApproximationError":0,
+  "3d": false,
+  "filter":{
+    "0:A": {"depth":0,
+      "array":
+      [[-1, 0, 1],
+        [-2, 0, 2],
+        [-1, 0, 1]
+      ]
+    }
+  },
+  "registerAllocator": {
+    "name": "linearScan",
+    "availableRegisters":[["A","B","C","D","E","F"]],
+    "initialRegisters":["0:A"]
+  },
+  "runConfig":{
+    "searchTime":1000,
+    "timeOut":true,
+    "workers":4,
+    "traversalAlgorithm":"CGDS",
+    "costFunction":"InstructionCost",
+    "liveCounter":false,
+    "livePrintPlans":0,
+    "quiet": true,
+    "initialMaxDepth":200,
+    "forcedDepthReduction":-1,
+    "initialMaxCost":2147483647,
+    "forcedCostReduction":0,
+    "allowableAtomsCoefficient":2,
+    "goalReductionsPerStep":1,
+    "goalReductionsTolerance":1
+  },
+
+  "pairGen":{
+    "strategy": {
+      "name":"Threshold",
+      "threshold":30,
+      "heuristic": {"name":"Pattern"},
+      "ops": "all"
+    },
+    "scratchRegs": ["R[scratch1]", "R[scratch2]", "R[scratch3]"],
+    "selectReg": "R[select]",
+    "maskReg": "R[mask]",
+    "maskedReg": "R[masked]",
+    "northReg": "R[north]",
+    "eastReg": "R[east]",
+    "southReg": "R[south]",
+    "westReg": "R[west]",
+    "flagReg": "R[flag]",
+
+    "width": 4,
+    "height": 4,
+
+    "bitOrder": [[[ 1,  2,  3,  4],
+                  [ 8,  7,  6,  5],
+                  [ 9, 10, 11, 12],
+                  [16, 15, 14, 13]]
+              ],
+    "outputFormat": {
+      "name": "defaultFormat"
+    },
+    "adc": {
+      "analogueScratchReg": "B",
+      "channels": [{"enabled": true, "bitDepth": 8, "unitBit": 1, "analogueReg": "A", "digitalReg":  "0:A"}]
+    },
+    "dac": {
+      "analogueScratchReg": "B",
+      "channels": [{"enabled": true, "bitDepth": 8, "unitBit": 1, "analogueReg": "A", "digitalReg":  "0:A"}]
+    }
+  },
+
+  "verifier":"None"
+
+}

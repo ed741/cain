@@ -1,6 +1,7 @@
 package uk.co.edstow.cain.scamp5.superPixel;
 
 import uk.co.edstow.cain.scamp5.Scamp5Config;
+import uk.co.edstow.cain.scamp5.output.OutputCode;
 import uk.co.edstow.cain.scamp5.output.Scamp5OutputFormatter;
 import uk.co.edstow.cain.util.Bits;
 import uk.co.edstow.cain.util.Tuple;
@@ -440,7 +441,7 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
 //        }
 //    }
 
-    void selectBit(StringBuilder sb, int bank, int bit, String reg, boolean inKernelMode) {
+    void selectBit(OutputCode code, int bank, int bit, String reg, boolean inKernelMode) {
         int x = -1;
         int y = -1;
         {
@@ -461,20 +462,20 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         byte xVal = (byte) (this.width - 1 - x);
         byte yVal = (byte) (this.height - 1 - y);
         if(inKernelMode) {
-            sb.append(outputFormatter.kernel_end());
+            code.addOutput(outputFormatter.kernel_end());
         }
         if(reg.equals(this.selectReg)) {
-            sb.append(outputFormatter.select_pattern(yVal, xVal, yMask, xMask));
+            code.addOutput(outputFormatter.select_pattern(yVal, xVal, yMask, xMask));
         } else {
-            sb.append(outputFormatter.load_pattern(reg, yVal, xVal, yMask, xMask));
+            code.addOutput(outputFormatter.load_pattern(reg, yVal, xVal, yMask, xMask));
         }
         if(inKernelMode) {
-            sb.append(outputFormatter.kernel_begin());
+            code.addOutput(outputFormatter.kernel_begin());
         }
 
     }
 
-    void selectBank(StringBuilder sb, int bank, String reg, List<String> scratchRegisters) {
+    void selectBank(OutputCode code, int bank, String reg, List<String> scratchRegisters) {
         char[][] mask = new char[this.width][this.height];
         Marker marker = new SimpleMarker('O', 'o', reg);
         for (int x = 0; x < this.width; x++) {
@@ -484,12 +485,12 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         }
 //        printBitCharMask(mask, this.width, this.height);
         Map<Marker, List<Pattern>> patternList = generateBitMarkerPatterns(mask, Collections.singletonMap(marker, this.getBits(bank)));
-        sb.append(outputFormatter.comment(String.format("SetSelectBank %s -> %s", bank, reg)));
-        generateCodeForPatterns(sb, scratchRegisters, patternList);
-        sb.append(outputFormatter.comment("done - SetSelectBank"));
+        code.addOutput(outputFormatter.comment(String.format("SetSelectBank %s -> %s", bank, reg)));
+        generateCodeForPatterns(code, scratchRegisters, patternList);
+        code.addOutput(outputFormatter.comment("done - SetSelectBank"));
     }
 
-    void setValue(StringBuilder sb, int bank, boolean[] value, String reg, List<String> scratchRegisters) {
+    void setValue(OutputCode code, int bank, boolean[] value, String reg, List<String> scratchRegisters) {
         Marker marker = new SimpleMarker('O', 'o', reg);
         assert value.length == getBits(bank);
         int count = 0;
@@ -506,14 +507,14 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         }
 //        printBitCharMask(mask, this.width, this.height);
         Map<Marker, List<Pattern>> patternList = generateBitMarkerPatterns(mask, Collections.singletonMap(marker, count));
-        sb.append(outputFormatter.comment(String.format("SetValue %s:%s -> %s", bank, reg, Arrays.toString(value))));
-        generateCodeForPatterns(sb, scratchRegisters, patternList);
-        sb.append(outputFormatter.comment("done - SetValue"));
+        code.addOutput(outputFormatter.comment(String.format("SetValue %s:%s -> %s", bank, reg, Arrays.toString(value))));
+        generateCodeForPatterns(code, scratchRegisters, patternList);
+        code.addOutput(outputFormatter.comment("done - SetValue"));
     }
-    int selectFlood(StringBuilder sb, int bank, int bit, String reg, List<String> scratchRegisters) {
-        return selectFlood(sb, bank, bit, reg, scratchRegisters, false, true);
+    int selectFlood(OutputCode code, int bank, int bit, String reg, List<String> scratchRegisters) {
+        return selectFlood(code, bank, bit, reg, scratchRegisters, false, true);
     }
-    int selectFlood(StringBuilder sb, int bank, int bit, String reg, List<String> scratchRegisters, boolean allBanks, boolean inKernelMode) {
+    int selectFlood(OutputCode code, int bank, int bit, String reg, List<String> scratchRegisters, boolean allBanks, boolean inKernelMode) {
         assert bit <= getBits(bank);
         Marker origin = new SimpleMarker('O', 'o', reg);
         Map<Marker, Integer> counts = new HashMap<>();
@@ -576,42 +577,42 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         int maxDistance = maxBounds-bounds;
         assert count == 0;
         Map<Marker, List<Pattern>> patterns = generateBitMarkerPatterns(mask, counts);
-        generateCodeForPatterns(sb, scratchRegisters, patterns, inKernelMode);
+        generateCodeForPatterns(code, scratchRegisters, patterns, inKernelMode);
         return maxDistance;
     }
 
-    void setDirLessSignificant(StringBuilder sb, int bank) {
+    void setDirLessSignificant(OutputCode code, int bank) {
         char[][] bitDir = new char[this.width][this.height];
         Map<Dir, Integer> count = generateBitDirectionArray(bank, bitDir, true, Arrays.asList(Dir.values()));
         Map<Dir, List<Pattern>> patterns = generateBitMarkerPatterns(bitDir, count);
-        sb.append(outputFormatter.comment("SetDirLessSignificant"));
-        generateCodeForPatterns(sb, Collections.singletonList(this.maskReg), patterns);
-        sb.append(outputFormatter.comment("done - SetDirLessSignificant"));
+        code.addOutput(outputFormatter.comment("SetDirLessSignificant"));
+        generateCodeForPatterns(code, Collections.singletonList(this.maskReg), patterns);
+        code.addOutput(outputFormatter.comment("done - SetDirLessSignificant"));
 
     }
 
-    void setDirMoreSignificant(StringBuilder sb, int bank) {
+    void setDirMoreSignificant(OutputCode code, int bank) {
         char[][] bitDir = new char[this.width][this.height];
         Map<Dir, Integer> count = generateBitDirectionArray(bank, bitDir, false, Arrays.asList(Dir.values()));
         Map<Dir, List<Pattern>> patterns = generateBitMarkerPatterns(bitDir, count);
-        sb.append(outputFormatter.comment("SetDirMoreSignificant"));
-        generateCodeForPatterns(sb, Collections.singletonList(this.maskReg), patterns);
-        sb.append("/*done - SetDirMoreSignificant*/");
+        code.addOutput(outputFormatter.comment("SetDirMoreSignificant"));
+        generateCodeForPatterns(code, Collections.singletonList(this.maskReg), patterns);
+        code.addOutput(outputFormatter.comment("done - SetDirMoreSignificant"));
     }
 
-    public void setDirLessSignificantAndSelectBit(StringBuilder sb, int bank, int place, String reg, List<String> availableRegs) {
-        sb.append(outputFormatter.comment("SetDirLessSignificantAndSelect"));
-        setDirSignificantAndSelectBit(sb, bank, place, reg, true, availableRegs);
-        sb.append(outputFormatter.comment("done - SetDirLessSignificantAndSelect"));
+    public void setDirLessSignificantAndSelectBit(OutputCode code, int bank, int place, String reg, List<String> availableRegs) {
+        code.addOutput(outputFormatter.comment("SetDirLessSignificantAndSelect"));
+        setDirSignificantAndSelectBit(code, bank, place, reg, true, availableRegs);
+        code.addOutput(outputFormatter.comment("done - SetDirLessSignificantAndSelect"));
     }
 
-    public void setDirMoreSignificantAndSelectBit(StringBuilder sb, int bank, int place, String reg, List<String> availableRegs) {
-        sb.append(outputFormatter.comment("SetDirMoreSignificantAndSelect"));
-        setDirSignificantAndSelectBit(sb, bank, place, reg, false, availableRegs);
-        sb.append(outputFormatter.comment("done - SetDirMoreSignificantAndSelect"));
+    public void setDirMoreSignificantAndSelectBit(OutputCode code, int bank, int place, String reg, List<String> availableRegs) {
+        code.addOutput(outputFormatter.comment("SetDirMoreSignificantAndSelect"));
+        setDirSignificantAndSelectBit(code, bank, place, reg, false, availableRegs);
+        code.addOutput(outputFormatter.comment("done - SetDirMoreSignificantAndSelect"));
     }
 
-    private void setDirSignificantAndSelectBit(StringBuilder sb, int bank, int place, String reg, boolean lessSignificant, List<String> availableRegs) {
+    private void setDirSignificantAndSelectBit(OutputCode code, int bank, int place, String reg, boolean lessSignificant, List<String> availableRegs) {
         int x = -1;
         int y = -1;
         Dir direction = null;
@@ -643,24 +644,24 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
         byte xVal = (byte) (this.width - 1 - x);
         byte yVal = (byte) (this.height - 1 - y);
 
-        sb.append(outputFormatter.kernel_end());
+        code.addOutput(outputFormatter.kernel_end());
         if(reg.equals(this.selectReg)) {
-            sb.append(outputFormatter.select_pattern(yVal, xVal, yMask, xMask));
+            code.addOutput(outputFormatter.select_pattern(yVal, xVal, yMask, xMask));
         } else {
-            sb.append(outputFormatter.load_pattern(reg, yVal, xVal, yMask, xMask));
+            code.addOutput(outputFormatter.load_pattern(reg, yVal, xVal, yMask, xMask));
         }
-        sb.append(outputFormatter.kernel_begin());
-        sb.append(outputFormatter.CLR(this.northReg, this.southReg, this.eastReg, this.westReg));
+        code.addOutput(outputFormatter.kernel_begin());
+        code.addOutput(outputFormatter.CLR(this.northReg, this.southReg, this.eastReg, this.westReg));
         if(direction != null){
-                sb.append(outputFormatter.MOV(direction.getReg.apply(this), reg));
+            code.addOutput(outputFormatter.MOV(direction.getReg.apply(this), reg));
         }
 
     }
 
-    private <M extends Marker> void generateCodeForPatterns(StringBuilder sb, List<String> scratchRegs, Map<M, List<Pattern>> patterns) {
-        generateCodeForPatterns(sb, scratchRegs, patterns, true);
+    private <M extends Marker> void generateCodeForPatterns(OutputCode code, List<String> scratchRegs, Map<M, List<Pattern>> patterns) {
+        generateCodeForPatterns(code, scratchRegs, patterns, true);
     }
-    private <M extends Marker> void generateCodeForPatterns(StringBuilder sb, List<String> scratchRegs, Map<M, List<Pattern>> patterns, boolean inKernelMode) {
+    private <M extends Marker> void generateCodeForPatterns(OutputCode code, List<String> scratchRegs, Map<M, List<Pattern>> patterns, boolean inKernelMode) {
         List<Map.Entry<M, List<Pattern>>> patternList = patterns.entrySet().stream().sorted(Comparator.comparingInt(e -> -e.getValue().size())).collect(Collectors.toList());
         List<String> availableRegs = new ArrayList<>(scratchRegs);
         patterns.keySet().forEach(m -> {if (!availableRegs.contains(m.getReg(this))){availableRegs.add(m.getReg(this));}});
@@ -670,54 +671,54 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
             M dir = entry.getKey();
             List<Pattern> list = entry.getValue();
             String reg = dir.getReg(this);
-            sb.append(outputFormatter.comment(String.format("loading Dir: %s into %s", dir.u(), reg)));
-            inKernelMode = generateCodeForPatternsReg(sb, availableRegs, toClear, reg, list, inKernelMode);
+            code.addOutput(outputFormatter.comment(String.format("loading Dir: %s into %s", dir.u(), reg)));
+            inKernelMode = generateCodeForPatternsReg(code, availableRegs, toClear, reg, list, inKernelMode);
         }
 
         if(!toClear.isEmpty()){
-            if(!inKernelMode) {sb.append(outputFormatter.kernel_begin()); inKernelMode = true;}
-            sb.append(outputFormatter.CLR(toClear.toArray(new String[0])));
+            if(!inKernelMode) {code.addOutput(outputFormatter.kernel_begin()); inKernelMode = true;}
+            code.addOutput(outputFormatter.CLR(toClear.toArray(new String[0])));
         }
         if(leaveInKernelMode && !inKernelMode) {
-            sb.append(outputFormatter.kernel_begin());
+            code.addOutput(outputFormatter.kernel_begin());
         } else if (!leaveInKernelMode && inKernelMode) {
-            sb.append(outputFormatter.kernel_end());
+            code.addOutput(outputFormatter.kernel_end());
         }
 
     }
 
-    private boolean generateCodeForPatternsReg(StringBuilder sb, List<String> availableRegs, List<String> toClear, String reg, List<Pattern> list, boolean inKernelMode) {
+    private boolean generateCodeForPatternsReg(OutputCode code, List<String> availableRegs, List<String> toClear, String reg, List<Pattern> list, boolean inKernelMode) {
         availableRegs.remove(reg);
         if (list.isEmpty()){
             toClear.add(reg);
         } else if (list.size()==1){
-            if(inKernelMode) {sb.append(outputFormatter.kernel_end()); inKernelMode = false;}
+            if(inKernelMode) {code.addOutput(outputFormatter.kernel_end()); inKernelMode = false;}
             Pattern pattern = list.get(0);
             if(reg.equals(this.selectReg)) {
-                sb.append(outputFormatter.select_pattern(pattern.yVal, pattern.xVal, pattern.yMask, pattern.xMask));
+                code.addOutput(outputFormatter.select_pattern(pattern.yVal, pattern.xVal, pattern.yMask, pattern.xMask));
             } else {
-                sb.append(outputFormatter.load_pattern(reg, pattern.yVal, pattern.xVal, pattern.yMask, pattern.xMask));
+                code.addOutput(outputFormatter.load_pattern(reg, pattern.yVal, pattern.xVal, pattern.yMask, pattern.xMask));
             }
         } else if (list.size() <= 4 && list.size() <= availableRegs.size()+1) {
             if(reg.equals(this.selectReg)) {
                 throw new IllegalArgumentException("Scamp5 cannot have multiple patterns together in select register: "+this.selectReg + " Patterns: " + list.toString());
             }
-            if(inKernelMode) {sb.append(outputFormatter.kernel_end()); inKernelMode = false;}
+            if(inKernelMode) {code.addOutput(outputFormatter.kernel_end()); inKernelMode = false;}
             Pattern pattern;
             for (int i = 0; i < list.size() - 1; i++) {
                 pattern = list.get(i);
-                sb.append(outputFormatter.load_pattern(availableRegs.get(i), pattern.yVal, pattern.xVal, pattern.yMask, pattern.xMask));
+                code.addOutput(outputFormatter.load_pattern(availableRegs.get(i), pattern.yVal, pattern.xVal, pattern.yMask, pattern.xMask));
             }
             pattern = list.get(list.size()-1);
-            sb.append(outputFormatter.select_pattern(pattern.yVal, pattern.xVal, pattern.yMask, pattern.xMask));
+            code.addOutput(outputFormatter.select_pattern(pattern.yVal, pattern.xVal, pattern.yMask, pattern.xMask));
 
             List<String> regs = new ArrayList<>();
             for (int i = 0; i < list.size() - 1; i++) {
                 regs.add(availableRegs.get(i));
             }
             regs.add(this.selectReg);
-            {sb.append(outputFormatter.kernel_begin()); inKernelMode = true;}
-            sb.append(outputFormatter.OR(reg, regs.toArray(new String[0])));
+            {code.addOutput(outputFormatter.kernel_begin()); inKernelMode = true;}
+            code.addOutput(outputFormatter.OR(reg, regs.toArray(new String[0])));
 
         } else if (availableRegs.size() >= 1) {
             if(reg.equals(this.selectReg)) {
@@ -727,21 +728,21 @@ public class Scamp5SuperPixelConfig extends Scamp5Config<Scamp5SuperPixelConfig>
             String regB = availableRegs.get(0);
             String currentReg = regA;
             String altReg = regB;
-            if(inKernelMode) {sb.append(outputFormatter.kernel_end()); inKernelMode = false;}
+            if(inKernelMode) {code.addOutput(outputFormatter.kernel_end()); inKernelMode = false;}
             Pattern pattern = list.get(0);
-            sb.append(outputFormatter.load_pattern(currentReg, pattern.yVal, pattern.xVal, pattern.yMask, pattern.xMask));
+            code.addOutput(outputFormatter.load_pattern(currentReg, pattern.yVal, pattern.xVal, pattern.yMask, pattern.xMask));
             for (int i = 1; i < list.size(); i++) {
                 pattern = list.get(i);
-                if(inKernelMode) {sb.append(outputFormatter.kernel_end()); inKernelMode = false;}
-                sb.append(outputFormatter.select_pattern(pattern.yVal, pattern.xVal, pattern.yMask, pattern.xMask));
-                sb.append(outputFormatter.kernel_begin()); inKernelMode = true;
-                sb.append(outputFormatter.OR(altReg, currentReg, this.selectReg));
+                if(inKernelMode) {code.addOutput(outputFormatter.kernel_end()); inKernelMode = false;}
+                code.addOutput(outputFormatter.select_pattern(pattern.yVal, pattern.xVal, pattern.yMask, pattern.xMask));
+                code.addOutput(outputFormatter.kernel_begin()); inKernelMode = true;
+                code.addOutput(outputFormatter.OR(altReg, currentReg, this.selectReg));
                 altReg = altReg.equals(regA) ?regB:regA;
                 currentReg = currentReg.equals(regA) ?regB:regA;
             }
             if(!currentReg.equals(reg)) {
-                if(!inKernelMode) {sb.append(outputFormatter.kernel_begin()); inKernelMode = true;}
-                sb.append(outputFormatter.MOV(reg, currentReg));
+                if(!inKernelMode) {code.addOutput(outputFormatter.kernel_begin()); inKernelMode = true;}
+                code.addOutput(outputFormatter.MOV(reg, currentReg));
             }
         } else {
             throw new IllegalArgumentException("More complex Direction-Pattern loading not supported. Ask a developer for support");

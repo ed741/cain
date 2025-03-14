@@ -2,6 +2,7 @@ package uk.co.edstow.cain.structures;
 
 import uk.co.edstow.cain.regAlloc.Register;
 import uk.co.edstow.cain.regAlloc.RegisterAllocator;
+import uk.co.edstow.cain.scamp5.output.OutputCode;
 import uk.co.edstow.cain.transformations.Transformation;
 
 import java.util.ArrayList;
@@ -79,9 +80,9 @@ public class Plan<G extends Goal<G>, T extends Transformation<R>, R extends Regi
         return Collections.unmodifiableList(steps);
     }
 
-    public String produceCode(RegisterAllocator.Mapping<G, R> registerMap) {
+    public OutputCode produceCode(RegisterAllocator.Mapping<G, R> registerMap) {
         List<Step<G,T,R>> all = getAll();
-        StringBuilder sb = new StringBuilder();
+        OutputCode code = new OutputCode();
         for (int i = all.size()-1; i >= 0; i--) {
             printLnVerbose("ProduceCode Step: %d", i);
             Step<G,T,R> step = all.get(i);
@@ -95,9 +96,9 @@ public class Plan<G extends Goal<G>, T extends Transformation<R>, R extends Regi
                 G lowerGoal = step.getLowerTrueGoal(j);
                 lowers.add(registerMap.get(lowerGoal));
             }
-            sb.append(step.code(uppers, lowers, registerMap.getTrash(i)));
+            code.addOutput(step.code(uppers, lowers, registerMap.getTrash(i)));
         }
-        return sb.toString();
+        return code;
     }
 
     public Bounds bounds() {
@@ -160,7 +161,7 @@ public class Plan<G extends Goal<G>, T extends Transformation<R>, R extends Regi
         }
 
         @SuppressWarnings("WeakerAccess")
-        public String code(List<R> uppers, List<R> lowers, List<R> trash) {
+        public OutputCode code(List<R> uppers, List<R> lowers, List<R> trash) {
             return goalPair.getTransformation().code(uppers, lowers, trash);
         }
 

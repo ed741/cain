@@ -13,6 +13,7 @@ import uk.co.edstow.cain.goals.arrayGoal.BankedArrayGoal;
 import uk.co.edstow.cain.pairgen.CostHeuristic;
 import uk.co.edstow.cain.pairgen.PairGenFactory;
 import uk.co.edstow.cain.scamp5.*;
+import uk.co.edstow.cain.scamp5.output.OutputCode;
 import uk.co.edstow.cain.scamp5.output.Scamp5DefaultOutputFormatter;
 import uk.co.edstow.cain.scamp5.output.Scamp5JssOutputFormatter;
 import uk.co.edstow.cain.scamp5.output.Scamp5OutputFormatter;
@@ -228,7 +229,7 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
         }
     }
 
-    private void doBias(StringBuilder sb) {
+    private void doBias(OutputCode code) {
         JSONObject json = config.getJSONObject("pairGen");
         if(!json.has("bias")) return;
         printLn("adding Bias to output");
@@ -248,8 +249,8 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
         if(biass.length() != outRegisters.length() || biass.length() != inRegisters.length()) {
             throw new IllegalArgumentException("Weights[], outRegisters[] and inRegisters[] must be the same length");
         }
-        sb.append(spConfig.outputFormatter.comment("Adding Bias:"));
-        sb.append(spConfig.outputFormatter.newLine());
+        code.addOutput(spConfig.outputFormatter.comment("Adding Bias:"));
+        code.addOutput(spConfig.outputFormatter.newLine());
         for (int i = 0; i < biass.length(); i++) {
             BRegister inReg = BRegister.makeBRegister(inRegisters.getString(i));
             BRegister outReg = BRegister.makeBRegister(outRegisters.getString(i));
@@ -267,29 +268,29 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
                 value[bit] = v;
             }
             if(jBias.optBoolean("enabled", true)) {
-                sb.append(spConfig.outputFormatter.comment("Adding " + biasI + " to: " + inReg));
-                sb.append(spConfig.outputFormatter.newLine());
+                code.addOutput(spConfig.outputFormatter.comment("Adding " + biasI + " to: " + inReg));
+                code.addOutput(spConfig.outputFormatter.newLine());
                 List<String> scratchRegs = new ArrayList<>(spConfig.scratchRegisters);
                 scratchRegs.add(spConfig.northReg);
                 scratchRegs.add(spConfig.eastReg);
                 scratchRegs.add(spConfig.southReg);
                 scratchRegs.add(spConfig.westReg);
-                spConfig.setValue(sb, bank, value, biasDRegister, scratchRegs);
-                sb.append(spConfig.outputFormatter.newLine());
+                spConfig.setValue(code, bank, value, biasDRegister, scratchRegs);
+                code.addOutput(spConfig.outputFormatter.newLine());
                 BRegister biasReg = new BRegister(bank, biasDRegister);
 
 
-                sb.append(Scamp5SuperPixelTransformation.AddSub_2.shortCode(spConfig, outReg, inReg, biasReg, false));
+                code.addOutput(Scamp5SuperPixelTransformation.AddSub_2.shortCode(spConfig, outReg, inReg, biasReg, false));
             } else {
-                sb.append(spConfig.outputFormatter.comment("Skipping " + biasI + " to: "+ inReg));
-                sb.append(spConfig.outputFormatter.newLine());
+                code.addOutput(spConfig.outputFormatter.comment("Skipping " + biasI + " to: "+ inReg));
+                code.addOutput(spConfig.outputFormatter.newLine());
             }
         }
-        sb.append(spConfig.outputFormatter.comment("Done - Adding Bias"));
-        sb.append(spConfig.outputFormatter.newLine());
+        code.addOutput(spConfig.outputFormatter.comment("Done - Adding Bias"));
+        code.addOutput(spConfig.outputFormatter.newLine());
     }
 
-    private void doRelu(StringBuilder sb) {
+    private void doRelu(OutputCode code) {
         JSONObject json = config.getJSONObject("pairGen");
         if(!json.has("activation")) return;
         JSONObject jActivation = json.getJSONObject("activation");
@@ -305,31 +306,31 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
         JSONArray registers = jActivation.getJSONArray("registers");
         for (int goal = 0; goal < registers.length(); goal++) {
             BRegister reg = BRegister.makeBRegister(registers.getString(goal));
-            sb.append(spConfig.outputFormatter.comment("Applying Relu to "+reg));
-            sb.append(spConfig.outputFormatter.newLine());
+            code.addOutput(spConfig.outputFormatter.comment("Applying Relu to "+reg));
+            code.addOutput(spConfig.outputFormatter.newLine());
             int highestBit = spConfig.getBits(reg.bank);
 
-            sb.append(spConfig.outputFormatter.SET(spConfig.maskReg));
-            sb.append(spConfig.outputFormatter.SET(spConfig.maskedReg)); // maskedReg is 1 everywhere
-            int steps = spConfig.selectFlood(sb, reg.bank, highestBit, spConfig.maskReg, spConfig.scratchRegisters);
-            sb.append(spConfig.outputFormatter.NOT(spConfig.maskedReg, reg.name)); // maskedReg at highest bit is 0 iff negative. everywhere else is 1
-            sb.append(spConfig.outputFormatter.OR(spConfig.maskReg, spConfig.northReg, spConfig.eastReg, spConfig.southReg, spConfig.westReg));
+            code.addOutput(spConfig.outputFormatter.SET(spConfig.maskReg));
+            code.addOutput(spConfig.outputFormatter.SET(spConfig.maskedReg)); // maskedReg is 1 everywhere
+            int steps = spConfig.selectFlood(code, reg.bank, highestBit, spConfig.maskReg, spConfig.scratchRegisters);
+            code.addOutput(spConfig.outputFormatter.NOT(spConfig.maskedReg, reg.name)); // maskedReg at highest bit is 0 iff negative. everywhere else is 1
+            code.addOutput(spConfig.outputFormatter.OR(spConfig.maskReg, spConfig.northReg, spConfig.eastReg, spConfig.southReg, spConfig.westReg));
             // Dir registers are set for PE's in this bank and Mask is set iff the PE has a dir reg set (so PEs outside the bank and the highest bit in the bank are 0)
             for (int i = 0; i < steps; i++) {
-                sb.append(spConfig.outputFormatter.DNEWS0(spConfig.scratchRegisters.get(0), spConfig.maskedReg));
-                sb.append(spConfig.outputFormatter.MOV(spConfig.maskedReg, spConfig.scratchRegisters.get(0)));
+                code.addOutput(spConfig.outputFormatter.DNEWS0(spConfig.scratchRegisters.get(0), spConfig.maskedReg));
+                code.addOutput(spConfig.outputFormatter.MOV(spConfig.maskedReg, spConfig.scratchRegisters.get(0)));
             } // if negative flood 0 across the bank, else flood 1 across the bank. nonBank PEs have 1
 
-            sb.append(spConfig.outputFormatter.MOV(spConfig.maskReg, spConfig.maskedReg));// maskReg is 0 if output should be 0. maskReg is 1 if output should be equal to input
-            sb.append(spConfig.outputFormatter.MOV(spConfig.maskedReg, reg.name));// write input value only if it shouldn't be 0
-            sb.append(spConfig.outputFormatter.MOV(reg.name, spConfig.maskedReg)); // copy out value to Reg.
-            sb.append(spConfig.outputFormatter.newLine());
+            code.addOutput(spConfig.outputFormatter.MOV(spConfig.maskReg, spConfig.maskedReg));// maskReg is 0 if output should be 0. maskReg is 1 if output should be equal to input
+            code.addOutput(spConfig.outputFormatter.MOV(spConfig.maskedReg, reg.name));// write input value only if it shouldn't be 0
+            code.addOutput(spConfig.outputFormatter.MOV(reg.name, spConfig.maskedReg)); // copy out value to Reg.
+            code.addOutput(spConfig.outputFormatter.newLine());
         }
 
 
     }
 
-    private void doADC(StringBuilder sb) {
+    private void doADC(OutputCode code) {
         printLnVerbose("Doing ADC");
         JSONObject json = config.getJSONObject("pairGen");
         if(!json.has("adc")) return;
@@ -363,47 +364,47 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
             printLnVerbose("DigitalReg = %s", digitalOut);
             final int startBit = unitBit + bitDepth - 1;
 
-            sb.append(spConfig.outputFormatter.comment("Analogue to Digital Conversion. "+analogueIn+" -> " +digitalOut));
-            sb.append(spConfig.outputFormatter.all()); //Flag = true
-            sb.append(spConfig.outputFormatter.SET(spConfig.maskReg));
-            sb.append(spConfig.outputFormatter.CLR(spConfig.maskedReg)); // masked reg cleared
-            sb.append(spConfig.outputFormatter.newLine());
+            code.addOutput(spConfig.outputFormatter.comment("Analogue to Digital Conversion. "+analogueIn+" -> " +digitalOut));
+            code.addOutput(spConfig.outputFormatter.all()); //Flag = true
+            code.addOutput(spConfig.outputFormatter.SET(spConfig.maskReg));
+            code.addOutput(spConfig.outputFormatter.CLR(spConfig.maskedReg)); // masked reg cleared
+            code.addOutput(spConfig.outputFormatter.newLine());
 
             int comparator = -128;
             for (int b = 0; b < bitDepth; b++) {
                 int bit = startBit - b;
                 printLnVerbose("Step: "+b+" Bit: "+bit+" comparator: "+comparator);
-                sb.append(spConfig.outputFormatter.comment("Step: "+b+" Bit: "+bit+" comparator: "+comparator));
+                code.addOutput(spConfig.outputFormatter.comment("Step: "+b+" Bit: "+bit+" comparator: "+comparator));
 
                 if(b > 0){
-                    sb.append(spConfig.outputFormatter.movx(analogueIn, analogueIn, spConfig.getDirMoreSignificant(digitalOut.bank, bit)));
+                    code.addOutput(spConfig.outputFormatter.movx(analogueIn, analogueIn, spConfig.getDirMoreSignificant(digitalOut.bank, bit)));
                 }
 
-                sb.append(spConfig.outputFormatter.kernel_end());
-                sb.append(spConfig.outputFormatter.in(scratch, comparator));
-                spConfig.selectBit(sb, digitalOut.bank, bit, spConfig.maskReg, false);
-                sb.append(spConfig.outputFormatter.kernel_begin());
+                code.addOutput(spConfig.outputFormatter.kernel_end());
+                code.addOutput(spConfig.outputFormatter.in(scratch, comparator));
+                spConfig.selectBit(code, digitalOut.bank, bit, spConfig.maskReg, false);
+                code.addOutput(spConfig.outputFormatter.kernel_begin());
                 if(b > 0){
-                    sb.append(spConfig.outputFormatter.sub(analogueIn, analogueIn, scratch));
+                    code.addOutput(spConfig.outputFormatter.sub(analogueIn, analogueIn, scratch));
                 }
-                sb.append(spConfig.outputFormatter.where(analogueIn));
-                sb.append(spConfig.outputFormatter.MOV(spConfig.maskedReg, spConfig.flagReg));
-                sb.append(spConfig.outputFormatter.add(analogueIn, analogueIn, scratch));
-                sb.append(spConfig.outputFormatter.all());
+                code.addOutput(spConfig.outputFormatter.where(analogueIn));
+                code.addOutput(spConfig.outputFormatter.MOV(spConfig.maskedReg, spConfig.flagReg));
+                code.addOutput(spConfig.outputFormatter.add(analogueIn, analogueIn, scratch));
+                code.addOutput(spConfig.outputFormatter.all());
 
                 comparator /= 2;
-                sb.append(spConfig.outputFormatter.newLine());
+                code.addOutput(spConfig.outputFormatter.newLine());
             }
 
-            sb.append(spConfig.outputFormatter.MOV(digitalOut.name, spConfig.maskedReg));
-            sb.append(spConfig.outputFormatter.newLine());
+            code.addOutput(spConfig.outputFormatter.MOV(digitalOut.name, spConfig.maskedReg));
+            code.addOutput(spConfig.outputFormatter.newLine());
             printLnVerbose("Finished ADC %s", i);
 
         }
         printLnVerbose("Finished ADCs");
     }
 
-    private void doDAC(StringBuilder sb) {
+    private void doDAC(OutputCode code) {
         printLnVerbose("Doing DAC");
         JSONObject json = config.getJSONObject("pairGen");
         if(!json.has("dac")) return;
@@ -427,7 +428,7 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
             printLnVerbose("Bit Depth: %d", bitDepth);
             final int unitBit = jDAC.getInt("unitBit");
             printLnVerbose("unit Bit: %d", unitBit);
-            if(unitBit < 0 || unitBit > this.spConfig.getBits(this.initialGoals.get(0).getBank())) {
+            if(unitBit < 1 || unitBit > this.spConfig.getBits(this.initialGoals.get(0).getBank())) {
                 throw new IllegalArgumentException("UnitBits must be between 1 and the number of bits in each bank (inclusive)");
             }
 
@@ -440,62 +441,62 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
                 printLnVerbose("StartBit = number of bits - this does not bode well for two's complement");
             }
 
-            sb.append(spConfig.outputFormatter.comment("Digital to Analogue Conversion. "+digitalIn+" -> " +analogueOut));
-            sb.append(spConfig.outputFormatter.all());
-            sb.append(spConfig.outputFormatter.kernel_end());
-            sb.append(spConfig.outputFormatter.in(analogueOut, -128));
-            sb.append(spConfig.outputFormatter.kernel_begin());
+            code.addOutput(spConfig.outputFormatter.comment("Digital to Analogue Conversion. "+digitalIn+" -> " +analogueOut));
+            code.addOutput(spConfig.outputFormatter.all());
+            code.addOutput(spConfig.outputFormatter.kernel_end());
+            code.addOutput(spConfig.outputFormatter.in(analogueOut, -128));
+            code.addOutput(spConfig.outputFormatter.kernel_begin());
 
-            sb.append(spConfig.outputFormatter.newLine());
+            code.addOutput(spConfig.outputFormatter.newLine());
 
             if(spConfig.getBits(digitalIn.bank) - 1 > startBit) {
-                sb.append(spConfig.outputFormatter.comment("Detect Overflow/OverExposure"));
-                sb.append(spConfig.outputFormatter.SET(spConfig.maskReg));
-                sb.append(spConfig.outputFormatter.MOV(spConfig.maskedReg, digitalIn.name));
+                code.addOutput(spConfig.outputFormatter.comment("Detect Overflow/OverExposure"));
+                code.addOutput(spConfig.outputFormatter.SET(spConfig.maskReg));
+                code.addOutput(spConfig.outputFormatter.MOV(spConfig.maskedReg, digitalIn.name));
                 if (spConfig.getBits(digitalIn.bank) - 2 > startBit) {
-                    spConfig.setDirMoreSignificant(sb, digitalIn.bank);
+                    spConfig.setDirMoreSignificant(code, digitalIn.bank);
                     for (int b = 0; b < spConfig.getBits(digitalIn.bank) - 2 - startBit; b++) {
-                        sb.append(spConfig.outputFormatter.DNEWS0(spConfig.scratchRegisters.get(0), spConfig.maskedReg));
-                        sb.append(spConfig.outputFormatter.OR(spConfig.maskedReg, spConfig.scratchRegisters.get(0), digitalIn.name));
+                        code.addOutput(spConfig.outputFormatter.DNEWS0(spConfig.scratchRegisters.get(0), spConfig.maskedReg));
+                        code.addOutput(spConfig.outputFormatter.OR(spConfig.maskedReg, spConfig.scratchRegisters.get(0), digitalIn.name));
                     }
                 }
-                sb.append(spConfig.outputFormatter.kernel_end());
-                sb.append(spConfig.outputFormatter.in(scratch, -128));
-                int steps = spConfig.selectFlood(sb, digitalIn.bank, startBit+1, null, spConfig.scratchRegisters, true, false);
-                sb.append(spConfig.outputFormatter.kernel_begin());
+                code.addOutput(spConfig.outputFormatter.kernel_end());
+                code.addOutput(spConfig.outputFormatter.in(scratch, -128));
+                int steps = spConfig.selectFlood(code, digitalIn.bank, startBit+1, null, spConfig.scratchRegisters, true, false);
+                code.addOutput(spConfig.outputFormatter.kernel_begin());
 
-                sb.append(spConfig.outputFormatter.OR(spConfig.maskReg, spConfig.northReg, spConfig.eastReg, spConfig.southReg, spConfig.westReg));
+                code.addOutput(spConfig.outputFormatter.OR(spConfig.maskReg, spConfig.northReg, spConfig.eastReg, spConfig.southReg, spConfig.westReg));
                 // Dir registers are set for all PE's except at bit => mask 1 for all PEs except bit
                 for (int step = 0; step < steps; step++) {
-                    sb.append(spConfig.outputFormatter.DNEWS0(spConfig.scratchRegisters.get(0), spConfig.maskedReg));
-                    sb.append(spConfig.outputFormatter.MOV(spConfig.maskedReg, spConfig.scratchRegisters.get(0)));
+                    code.addOutput(spConfig.outputFormatter.DNEWS0(spConfig.scratchRegisters.get(0), spConfig.maskedReg));
+                    code.addOutput(spConfig.outputFormatter.MOV(spConfig.maskedReg, spConfig.scratchRegisters.get(0)));
                 } // if digitalIn[bit] is 1: flood 1, else flood 0 across the Super pixel
-                sb.append(spConfig.outputFormatter.WHERE(spConfig.maskedReg)); // enable analogue side iff digitalIn[bit] is 1 for any bit from [msb-1 to startBit+1]
-                sb.append(spConfig.outputFormatter.sub(analogueOut, analogueOut, scratch)); // -128 - -128 = 0
-                sb.append(spConfig.outputFormatter.sub(analogueOut, analogueOut, scratch)); // 0 - -128 = 128= over exposed
-                sb.append(spConfig.outputFormatter.newLine());
+                code.addOutput(spConfig.outputFormatter.WHERE(spConfig.maskedReg)); // enable analogue side iff digitalIn[bit] is 1 for any bit from [msb-1 to startBit+1]
+                code.addOutput(spConfig.outputFormatter.sub(analogueOut, analogueOut, scratch)); // -128 - -128 = 0
+                code.addOutput(spConfig.outputFormatter.sub(analogueOut, analogueOut, scratch)); // 0 - -128 = 128= over exposed
+                code.addOutput(spConfig.outputFormatter.newLine());
             }
 
             int value = -128;
             for (int b = 0; b < bitDepth; b++) {
                 int bit = startBit - b;
                 printLnVerbose("Step: "+b+" Bit: "+bit+" value: "+value);
-                sb.append(spConfig.outputFormatter.comment("Step: "+b+" Bit: "+bit+" value: "+value));
+                code.addOutput(spConfig.outputFormatter.comment("Step: "+b+" Bit: "+bit+" value: "+value));
 
-                sb.append(spConfig.outputFormatter.SET(spConfig.maskReg));
-                sb.append(spConfig.outputFormatter.MOV(spConfig.maskedReg, digitalIn.name)); // maskedReg at bit = digitalIn
+                code.addOutput(spConfig.outputFormatter.SET(spConfig.maskReg));
+                code.addOutput(spConfig.outputFormatter.MOV(spConfig.maskedReg, digitalIn.name)); // maskedReg at bit = digitalIn
 
-                sb.append(spConfig.outputFormatter.kernel_end());
-                sb.append(spConfig.outputFormatter.in(scratch, value));
-                int steps = spConfig.selectFlood(sb, digitalIn.bank, bit, null, spConfig.scratchRegisters, true, false);
-                sb.append(spConfig.outputFormatter.kernel_begin());
+                code.addOutput(spConfig.outputFormatter.kernel_end());
+                code.addOutput(spConfig.outputFormatter.in(scratch, value));
+                int steps = spConfig.selectFlood(code, digitalIn.bank, bit, null, spConfig.scratchRegisters, true, false);
+                code.addOutput(spConfig.outputFormatter.kernel_begin());
 
 
-                sb.append(spConfig.outputFormatter.OR(spConfig.maskReg, spConfig.northReg, spConfig.eastReg, spConfig.southReg, spConfig.westReg));
+                code.addOutput(spConfig.outputFormatter.OR(spConfig.maskReg, spConfig.northReg, spConfig.eastReg, spConfig.southReg, spConfig.westReg));
                 // Dir registers are set for all PE's except at bit => mask 1 for all PEs except bit
                 for (int step = 0; step < steps; step++) {
-                    sb.append(spConfig.outputFormatter.DNEWS0(spConfig.scratchRegisters.get(0), spConfig.maskedReg));
-                    sb.append(spConfig.outputFormatter.MOV(spConfig.maskedReg, spConfig.scratchRegisters.get(0)));
+                    code.addOutput(spConfig.outputFormatter.DNEWS0(spConfig.scratchRegisters.get(0), spConfig.maskedReg));
+                    code.addOutput(spConfig.outputFormatter.MOV(spConfig.maskedReg, spConfig.scratchRegisters.get(0)));
                 } // if digitalIn[bit] is 1: flood 1, else flood 0 across the Super pixel
 
 //                if(b == 0){
@@ -503,39 +504,39 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
 //                    sb.append(spConfig.outputFormatter.WHERE(spConfig.northReg)); // enable analogue side iff digitalIn[bit] is 0. for most significant bit
 //                    sb.append(spConfig.outputFormatter.add(analogueOut, analogueOut, scratch)); // add -128 to 0 to get -128 iff digitalIn[bit=0] is 0
 //                } else {
-                sb.append(spConfig.outputFormatter.WHERE(spConfig.maskedReg)); // enable analogue side iff digitalIn[bit] is 1.
-                sb.append(spConfig.outputFormatter.sub(analogueOut, analogueOut, scratch));
+                code.addOutput(spConfig.outputFormatter.WHERE(spConfig.maskedReg)); // enable analogue side iff digitalIn[bit] is 1.
+                code.addOutput(spConfig.outputFormatter.sub(analogueOut, analogueOut, scratch));
 //                }
-                sb.append(spConfig.outputFormatter.all());
+                code.addOutput(spConfig.outputFormatter.all());
 
                 value /= 2;
-                sb.append(spConfig.outputFormatter.newLine());
+                code.addOutput(spConfig.outputFormatter.newLine());
             }
 
             if(startBit != spConfig.getBits(digitalIn.bank)){
                 // if highest bit is set then we should reset analogue value to -128 as this is a negative number (under-exposed)
-                sb.append(spConfig.outputFormatter.comment("Detect Underflow/UnderExposure"));
-                sb.append(spConfig.outputFormatter.SET(spConfig.maskReg));
-                sb.append(spConfig.outputFormatter.MOV(spConfig.maskedReg, digitalIn.name));
+                code.addOutput(spConfig.outputFormatter.comment("Detect Underflow/UnderExposure"));
+                code.addOutput(spConfig.outputFormatter.SET(spConfig.maskReg));
+                code.addOutput(spConfig.outputFormatter.MOV(spConfig.maskedReg, digitalIn.name));
 
-                sb.append(spConfig.outputFormatter.kernel_end());
-                sb.append(spConfig.outputFormatter.in(scratch, -128));
-                int steps = spConfig.selectFlood(sb, digitalIn.bank, spConfig.getBits(digitalIn.bank), null, spConfig.scratchRegisters, true, false);
-                sb.append(spConfig.outputFormatter.kernel_begin());
-                sb.append(spConfig.outputFormatter.OR(spConfig.maskReg, spConfig.northReg, spConfig.eastReg, spConfig.southReg, spConfig.westReg));
+                code.addOutput(spConfig.outputFormatter.kernel_end());
+                code.addOutput(spConfig.outputFormatter.in(scratch, -128));
+                int steps = spConfig.selectFlood(code, digitalIn.bank, spConfig.getBits(digitalIn.bank), null, spConfig.scratchRegisters, true, false);
+                code.addOutput(spConfig.outputFormatter.kernel_begin());
+                code.addOutput(spConfig.outputFormatter.OR(spConfig.maskReg, spConfig.northReg, spConfig.eastReg, spConfig.southReg, spConfig.westReg));
                 // Dir registers are set for all PE's except at bit => mask = 1 for all PEs except bit
                 for (int step = 0; step < steps; step++) {
-                    sb.append(spConfig.outputFormatter.DNEWS0(spConfig.scratchRegisters.get(0), spConfig.maskedReg));
-                    sb.append(spConfig.outputFormatter.MOV(spConfig.maskedReg, spConfig.scratchRegisters.get(0)));
+                    code.addOutput(spConfig.outputFormatter.DNEWS0(spConfig.scratchRegisters.get(0), spConfig.maskedReg));
+                    code.addOutput(spConfig.outputFormatter.MOV(spConfig.maskedReg, spConfig.scratchRegisters.get(0)));
                 } // if digitalIn[msb] is 1: flood 1, else flood 0 across the Super pixel
-                sb.append(spConfig.outputFormatter.WHERE(spConfig.maskedReg)); // enable analogue side iff digitalIn[bit] is 1.
-                sb.append(spConfig.outputFormatter.mov(analogueOut, scratch)); // enable analogue side iff digitalIn[bit] is 1.
+                code.addOutput(spConfig.outputFormatter.WHERE(spConfig.maskedReg)); // enable analogue side iff digitalIn[bit] is 1.
+                code.addOutput(spConfig.outputFormatter.mov(analogueOut, scratch)); // enable analogue side iff digitalIn[bit] is 1.
 
 
             }
 
 
-            sb.append(spConfig.outputFormatter.newLine());
+            code.addOutput(spConfig.outputFormatter.newLine());
 
 
         }
@@ -543,29 +544,30 @@ public abstract class Scamp5SuperPixelFileRun<G extends BankedKernel3DGoal<G>> e
 
 
     @Override
-    protected String generateCode(Plan<G, Scamp5SuperPixelTransformation<G>, BRegister> p){
+    protected OutputCode generateCode(Plan<G, Scamp5SuperPixelTransformation<G>, BRegister> p){
         printLnVerbose("Generating Code for plan with Length %s, Cost %s", p.depth(), p.totalInstructionCost());
         RegisterAllocator.Mapping<G,BRegister> mapping = registerAllocator.solve(p);
         printLnVerbose("Registers allocated");
         StringBuilder sb = new StringBuilder();
-        sb.append(spConfig.outputFormatter.kernel_begin());
-        sb.append(spConfig.outputFormatter.newLine());
-        this.doADC(sb);
-        sb.append(spConfig.outputFormatter.comment("Kernel Code!"));
-        sb.append(spConfig.outputFormatter.newLine());
-        sb.append(spConfig.outputFormatter.comment("Inputs in: " + mapping.initRegisters().toString()));
-        sb.append(spConfig.outputFormatter.newLine());
+        OutputCode code = new OutputCode();
+        code.addOutput(spConfig.outputFormatter.kernel_begin());
+        code.addOutput(spConfig.outputFormatter.newLine());
+        this.doADC(code);
+        code.addOutput(spConfig.outputFormatter.comment("Kernel Code!"));
+        code.addOutput(spConfig.outputFormatter.newLine());
+        code.addOutput(spConfig.outputFormatter.comment("Inputs in: " + mapping.initRegisters().toString()));
+        code.addOutput(spConfig.outputFormatter.newLine());
         printLnVerbose("ProduceCode");
-        sb.append(p.produceCode(mapping));
+        code.addOutput(p.produceCode(mapping));
         printLnVerbose("ProducedCode");
-        sb.append(spConfig.outputFormatter.newLine());
-        this.doBias(sb);
-        this.doRelu(sb);
-        this.doDAC(sb);
-        sb.append(spConfig.outputFormatter.kernel_end());
-        sb.append(spConfig.outputFormatter.newLine());
+        code.addOutput(spConfig.outputFormatter.newLine());
+        this.doBias(code);
+        this.doRelu(code);
+        this.doDAC(code);
+        code.addOutput(spConfig.outputFormatter.kernel_end());
+        code.addOutput(spConfig.outputFormatter.newLine());
         printLnVerbose("Code Generated");
-        return sb.toString();
+        return code;
     }
 
 

@@ -10,18 +10,18 @@ public class Scamp5JssOutputFormatter implements Scamp5OutputFormatter {
   }
 
   @Override
-  public String NOR(String r1, String r2, String r3) {
-    return String.format("%1$s.NOR(%1$s.%2$s, %1$s.%3$s, %1$s.%4$s); ", simulatorName, r1, r2, r3);
+  public OutputCode NOR(String r1, String r2, String r3) {
+    return new OutputCode().addOp(String.format("%1$s.NOR(%1$s.%2$s, %1$s.%3$s, %1$s.%4$s); ", simulatorName, r1, r2, r3));
   }
 
 
   @Override
-  public String MOV(String r1, String r2) {
-    return String.format("%1$s.MOV(%1$s.%2$s, %1$s.%3$s); ", simulatorName, r1, r2);
+  public OutputCode MOV(String r1, String r2) {
+    return new OutputCode().addOp(String.format("%1$s.MOV(%1$s.%2$s, %1$s.%3$s); ", simulatorName, r1, r2));
   }
 
   @Override
-  public String CLR(String... rs) {
+  public OutputCode CLR(String... rs) {
     assert rs.length > 0;
     assert rs.length < 5;
     StringBuilder sb = new StringBuilder(simulatorName).append(".CLR(");
@@ -31,46 +31,46 @@ public class Scamp5JssOutputFormatter implements Scamp5OutputFormatter {
       sb.append(simulatorName).append(".").append(r);
     }
     sb.append("); ");
-    return sb.toString();
+    return new OutputCode().addOp(sb.toString());
   }
 
   @Override
-  public String CLR(String r1) {
-    return String.format("%1$s.CLR(%1$s.%2$s); ", simulatorName, r1);
+  public OutputCode CLR(String r1) {
+    return new OutputCode().addOp(String.format("%1$s.CLR(%1$s.%2$s); ", simulatorName, r1));
   }
 
   @Override
-  public String CLR(String r1, String r2) {
-    return String.format("%1$s.CLR(%1$s.%2$s, %1$s.%3$s); ", simulatorName, r1, r2);
+  public OutputCode CLR(String r1, String r2) {
+    return new OutputCode().addOp(String.format("%1$s.CLR(%1$s.%2$s, %1$s.%3$s); ", simulatorName, r1, r2));
   }
 
   @Override
-  public String CLR(String r1, String r2, String r3) {
-    return String.format("%1$s.CLR(%1$s.%2$s, %1$s.%3$s, %1$s.%4$s); ", simulatorName, r1, r2, r3);
+  public OutputCode CLR(String r1, String r2, String r3) {
+    return new OutputCode().addOp(String.format("%1$s.CLR(%1$s.%2$s, %1$s.%3$s, %1$s.%4$s); ", simulatorName, r1, r2, r3));
   }
 
   @Override
-  public String CLR(String r1, String r2, String r3, String r4) {
-    return String.format("%1$s.CLR(%1$s.%2$s, %1$s.%3$s, %1$s.%4$s, %1$s.%5$s); ", simulatorName, r1, r2, r3, r4);
+  public OutputCode CLR(String r1, String r2, String r3, String r4) {
+    return new OutputCode().addOp(String.format("%1$s.CLR(%1$s.%2$s, %1$s.%3$s, %1$s.%4$s, %1$s.%5$s); ", simulatorName, r1, r2, r3, r4));
   }
 
   @Override
-  public String SET(String r1) {
-    return String.format("%1$s.SET(%1$s.%2$s); ", simulatorName, r1);
+  public OutputCode SET(String r1) {
+    return new OutputCode().addOp(String.format("%1$s.SET(%1$s.%2$s); ", simulatorName, r1));
   }
 
   @Override
-  public String SET(String r1, String r2) {
-    return String.format("%1$s.SET(%1$s.%2$s, %1$s.%3$s); ", simulatorName, r1, r2);
+  public OutputCode SET(String r1, String r2) {
+    return new OutputCode().addOp(String.format("%1$s.SET(%1$s.%2$s, %1$s.%3$s); ", simulatorName, r1, r2));
   }
 
   @Override
-  public String NOT(String r1, String r2) {
-    return String.format("%1$s.NOT(%1$s.%2$s, %1$s.%3$s); ", simulatorName, r1, r2);
+  public OutputCode NOT(String r1, String r2) {
+    return new OutputCode().addOp(String.format("%1$s.NOT(%1$s.%2$s, %1$s.%3$s); ", simulatorName, r1, r2));
   }
 
   @Override
-  public String OR(String r1, String[] rs) {
+  public OutputCode OR(String r1, String[] rs) {
     assert rs.length > 1;
     assert rs.length < 5;
     StringBuilder sb = new StringBuilder(String.format("%1$s.OR(%1$s.%2$s", simulatorName, r1));
@@ -78,143 +78,143 @@ public class Scamp5JssOutputFormatter implements Scamp5OutputFormatter {
       sb.append(", ").append(simulatorName).append(".").append(r);
     }
     sb.append("); ");
-    return sb.toString();
+    return new OutputCode().addOp(sb.toString());
   }
 
 
   @Override
-  public String DNEWS0(String r1, String r2) {
-    return String.format("%1$s.DNEWS0(%1$s.%2$s, %1$s.%3$s); ", simulatorName, r1, r2);
+  public OutputCode DNEWS0(String r1, String r2) {
+    return new OutputCode().addOp(String.format("%1$s.DNEWS0(%1$s.%2$s, %1$s.%3$s); ", simulatorName, r1, r2));
   }
 
   @Override
-  public String add2x(Register y, Register x0, Register x1, String dir1, String dir2) {
-    return String.format("%1$s.add2x(%1$s.%2$s, %1$s.%3$s, %1$s.%4$s, %5$s, %6$s); ", simulatorName, y, x0, x1, dir1, dir2);
+  public OutputCode add2x(Register y, Register x0, Register x1, String dir1, String dir2) {
+    return new OutputCode().addOp(String.format("%1$s.add2x(%1$s.%2$s, %1$s.%3$s, %1$s.%4$s, %5$s, %6$s); ", simulatorName, y, x0, x1, dir1, dir2));
   }
 
   @Override
-  public String add(Register y, Register x0, Register x1) {
-    return String.format("%1$s.add(%1$s.%2$s, %1$s.%3$s, %1$s.%4$s); ", simulatorName, y, x0, x1);
+  public OutputCode add(Register y, Register x0, Register x1) {
+    return new OutputCode().addOp(String.format("%1$s.add(%1$s.%2$s, %1$s.%3$s, %1$s.%4$s); ", simulatorName, y, x0, x1));
   }
 
   @Override
-  public String add(Register y, Register x0, Register x1, Register x2) {
-    return String.format("%1$s.add(%1$s.%2$s, %1$s.%3$s, %1$s.%4$s, %1$s.%5$s); ", simulatorName, y, x0, x1, x2);
+  public OutputCode add(Register y, Register x0, Register x1, Register x2) {
+    return new OutputCode().addOp(String.format("%1$s.add(%1$s.%2$s, %1$s.%3$s, %1$s.%4$s, %1$s.%5$s); ", simulatorName, y, x0, x1, x2));
   }
 
   @Override
-  public String addx(Register y, Register x0, Register x1, String dir) {
-    return String.format("%1$s.addx(%1$s.%2$s, %1$s.%3$s, %1$s.%4$s, %5$s); ", simulatorName, y, x0, x1, dir);
+  public OutputCode addx(Register y, Register x0, Register x1, String dir) {
+    return new OutputCode().addOp(String.format("%1$s.addx(%1$s.%2$s, %1$s.%3$s, %1$s.%4$s, %5$s); ", simulatorName, y, x0, x1, dir));
   }
 
   @Override
-  public String diva(Register y0, Register y1, Register y2) {
-    return String.format("%1$s.diva(%1$s.%2$s, %1$s.%3$s, %1$s.%4$s); ", simulatorName, y0, y1, y2);
+  public OutputCode diva(Register y0, Register y1, Register y2) {
+    return new OutputCode().addOp(String.format("%1$s.diva(%1$s.%2$s, %1$s.%3$s, %1$s.%4$s); ", simulatorName, y0, y1, y2));
   }
 
   @Override
-  public String div(Register y0, Register y1, Register y2) {
-    return String.format("%1$s.div(%1$s.%2$s, %1$s.%3$s, %1$s.%4$s); ", simulatorName, y0, y1, y2);
+  public OutputCode div(Register y0, Register y1, Register y2) {
+    return new OutputCode().addOp(String.format("%1$s.div(%1$s.%2$s, %1$s.%3$s, %1$s.%4$s); ", simulatorName, y0, y1, y2));
   }
 
   @Override
-  public String div(Register y0, Register y1, Register y2, Register x0) {
-    return String.format("%1$s.div(%1$s.%2$s, %1$s.%3$s, %1$s.%4$s, %1$s.%5$s); ", simulatorName, y0, y1, y2, x0);
+  public OutputCode div(Register y0, Register y1, Register y2, Register x0) {
+    return new OutputCode().addOp(String.format("%1$s.div(%1$s.%2$s, %1$s.%3$s, %1$s.%4$s, %1$s.%5$s); ", simulatorName, y0, y1, y2, x0));
   }
 
   @Override
-  public String divq(Register y0, Register x0) {
-    return String.format("%1$s.divq(%1$s.%2$s, %1$s.%3$s); ", simulatorName, y0, x0);
+  public OutputCode divq(Register y0, Register x0) {
+    return new OutputCode().addOp(String.format("%1$s.divq(%1$s.%2$s, %1$s.%3$s); ", simulatorName, y0, x0));
   }
 
   @Override
-  public String mov(Register y, Register x0) {
-    return String.format("%1$s.mov(%1$s.%2$s, %1$s.%3$s); ", simulatorName, y, x0);
+  public OutputCode mov(Register y, Register x0) {
+    return new OutputCode().addOp(String.format("%1$s.mov(%1$s.%2$s, %1$s.%3$s); ", simulatorName, y, x0));
   }
 
   @Override
-  public String mov2x(Register y, Register x0, String dir1, String dir2) {
-    return String.format("%1$s.mov2x(%1$s.%2$s, %1$s.%3$s, %4$s, %5$s); ", simulatorName, y, x0, dir1, dir2);
+  public OutputCode mov2x(Register y, Register x0, String dir1, String dir2) {
+    return new OutputCode().addOp(String.format("%1$s.mov2x(%1$s.%2$s, %1$s.%3$s, %4$s, %5$s); ", simulatorName, y, x0, dir1, dir2));
   }
 
   @Override
-  public String movx(Register y, Register x0, String dir) {
-    return String.format("%1$s.movx(%1$s.%2$s, %1$s.%3$s, %4$s); ", simulatorName, y, x0, dir);
+  public OutputCode movx(Register y, Register x0, String dir) {
+    return new OutputCode().addOp(String.format("%1$s.movx(%1$s.%2$s, %1$s.%3$s, %4$s); ", simulatorName, y, x0, dir));
   }
 
   @Override
-  public String neg(Register y, Register x0) {
-    return String.format("%1$s.neg(%1$s.%2$s, %1$s.%3$s); ", simulatorName, y, x0);
+  public OutputCode neg(Register y, Register x0) {
+    return new OutputCode().addOp(String.format("%1$s.neg(%1$s.%2$s, %1$s.%3$s); ", simulatorName, y, x0));
   }
 
   @Override
-  public String res(Register a) {
-    return String.format("%1$s.res(%1$s.%2$s); ", simulatorName, a);
+  public OutputCode res(Register a) {
+    return new OutputCode().addOp(String.format("%1$s.res(%1$s.%2$s); ", simulatorName, a));
   }
 
   @Override
-  public String res(Register a, Register b) {
-    return String.format("%1$s.res(%1$s.%2$s, %1$s.%3$s); ", simulatorName, a, b);
+  public OutputCode res(Register a, Register b) {
+    return new OutputCode().addOp(String.format("%1$s.res(%1$s.%2$s, %1$s.%3$s); ", simulatorName, a, b));
   }
 
   @Override
-  public String sub(Register y, Register x0, Register x1) {
-    return String.format("%1$s.sub(%1$s.%2$s, %1$s.%3$s, %1$s.%4$s); ", simulatorName, y, x0, x1);
+  public OutputCode sub(Register y, Register x0, Register x1) {
+    return new OutputCode().addOp(String.format("%1$s.sub(%1$s.%2$s, %1$s.%3$s, %1$s.%4$s); ", simulatorName, y, x0, x1));
   }
 
   @Override
-  public String sub2x(Register y, Register x0, String dir1, String dir2, Register x1) {
-    return String.format("%1$s.sub2x(%1$s.%2$s, %1$s.%3$s, %4$s, %5$s, %1$s.%6$s); ", simulatorName, y, x0, dir1, dir2, x1);
+  public OutputCode sub2x(Register y, Register x0, String dir1, String dir2, Register x1) {
+    return new OutputCode().addOp(String.format("%1$s.sub2x(%1$s.%2$s, %1$s.%3$s, %4$s, %5$s, %1$s.%6$s); ", simulatorName, y, x0, dir1, dir2, x1));
   }
 
   @Override
-  public String subx(Register y, Register x0, String dir1, Register x1) {
-    return String.format("%1$s.subx(%1$s.%2$s, %1$s.%3$s, %4$s, %1$s.%5$s); ", simulatorName, y, x0, dir1, x1);
+  public OutputCode subx(Register y, Register x0, String dir1, Register x1) {
+    return new OutputCode().addOp(String.format("%1$s.subx(%1$s.%2$s, %1$s.%3$s, %4$s, %1$s.%5$s); ", simulatorName, y, x0, dir1, x1));
   }
 
 
   @Override
-  public String load_pattern(String r1, byte r, byte c, byte rx, byte cx) {
-    return String.format("%1$s.scamp5_load_pattern(%1$s.%2$s, 0x%3$02x, 0x%4$02x, 0x%5$02x, 0x%6$02x); ", simulatorName, r1, r, c, rx, cx);
+  public OutputCode load_pattern(String r1, byte r, byte c, byte rx, byte cx) {
+    return new OutputCode().addSelect(String.format("%1$s.scamp5_load_pattern(%1$s.%2$s, 0x%3$02x, 0x%4$02x, 0x%5$02x, 0x%6$02x); ", simulatorName, r1, r, c, rx, cx));
   }
 
   @Override
-  public String select_pattern(byte r, byte c, byte rx, byte cx) {
-    return String.format("%1$s.scamp5_select_pattern(0x%2$02x, 0x%3$02x, 0x%4$02x, 0x%5$02x); ", simulatorName, r, c, rx, cx);
+  public OutputCode select_pattern(byte r, byte c, byte rx, byte cx) {
+    return new OutputCode().addSelect(String.format("%1$s.scamp5_select_pattern(0x%2$02x, 0x%3$02x, 0x%4$02x, 0x%5$02x); ", simulatorName, r, c, rx, cx));
   }
 
   @Override
-  public String kernel_begin() {
-    return "/*Kernel Begin*/";
+  public OutputCode kernel_begin() {
+    return new OutputCode().addOther("/*Kernel Begin*/");
   }
 
   @Override
-  public String kernel_end() {
-    return "/*Kernel End*/";
+  public OutputCode kernel_end() {
+    return new OutputCode().addOther("/*Kernel End*/");
   }
 
   @Override
-  public String all() {
-    return String.format("%1$s.all(); ", simulatorName);
+  public OutputCode all() {
+    return new OutputCode().addOp(String.format("%1$s.all(); ", simulatorName));
   }
 
   @Override
-  public String ALL() {
-    return String.format("%1$s.ALL(); ", simulatorName);
+  public OutputCode ALL() {
+    return new OutputCode().addOp(String.format("%1$s.ALL(); ", simulatorName));
   }
 
   @Override
-  public String where(Register a) {
-    return String.format("%1$s.where(%1$s.%2$s); ", simulatorName, a);
+  public OutputCode where(Register a) {
+    return new OutputCode().addOp(String.format("%1$s.where(%1$s.%2$s); ", simulatorName, a));
   }
 
   @Override
-  public String WHERE(String x) {
-    return String.format("%1$s.WHERE(%1$s.%2$s); ", simulatorName, x);
+  public OutputCode WHERE(String x) {
+    return new OutputCode().addOp(String.format("%1$s.WHERE(%1$s.%2$s); ", simulatorName, x));
   }
 
   @Override
-  public String in(Register a, int value) {
-    return String.format("%1$s.scamp5_in(%1$s.%2$s, %3$s); ", simulatorName, a, value);
+  public OutputCode in(Register a, int value) {
+    return new OutputCode().addOp(String.format("%1$s.scamp5_in(%1$s.%2$s, %3$s); ", simulatorName, a, value));
   }
 }

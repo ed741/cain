@@ -2,6 +2,7 @@ package uk.co.edstow.cain.goals.atomGoal.pairGen;
 
 import uk.co.edstow.cain.pairgen.Distance;
 import uk.co.edstow.cain.regAlloc.Register;
+import uk.co.edstow.cain.scamp5.output.OutputCode;
 import uk.co.edstow.cain.transformations.StandardTransformation;
 import uk.co.edstow.cain.goals.atomGoal.Atom;
 import uk.co.edstow.cain.goals.atomGoal.AtomGoal;
@@ -11,7 +12,7 @@ import java.util.*;
 
 public abstract class SimpleTransformation implements StandardTransformation {
     @Override
-    public String code(List<Register> uppers, List<Register> lowers, List<Register> trash) {
+    public OutputCode code(List<Register> uppers, List<Register> lowers, List<Register> trash) {
         if(uppers.size()==1){
             return code(uppers.get(0), new ArrayList<>(lowers));
         } else {
@@ -19,7 +20,7 @@ public abstract class SimpleTransformation implements StandardTransformation {
         }
     }
 
-    public abstract String code(Register upper, List<Register> lowers);
+    public abstract OutputCode code(Register upper, List<Register> lowers);
 
     public abstract AtomGoal applyForwards() throws TransformationApplicationException;
 
@@ -100,13 +101,13 @@ public abstract class SimpleTransformation implements StandardTransformation {
 
 
         @Override
-        public String code(List<Register> uppers, List<Register> lowers, List<Register> trash) {
-            return String.format("//Null Instruction: %s <- %s", uppers, lowers);
+        public OutputCode code(List<Register> uppers, List<Register> lowers, List<Register> trash) {
+            return new OutputCode().addComment(String.format("//Null Instruction: %s <- %s", uppers, lowers));
         }
 
         @Override
-        public String code(Register upper, List<Register> lowers) {
-            return String.format("//Null Instruction: %s <- %s", upper, lowers);
+        public OutputCode code(Register upper, List<Register> lowers) {
+            return new OutputCode().addComment(String.format("//Null Instruction: %s <- %s", upper, lowers));
         }
 
         @Override
@@ -192,9 +193,9 @@ public abstract class SimpleTransformation implements StandardTransformation {
         }
 
         @Override
-        public String code(Register upper, List<Register> lowers) {
+        public OutputCode code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("div %d (%s, %s)", divisions, upper, lowers.get(0));
+            return new OutputCode().addOp(String.format("div %d (%s, %s)", divisions, upper, lowers.get(0)));
         }
 
         @Override
@@ -257,9 +258,9 @@ public abstract class SimpleTransformation implements StandardTransformation {
 
 
         @Override
-        public String code(Register upper, List<Register> lowers) {
+        public OutputCode code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
-            return String.format("move(%s, %s, %d, %s)", upper, lowers.get(0), steps, dir);
+            return new OutputCode().addOp(String.format("move(%s, %s, %d, %s)", upper, lowers.get(0), steps, dir));
         }
 
         @Override
@@ -303,7 +304,7 @@ public abstract class SimpleTransformation implements StandardTransformation {
         }
 
         @Override
-        public String code(Register upper, List<Register> lowers) {
+        public OutputCode code(Register upper, List<Register> lowers) {
             assert lowers.size() == inputCount();
             StringBuilder sb = new StringBuilder();
             sb.append("add(");
@@ -313,7 +314,7 @@ public abstract class SimpleTransformation implements StandardTransformation {
                 sb.append(lower);
             }
             sb.append(")");
-            return sb.toString();
+            return new OutputCode().addOp(sb.toString());
         }
 
         @Override
